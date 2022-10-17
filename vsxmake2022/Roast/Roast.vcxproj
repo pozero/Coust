@@ -12,16 +12,12 @@ xmake version 2.7.1+HEAD.0162040cd
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="debug|Win32">
-      <Configuration>debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="release|Win32">
-      <Configuration>release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="debug|x64">
       <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="releasedbg|x64">
+      <Configuration>releasedbg</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="release|x64">
@@ -44,50 +40,6 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeProgramDir Condition="'$(XmakeProgramDir)' == ''">C:\Program Files\xmake</XmakeProgramDir>
   </PropertyGroup>
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.Defaults.props" />
-  <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">
-    <XmakeBasename>Roast</XmakeBasename>
-    <XmakeFilename>Roast.exe</XmakeFilename>
-    <XmakeMode>debug</XmakeMode>
-    <XmakePlat>windows</XmakePlat>
-    <XmakeArch>x86</XmakeArch>
-    <XmakeKind>binary</XmakeKind>
-    <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines></XmakeDefines>
-    <XmakeLanguages></XmakeLanguages>
-    <XmakeSubSystem>console</XmakeSubSystem>
-    <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
-    <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
-    <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\build\windows\x86\debug;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
-    <XmakeRunArgs><!-- nil --></XmakeRunArgs>
-    <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x86\debug</XmakeLinkDirs>
-    <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
-  </PropertyGroup>
-  <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|Win32'">
-    <XmakeBasename>Roast</XmakeBasename>
-    <XmakeFilename>Roast.exe</XmakeFilename>
-    <XmakeMode>release</XmakeMode>
-    <XmakePlat>windows</XmakePlat>
-    <XmakeArch>x86</XmakeArch>
-    <XmakeKind>binary</XmakeKind>
-    <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines></XmakeDefines>
-    <XmakeLanguages></XmakeLanguages>
-    <XmakeSubSystem>console</XmakeSubSystem>
-    <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
-    <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
-    <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\build\windows\x86\release;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
-    <XmakeRunArgs><!-- nil --></XmakeRunArgs>
-    <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x86\release</XmakeLinkDirs>
-    <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
-  </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
     <XmakeBasename>Roast</XmakeBasename>
     <XmakeFilename>Roast.exe</XmakeFilename>
@@ -96,8 +48,8 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>binary</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines></XmakeDefines>
-    <XmakeLanguages></XmakeLanguages>
+    <XmakeDefines>COUST_DEBUG</XmakeDefines>
+    <XmakeLanguages>cxx14</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
@@ -105,8 +57,30 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=$(XmakeProjectDir)\build\windows\x64\debug;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
+    <XmakeSourceDirs></XmakeSourceDirs>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+  </PropertyGroup>
+  <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
+    <XmakeBasename>Roast</XmakeBasename>
+    <XmakeFilename>Roast.exe</XmakeFilename>
+    <XmakeMode>releasedbg</XmakeMode>
+    <XmakePlat>windows</XmakePlat>
+    <XmakeArch>x64</XmakeArch>
+    <XmakeKind>binary</XmakeKind>
+    <XmakeDefault>true</XmakeDefault>
+    <XmakeDefines>COUST_DBG_RELEASE</XmakeDefines>
+    <XmakeLanguages>cxx14</XmakeLanguages>
+    <XmakeSubSystem>console</XmakeSubSystem>
+    <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
+    <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
+    <XmakeMfcKind><!-- nil --></XmakeMfcKind>
+    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\build\windows\x64\releasedbg;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunArgs><!-- nil --></XmakeRunArgs>
+    <XmakeConfigFlags></XmakeConfigFlags>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
@@ -118,8 +92,8 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>binary</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines></XmakeDefines>
-    <XmakeLanguages></XmakeLanguages>
+    <XmakeDefines>COUST_FULL_RELEASE</XmakeDefines>
+    <XmakeLanguages>cxx14</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
@@ -127,27 +101,20 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=$(XmakeProjectDir)\build\windows\x64\release;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
 
-  <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">
-    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
-    <XmakeConfigDir></XmakeConfigDir>
-    <XmakeConfigFileDir></XmakeConfigFileDir>
-    <XmakeTargetDir></XmakeTargetDir>
-    <XmakeRunDir></XmakeRunDir>
-  </PropertyGroup>
-  <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='release|Win32'">
-    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
-    <XmakeConfigDir></XmakeConfigDir>
-    <XmakeConfigFileDir></XmakeConfigFileDir>
-    <XmakeTargetDir></XmakeTargetDir>
-    <XmakeRunDir></XmakeRunDir>
-  </PropertyGroup>
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
+    <XmakeConfigDir></XmakeConfigDir>
+    <XmakeConfigFileDir></XmakeConfigFileDir>
+    <XmakeTargetDir></XmakeTargetDir>
+    <XmakeRunDir></XmakeRunDir>
+  </PropertyGroup>
+  <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
     <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>

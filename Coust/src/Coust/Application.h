@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Api.h"
-
 namespace Coust
 {
-    class COUST_API Application
+    class Application
     {
     public:
         Application();

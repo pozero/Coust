@@ -6,7 +6,6 @@ namespace Coust
 {
     Application::Application()
     {
-    
     }
 
     Application::~Application()
