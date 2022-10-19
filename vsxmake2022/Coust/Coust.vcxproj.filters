@@ -53,6 +53,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h">
+      <Filter>Coust\src</Filter>
+    </ClInclude>
 
 
   </ItemGroup>
@@ -63,6 +66,9 @@ xmake version 2.7.1+HEAD.0162040cd
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.cpp">
       <Filter>Coust\src\Coust</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
+      <Filter>Coust\src</Filter>
     </ClCompile>
 
 

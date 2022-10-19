@@ -13,12 +13,17 @@ if is_mode("release") then
 end
 
 set_allowedarchs("windows|x64")
-set_languages("c++14")
+set_languages("c++17")
+set_warnings("all", "error")
 
 target("Coust")
     set_kind("static")
+
+    set_pcxxheader("Coust/src/pch.h")
+    add_includedirs("Coust/src")
     
     -- source file
+    add_files("Coust/src/*.cpp")
     add_files("Coust/src/Coust/*.cpp")
 
     add_headerfiles("Coust/src/*.h")

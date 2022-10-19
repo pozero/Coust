@@ -49,7 +49,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeKind>binary</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
     <XmakeDefines>COUST_DEBUG</XmakeDefines>
-    <XmakeLanguages>cxx14</XmakeLanguages>
+    <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
@@ -71,7 +71,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeKind>binary</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
     <XmakeDefines>COUST_DBG_RELEASE</XmakeDefines>
-    <XmakeLanguages>cxx14</XmakeLanguages>
+    <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
@@ -93,7 +93,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeKind>binary</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
     <XmakeDefines>COUST_FULL_RELEASE</XmakeDefines>
-    <XmakeLanguages>cxx14</XmakeLanguages>
+    <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>

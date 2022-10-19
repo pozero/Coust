@@ -2,8 +2,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include <memory>
-
 namespace Coust
 {
 	class Logger
@@ -12,7 +10,7 @@ namespace Coust
 		Logger() = default;
 		~ Logger() = default;
 
-		static void Initialize();
+		[[nodiscard]] static bool Initialize();
 		static void Shutdown();
 
 		static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
