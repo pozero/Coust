@@ -30,8 +30,9 @@ namespace Coust
 			s_CoreLogger->flush_on(spdlog::level::trace);
 
 			coreLoggerCreated = true;
-			COUST_CORE_INFO("Core Logger Initialized");
 		}
+		else
+			COUST_CORE_ERROR("Core Logger Initialization Failed");
 
 		s_ClientLogger = std::make_shared<spdlog::logger>("APP", begin(sinks), end(sinks));
 		if (s_ClientLogger)
@@ -41,11 +42,15 @@ namespace Coust
 			s_ClientLogger->flush_on(spdlog::level::trace);
 			
 			clientLoggerCreated = true;
-			COUST_CORE_INFO("Client Logger Initialized");
 		}
+		else
+			COUST_CORE_ERROR("Client Logger Initialization Failed");
 
 		if (coreLoggerCreated && clientLoggerCreated)
+		{
+			COUST_CORE_INFO("Logger Initialized");
 			ret = true;
+		}
 
 		return ret;
 	}

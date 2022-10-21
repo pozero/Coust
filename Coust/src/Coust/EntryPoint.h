@@ -14,6 +14,8 @@ int main(int argc, char* argv[])
         delete app;
         Coust::Logger::Shutdown();
     }
+    else
+        COUST_CORE_ERROR("Global Context Initialization Failed");
 
     return 0;
 }

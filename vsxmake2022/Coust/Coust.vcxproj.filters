@@ -50,6 +50,12 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\EntryPoint.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Layer.h">
+      <Filter>Coust\src\Coust</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.h">
+      <Filter>Coust\src\Coust</Filter>
+    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
@@ -62,6 +68,9 @@ xmake version 2.7.1+HEAD.0162040cd
   <ItemGroup>
 
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Application.cpp">
+      <Filter>Coust\src\Coust</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.cpp">
       <Filter>Coust\src\Coust</Filter>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.cpp">
