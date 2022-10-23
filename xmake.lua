@@ -19,15 +19,17 @@ set_warnings("all", "error")
 target("Coust")
     set_kind("static")
 
-    set_pcxxheader("Coust/src/pch.h")
     add_includedirs("Coust/src")
+    set_pcxxheader("Coust/src/pch.h")
     
     -- source file
     add_files("Coust/src/*.cpp")
     add_files("Coust/src/Coust/*.cpp")
+    add_files("Coust/src/Coust/Event/*.cpp")
 
     add_headerfiles("Coust/src/*.h")
     add_headerfiles("Coust/src/Coust/*.h")
+    add_headerfiles("Coust/src/Coust/Event/*.h")
     -- source file
 
     -- third party inlude

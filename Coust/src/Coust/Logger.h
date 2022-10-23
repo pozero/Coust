@@ -1,6 +1,7 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 namespace Coust
 {
@@ -33,3 +34,6 @@ namespace Coust
 #define COUST_WARN(...)					::Coust::Logger::GetClientLogger()->warn(__VA_ARGS__)
 #define COUST_ERROR(...)				::Coust::Logger::GetClientLogger()->error(__VA_ARGS__)
 #define COUST_CRITICAL(...)				::Coust::Logger::GetClientLogger()->critical(__VA_ARGS__)
+
+#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); __debugbreak(); }}
+#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); __debugbreak(); }}

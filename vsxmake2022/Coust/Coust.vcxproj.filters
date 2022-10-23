@@ -21,6 +21,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <Filter Include="Coust\src\Coust">
       <UniqueIdentifier>{B768C0C3-6439-40F9-AAC8-C83AD1F8C160}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Coust\src\Coust\Event">
+      <UniqueIdentifier>{177BA205-E650-4FAC-93C2-174F610A0B35}</UniqueIdentifier>
+    </Filter>
 
   </ItemGroup>
   <ItemGroup>
@@ -50,6 +53,18 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\EntryPoint.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\ApplicationEvent.h">
+      <Filter>Coust\src\Coust\Event</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.h">
+      <Filter>Coust\src\Coust\Event</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\KeyEvent.h">
+      <Filter>Coust\src\Coust\Event</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h">
+      <Filter>Coust\src\Coust\Event</Filter>
+    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Layer.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
@@ -59,9 +74,6 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h">
-      <Filter>Coust\src</Filter>
-    </ClInclude>
 
 
   </ItemGroup>
@@ -70,14 +82,14 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Application.cpp">
       <Filter>Coust\src\Coust</Filter>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.cpp">
+      <Filter>Coust\src\Coust\Event</Filter>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.cpp">
       <Filter>Coust\src\Coust</Filter>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.cpp">
       <Filter>Coust\src\Coust</Filter>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
-      <Filter>Coust\src</Filter>
     </ClCompile>
 
 
