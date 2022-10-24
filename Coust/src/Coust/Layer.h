@@ -14,6 +14,8 @@ namespace Coust
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
 
+		virtual void OnEvent(Event& e) {}
+
 		virtual void OnUpdate(float deltaTime) {}
 
 		const std::string& GetName() { return m_Name; }

@@ -54,13 +54,13 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
-    <XmakeLinkDirs></XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\debug\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -76,13 +76,13 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
-    <XmakeLinkDirs></XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\releasedbg\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -98,13 +98,13 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
-    <XmakeLinkDirs></XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\release\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
 
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
@@ -141,6 +141,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Layer.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h" />
 
 
   </ItemGroup>
@@ -156,6 +157,9 @@ xmake version 2.7.1+HEAD.0162040cd
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
 

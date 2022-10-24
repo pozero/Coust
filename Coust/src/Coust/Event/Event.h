@@ -17,18 +17,12 @@ namespace Coust
         {
             EventRegisterar(const std::string& name, const char* categories);
         };
-        static int GetNewestID() { return int(EventType.size()) - 1; }
+        static int GetNewestID() { return int(EventCategory.size()) - 1; }
         
     private:
-        static const std::string& GetEventType(int type)
-        {
-            return EventType[type];
-        }
-
         static bool IsInCategory(int type, const std::string& category);
 
     private:
-        static std::vector<std::string> EventType;
         static std::vector<int> EventCategory;
         static std::vector<std::string> CategoryName;
     };
@@ -37,33 +31,26 @@ namespace Coust
 /* Only Register Final Event Class
    Please Register Event in a translation unit */
 #define COUST_REGISTER_EVENT(name, categories)      static EventManager::EventRegisterar Registerar##name(#name, #categories); \
-                                                    int name::Type = EventManager::GetNewestID();
+                                                    int name::StaticType = EventManager::GetNewestID();
 
 // Declare Type Inside Event Class Declaration
-#define COUST_EVENT_TYPE(name)        private: \
-                                          static int Type; \
-                                          int GetType() const override { return Type; }
+#define COUST_EVENT_TYPE(name)        public: \
+                                          static int GetStaticType() { return StaticType; } \
+                                          int GetType() const override { return StaticType; } \
+                                      private: \
+                                          static int StaticType;
 
 
     class Event
     {
     public:
-        const std::string& GetName() const
-        {
-            return EventManager::GetEventType(GetType());
-        }
-
         bool IsInCategory(const std::string& category)
         {
             return EventManager::IsInCategory(GetType(), category);
         }
 
-        virtual std::string ToString() const 
-        {
-            return GetName();
-        }
+        virtual std::string ToString() const = 0;
 
-    private:
         virtual int GetType() const { return 0; }
 
     public:
@@ -74,4 +61,34 @@ namespace Coust
     {
         return os << e.ToString();
     }
+
+    class EventBus
+    {
+        friend class Application;
+    public:
+        static void Publish(Event& e)
+        {
+            mainCallback(e);
+        }
+
+        template<typename T>
+        static bool Dispatch(Event& e, const std::function<bool(T&)>& f)
+        {
+            if (e.GetType() == T::GetStaticType())
+            {
+                e.Handled = f(*(T*)&e);
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        static void Subscribe(const std::function<void(Event&)>& f)
+        {
+            mainCallback = f;
+        }
+
+    private:
+        static std::function<void(Event&)> mainCallback;
+    };
 }

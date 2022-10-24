@@ -8,10 +8,11 @@
 
 namespace Coust
 {
-    /* Initialize EventManager Static Member */
-    std::vector<std::string> EventManager::EventType{ "Event" };
+    /* Initialize EventManager & EventBus Static Member */
     std::vector<int> EventManager::EventCategory{ 0 };
     std::vector<std::string> EventManager::CategoryName{};
+
+    std::function<void(Event&)> EventBus::mainCallback{};
     /* ************************************* */
 
     /* Register Built-in Events */
@@ -49,12 +50,6 @@ namespace Coust
     
     EventManager::EventRegisterar::EventRegisterar(const std::string& name, const char* categories)
     {
-        {
-            auto iter = std::find(EventType.begin(), EventType.end(), name);
-            if (iter != EventType.end())
-                return;
-        }
-
         std::vector<std::string> parsedCategories;
         std::string s{ categories };
         for (char *p = s.data(), *nameBegin = nullptr;; ++p)
@@ -94,7 +89,6 @@ namespace Coust
             eventCategory |= 1 << categoryIndex;
         }
 
-        EventType.push_back(name);
         EventCategory.push_back(eventCategory);
     }
 

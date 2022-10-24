@@ -17,4 +17,5 @@
 
 #include <Windows.h>
 
+#include "Coust/Event/Event.h"
 #include "Coust/Logger.h"

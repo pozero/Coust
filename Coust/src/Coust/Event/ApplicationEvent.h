@@ -32,5 +32,10 @@ namespace Coust
 
     public:
         WindowClosedEvent() = default;
+
+        std::string ToString() const override
+        {
+            return "WindowClosedEvent[]";
+        }
     };
 }

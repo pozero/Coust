@@ -12,13 +12,20 @@ namespace Coust
 
         void Run();
 
+        void OnEvent(Event& e);
+
         void PushLayer(Layer* layer);
         void PopLayer(Layer* layer);
 
-        void Close() { m_IsRunning = false; }
+        bool Close() 
+        { 
+            m_IsRunning = false; 
+            return true;
+        }
 
     private:
         LayerStack m_LayerStack;
+        std::unique_ptr<class Window> m_Window;
 
     private:
         bool m_IsRunning = true;
