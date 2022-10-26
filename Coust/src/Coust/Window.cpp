@@ -1,12 +1,50 @@
 #include "pch.h"
 
 #include "Window.h"
+#include "Application.h"
 #include "Event/KeyEvent.h"
 #include "Event/MouseEvent.h"
 #include "Event/ApplicationEvent.h"
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
 namespace Coust
 {
+    bool Window::Input::IsKeyDown(int keyCode)
+    {
+        GLFWwindow* windowHandle = Application::GetInstance()->GetWindow()->GetWindowHandle();
+
+        return !(glfwGetKey(windowHandle, keyCode) == GLFW_RELEASE);
+    }
+
+    bool Window::Input::IsMouseButtonDown(int button)
+    {
+        GLFWwindow* windowHandle = Application::GetInstance()->GetWindow()->GetWindowHandle();
+
+        return !(glfwGetMouseButton(windowHandle, button) == GLFW_RELEASE);
+    }
+
+    std::pair<float, float> Window::Input::GetCursorPos()
+    {
+        double x, y;
+        GLFWwindow* windowHandle = Application::GetInstance()->GetWindow()->GetWindowHandle();
+
+        glfwGetCursorPos(windowHandle, &x, &y);
+        return std::pair<float, float>{float(x), float(y)};
+    }
+
+    float Window::Input::GetCursorPosX()
+    {
+        auto[x, y] = Window::Input::GetCursorPos();
+        return x;
+    }
+    float Window::Input::GetCursorPosY()
+    {
+        auto[x, y] = Window::Input::GetCursorPos();
+        return y;
+    }
+
     Window::Window(const Config& config)
     {
         Init(config);
@@ -33,6 +71,9 @@ namespace Coust
 
         m_WindowHandle = glfwCreateWindow(config.width, config.height, config.name, nullptr, nullptr);
         glfwMakeContextCurrent(m_WindowHandle);
+
+        int gladInitializationSuccess = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+        COUST_CORE_ASSERT(gladInitializationSuccess, "GLAD Initialization Failed");
 
         /* Set Window Event Callbacks */
         glfwSetKeyCallback(m_WindowHandle, 

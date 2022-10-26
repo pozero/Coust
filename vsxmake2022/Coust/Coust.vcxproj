@@ -54,11 +54,11 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary</XmakeLinkDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\debug\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
@@ -76,11 +76,11 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary</XmakeLinkDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\releasedbg\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
@@ -98,11 +98,11 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary</XmakeLinkDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\release\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
@@ -141,6 +141,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Layer.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Window.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h" />
 
 
@@ -159,6 +160,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Window.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
@@ -174,6 +178,9 @@ xmake version 2.7.1+HEAD.0162040cd
 
   </ItemGroup>
   <!-- <ItemGroup>
+    <ProjectReference Include="..\GLFW\GLFW.vcxproj">
+      <Project>{3EC7D893-B6E4-4659-B609-710C30E2D0DD}</Project>
+    </ProjectReference>
 
   </ItemGroup> -->
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.targets" />

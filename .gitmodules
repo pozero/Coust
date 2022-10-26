@@ -1,0 +1,6 @@
+[submodule "Coust/third_party/GLFW"]
+	path = Coust/third_party/GLFW
+	url = https://github.com/glfw/glfw
+[submodule "Coust/third_party/spdlog"]
+	path = Coust/third_party/spdlog
+	url = https://github.com/gabime/spdlog

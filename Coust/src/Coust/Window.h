@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
+struct GLFWwindow;
 
 namespace Coust
 {
@@ -14,6 +14,19 @@ namespace Coust
             const char* name = "Coust Engine";
         };
 
+        class Input
+        {
+        public:
+            static bool IsKeyDown(int keyCode);
+
+            static bool IsMouseButtonDown(int button);
+
+            static std::pair<float, float> GetCursorPos();
+
+            static float GetCursorPosX();
+            static float GetCursorPosY();
+        };
+
     public:
         Window(const Config& config = Config{});
         ~Window();
@@ -22,6 +35,8 @@ namespace Coust
         void Shutdown();
 
         void OnUpdate();
+
+        GLFWwindow* GetWindowHandle() const { return m_WindowHandle; }
 
         int GetWidth() const { return m_WindowProp.width; }
         int GetHeight() const { return m_WindowProp.height; }

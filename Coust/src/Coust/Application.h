@@ -23,6 +23,17 @@ namespace Coust
             return true;
         }
 
+        class Window* GetWindow() { return m_Window.get(); }
+
+        static Application* GetInstance() 
+        { 
+            COUST_CORE_ASSERT(s_Instance, "Coust::Application Instance Not Instantiated Yet");
+            return s_Instance; 
+        }
+
+    private:
+        static Application* s_Instance;
+
     private:
         LayerStack m_LayerStack;
         std::unique_ptr<class Window> m_Window;

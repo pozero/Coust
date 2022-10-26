@@ -58,7 +58,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
@@ -80,7 +80,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
@@ -102,7 +102,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\Coust\third_party\GLFW\binary;$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
+    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
@@ -153,6 +153,9 @@ xmake version 2.7.1+HEAD.0162040cd
   <!-- <ItemGroup>
     <ProjectReference Include="..\Coust\Coust.vcxproj">
       <Project>{04BDE6C7-F56F-4698-BA45-645B16A89A87}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GLFW\GLFW.vcxproj">
+      <Project>{3EC7D893-B6E4-4659-B609-710C30E2D0DD}</Project>
     </ProjectReference>
 
   </ItemGroup> -->

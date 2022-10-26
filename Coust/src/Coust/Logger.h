@@ -39,6 +39,6 @@ namespace Coust
 	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); __debugbreak(); }}
 	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); __debugbreak(); }}
 #else
-	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); EventBus::Publish(WindowClosedEvent{});}}
-	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); EventBus::Publish(WindowClosedEvent{});}}
+	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); ::Coust::Application::GetInstance()->Close(); }}
+	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); ::Coust::Application::GetInstance()->Close(); }}
 #endif

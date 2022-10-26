@@ -6,6 +6,8 @@
 #include "KeyEvent.h"
 #include "MouseEvent.h"
 
+#include "Coust/Application.h"
+
 namespace Coust
 {
     /* Initialize EventManager & EventBus Static Member */
