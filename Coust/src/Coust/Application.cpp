@@ -48,9 +48,6 @@ namespace Coust
 
     void Application::OnEvent(Event& e)
     {
-        if (e.IsInCategory("Application") || e.IsInCategory("Dull"))
-            COUST_CORE_INFO(e);
-
         // Handle Window Close
         EventBus::Dispatch<WindowClosedEvent>(e, 
             [this](WindowClosedEvent&) 

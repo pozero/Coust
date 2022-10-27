@@ -68,7 +68,7 @@ target("Coust")
     add_syslinks("user32", "gdi32", "shell32", "opengl32")
 
     add_includedirs("Coust/src")
-    -- set_pcxxheader("Coust/src/pch.h")
+    set_pcxxheader("Coust/src/pch.h")
 
     -- source file
     add_files("Coust/src/*.cpp")

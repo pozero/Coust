@@ -23,6 +23,12 @@ namespace Coust
         {
             EventBus::Publish(HoorayEvent{});
         }
+
+        void OnEvent(Event& e) override
+        {
+            if (e.IsInCategory("Dull"))
+                COUST_INFO(e);
+        }
     };
 
     class Coustol : public Application
