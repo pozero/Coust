@@ -57,10 +57,10 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\debug\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -79,10 +79,10 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\releasedbg\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -101,10 +101,10 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\release\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
 
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
@@ -180,6 +180,9 @@ xmake version 2.7.1+HEAD.0162040cd
   <!-- <ItemGroup>
     <ProjectReference Include="..\GLFW\GLFW.vcxproj">
       <Project>{3EC7D893-B6E4-4659-B609-710C30E2D0DD}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Glad\Glad.vcxproj">
+      <Project>{6D017E36-3E64-4E4D-A2B5-4C1389F5FDF5}</Project>
     </ProjectReference>
 
   </ItemGroup> -->

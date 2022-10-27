@@ -27,13 +27,13 @@ xmake version 2.7.1+HEAD.0162040cd
 
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{3EC7D893-B6E4-4659-B609-710C30E2D0DD}</ProjectGuid>
+    <ProjectGuid>{6D017E36-3E64-4E4D-A2B5-4C1389F5FDF5}</ProjectGuid>
     <Configuration Condition="'$(Configuration)' == ''">release</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <XmakeScriptDir>..\..</XmakeScriptDir>
     <XmakeProjectDir>..\..</XmakeProjectDir>
     <XmakeProjectFile><!-- nil --></XmakeProjectFile>
-    <XmakeTarget>GLFW</XmakeTarget>
+    <XmakeTarget>Glad</XmakeTarget>
   </PropertyGroup>
   <PropertyGroup Label="XmakeProgram">
     <XmakeProgramDir Condition="'$(XmakeProgramDir)' == ''">$(XMAKE_PROGRAM_DIR)</XmakeProgramDir>
@@ -41,14 +41,14 @@ xmake version 2.7.1+HEAD.0162040cd
   </PropertyGroup>
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.Defaults.props" />
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-    <XmakeBasename>GLFW</XmakeBasename>
-    <XmakeFilename>GLFW.lib</XmakeFilename>
+    <XmakeBasename>Glad</XmakeBasename>
+    <XmakeFilename>Glad.lib</XmakeFilename>
     <XmakeMode>debug</XmakeMode>
     <XmakePlat>windows</XmakePlat>
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>static</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines>COUST_DEBUG;_GLFW_WIN32;_CRT_SECURE_NO_WARNINGS</XmakeDefines>
+    <XmakeDefines>COUST_DEBUG</XmakeDefines>
     <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
@@ -57,20 +57,20 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs></XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\glad\include</XmakeIncludeDirs>
     <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
-    <XmakeBasename>GLFW</XmakeBasename>
-    <XmakeFilename>GLFW.lib</XmakeFilename>
+    <XmakeBasename>Glad</XmakeBasename>
+    <XmakeFilename>Glad.lib</XmakeFilename>
     <XmakeMode>releasedbg</XmakeMode>
     <XmakePlat>windows</XmakePlat>
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>static</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines>COUST_DBG_RELEASE;_GLFW_WIN32;_CRT_SECURE_NO_WARNINGS</XmakeDefines>
+    <XmakeDefines>COUST_DBG_RELEASE</XmakeDefines>
     <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
@@ -79,20 +79,20 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs></XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\glad\include</XmakeIncludeDirs>
     <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-    <XmakeBasename>GLFW</XmakeBasename>
-    <XmakeFilename>GLFW.lib</XmakeFilename>
+    <XmakeBasename>Glad</XmakeBasename>
+    <XmakeFilename>Glad.lib</XmakeFilename>
     <XmakeMode>release</XmakeMode>
     <XmakePlat>windows</XmakePlat>
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>static</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines>COUST_FULL_RELEASE;_GLFW_WIN32;_CRT_SECURE_NO_WARNINGS</XmakeDefines>
+    <XmakeDefines>COUST_FULL_RELEASE</XmakeDefines>
     <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
@@ -101,7 +101,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs></XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\glad\include</XmakeIncludeDirs>
     <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
@@ -131,73 +131,13 @@ xmake version 2.7.1+HEAD.0162040cd
 
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.props" />
   <ItemGroup>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\GLFW\include\GLFW\glfw3.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\GLFW\include\GLFW\glfw3native.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\glad\include\KHR\khrplatform.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\glad\include\glad\glad.h" />
 
 
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\context.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\egl_context.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\init.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\input.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\monitor.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\null_init.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\null_joystick.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\null_monitor.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\null_window.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\osmesa_context.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\platform.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\vulkan.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\wgl_context.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_init.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_joystick.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_module.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_monitor.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_thread.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_time.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\win32_window.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\GLFW\src\window.c">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\glad\src\glad.c">
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
 

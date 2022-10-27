@@ -48,6 +48,9 @@ namespace Coust
 
     void Application::OnEvent(Event& e)
     {
+        if (e.IsInCategory("Application") || e.IsInCategory("Dull"))
+            COUST_CORE_INFO(e);
+
         // Handle Window Close
         EventBus::Dispatch<WindowClosedEvent>(e, 
             [this](WindowClosedEvent&) 
@@ -56,9 +59,10 @@ namespace Coust
             }
         );
 
-        for (auto iter = m_LayerStack.end(); iter != m_LayerStack.begin(); --iter)
+        for (auto iter = m_LayerStack.end(); iter != m_LayerStack.begin();)
         {
-            (*--iter)->OnEvent(e);
+            --iter;
+            (*iter)->OnEvent(e);
             if (e.Handled)
                 break;
         }

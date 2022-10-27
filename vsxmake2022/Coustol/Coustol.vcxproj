@@ -157,6 +157,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <ProjectReference Include="..\GLFW\GLFW.vcxproj">
       <Project>{3EC7D893-B6E4-4659-B609-710C30E2D0DD}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\Glad\Glad.vcxproj">
+      <Project>{6D017E36-3E64-4E4D-A2B5-4C1389F5FDF5}</Project>
+    </ProjectReference>
 
   </ItemGroup> -->
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.targets" />

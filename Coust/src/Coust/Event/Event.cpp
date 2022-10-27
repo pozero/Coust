@@ -10,12 +10,7 @@
 
 namespace Coust
 {
-    /* Initialize EventManager & EventBus Static Member */
-    std::vector<int> EventManager::EventCategory{ 0 };
-    std::vector<std::string> EventManager::CategoryName{};
-
     std::function<void(Event&)> EventBus::mainCallback{};
-    /* ************************************* */
 
     /* Register Built-in Events */
 	COUST_REGISTER_EVENT(KeyPressedEvent,           Input | Keyboard)
@@ -49,51 +44,12 @@ namespace Coust
     
         return categoryMask & eventCategoryMask;
     }
-    
-    EventManager::EventRegisterar::EventRegisterar(const std::string& name, const char* categories)
+
+    EventManager& EventManager::GetInstance()
     {
-        std::vector<std::string> parsedCategories;
-        std::string s{ categories };
-        for (char *p = s.data(), *nameBegin = nullptr;; ++p)
-        {
-            char c = *p;
-            if (std::isalnum(c))
-            {
-                if (!nameBegin)
-                    nameBegin = p;
-            }
-            else if (c == '\0')
-            {
-                if (nameBegin)
-                    parsedCategories.emplace_back(nameBegin);
-                break;
-            }
-            else if (nameBegin)
-            {
-                *p = '\0';
-                parsedCategories.emplace_back(nameBegin);
-                nameBegin = nullptr;
-            }
-        }
-
-        mask eventCategory = 0;
-        for (const auto& category : parsedCategories)
-        {
-            int categoryIndex = 0;
-            for (;; ++categoryIndex)
-            {
-                if (categoryIndex == CategoryName.size())
-                    CategoryName.push_back(category);
-                if (CategoryName[categoryIndex] == category)
-                    break;
-            }
-            COUST_CORE_ASSERT(categoryIndex < 8 * sizeof(mask), "Too Much Event Category Defined");
-            eventCategory |= 1 << categoryIndex;
-        }
-
-        EventCategory.push_back(eventCategory);
+        static EventManager manager{};
+        return manager;
     }
-
 }
 
 
