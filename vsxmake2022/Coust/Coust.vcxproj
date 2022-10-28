@@ -48,7 +48,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>static</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines>COUST_DEBUG</XmakeDefines>
+    <XmakeDefines>COUST_DEBUG;CURRENT_DIRECTORY=&quot;C:\\Dev\\Coust&quot;</XmakeDefines>
     <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
@@ -60,7 +60,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\debug\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -70,7 +70,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>static</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines>COUST_DBG_RELEASE</XmakeDefines>
+    <XmakeDefines>COUST_DBG_RELEASE;CURRENT_DIRECTORY=&quot;C:\\Dev\\Coust&quot;</XmakeDefines>
     <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
@@ -82,7 +82,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\releasedbg\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -92,7 +92,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeArch>x64</XmakeArch>
     <XmakeKind>static</XmakeKind>
     <XmakeDefault>true</XmakeDefault>
-    <XmakeDefines>COUST_FULL_RELEASE</XmakeDefines>
+    <XmakeDefines>COUST_FULL_RELEASE;CURRENT_DIRECTORY=&quot;C:\\Dev\\Coust&quot;</XmakeDefines>
     <XmakeLanguages>cxx17</XmakeLanguages>
     <XmakeSubSystem>console</XmakeSubSystem>
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
@@ -104,7 +104,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
     <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\release\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
 
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
@@ -138,6 +138,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\KeyEvent.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\FilePath.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\ImGui\ImGuiLayer.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Input.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\KeyCode.h" />
@@ -174,6 +175,9 @@ xmake version 2.7.1+HEAD.0162040cd
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\pch.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
 

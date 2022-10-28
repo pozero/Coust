@@ -44,6 +44,9 @@ xmake version 2.7.1+HEAD.0162040cd
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_glfw.h">
+      <Filter>Coust\third_party\imgui\backends</Filter>
+    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_opengl3.h">
       <Filter>Coust\third_party\imgui\backends</Filter>
     </ClInclude>
@@ -70,6 +73,9 @@ xmake version 2.7.1+HEAD.0162040cd
   </ItemGroup>
   <ItemGroup>
 
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>Coust\third_party\imgui\backends</Filter>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>Coust\third_party\imgui\backends</Filter>
     </ClCompile>

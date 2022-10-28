@@ -26,7 +26,9 @@ target("Coust")
     add_syslinks("user32", "gdi32", "shell32", "opengl32")
 
     add_includedirs("Coust/src")
-    set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
+    -- set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
+
+    add_defines("CURRENT_DIRECTORY=\"$(shell python3 ./Tool/GetCurrentDirectoryPath.py)\"")
 
     -- source file
     add_files("Coust/src/*.cpp")

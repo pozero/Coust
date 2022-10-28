@@ -68,6 +68,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h">
       <Filter>Coust\src\Coust\Event</Filter>
     </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\FilePath.h">
+      <Filter>Coust\src\Coust</Filter>
+    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\ImGui\ImGuiLayer.h">
       <Filter>Coust\src\Coust\ImGui</Filter>
     </ClInclude>
@@ -123,6 +126,9 @@ xmake version 2.7.1+HEAD.0162040cd
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\pch.cpp">
       <Filter>Coust\src\Coust</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
+      <Filter>Coust\src</Filter>
     </ClCompile>
 
 

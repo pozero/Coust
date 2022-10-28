@@ -2,6 +2,7 @@
 
 #include "ImGuiLayer.h"
 #include "Coust/Application.h"
+#include "Coust/FilePath.h"
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_glfw.h>
@@ -24,9 +25,10 @@ namespace Coust
    		//io.ConfigViewportsNoAutoMerge = true;
    		//io.ConfigViewportsNoTaskBarIcon = true;
 
-		float font_size = 24.0f;
-		// tmp file path
-		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Dev\\Coust\\Coust\\third_party\\imgui\\misc\\fonts\\Cousine-Regular.ttf", font_size);
+		float fontSize = 24.0f;
+        FilePath path{};
+        path.AddDirectory("Coust").AddDirectory("third_party").AddDirectory("imgui").AddDirectory("misc").AddDirectory("fonts").AddFile("Cousine-Regular.ttf");
+		ImFont* font = io.Fonts->AddFontFromFileTTF(path.Get(), fontSize);
 		io.FontDefault = font;
 
    		// Setup Dear ImGui style

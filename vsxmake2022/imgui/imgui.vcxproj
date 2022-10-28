@@ -57,7 +57,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
     <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
@@ -79,7 +79,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
     <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
@@ -101,7 +101,7 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui;$(XmakeProjectDir)\Coust\third_party\GLFW\include</XmakeIncludeDirs>
     <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
     <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
@@ -131,6 +131,7 @@ xmake version 2.7.1+HEAD.0162040cd
 
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.props" />
   <ItemGroup>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imconfig.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui.h" />
@@ -143,6 +144,9 @@ xmake version 2.7.1+HEAD.0162040cd
   </ItemGroup>
   <ItemGroup>
 
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_glfw.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_opengl3.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
