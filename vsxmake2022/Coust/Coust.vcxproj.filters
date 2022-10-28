@@ -24,6 +24,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <Filter Include="Coust\src\Coust\Event">
       <UniqueIdentifier>{177BA205-E650-4FAC-93C2-174F610A0B35}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Coust\src\Coust\ImGui">
+      <UniqueIdentifier>{F174F065-90ED-40FD-BF7C-268996F489C1}</UniqueIdentifier>
+    </Filter>
 
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +68,15 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h">
       <Filter>Coust\src\Coust\Event</Filter>
     </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\ImGui\ImGuiLayer.h">
+      <Filter>Coust\src\Coust\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Input.h">
+      <Filter>Coust\src\Coust</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\KeyCode.h">
+      <Filter>Coust\src\Coust</Filter>
+    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Layer.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
@@ -72,6 +84,9 @@ xmake version 2.7.1+HEAD.0162040cd
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h">
+      <Filter>Coust\src\Coust</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Timer.h">
       <Filter>Coust\src\Coust</Filter>
     </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Window.h">
@@ -91,6 +106,12 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.cpp">
       <Filter>Coust\src\Coust\Event</Filter>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\ImGui\ImGuiLayer.cpp">
+      <Filter>Coust\src\Coust\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Input.cpp">
+      <Filter>Coust\src\Coust</Filter>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.cpp">
       <Filter>Coust\src\Coust</Filter>
     </ClCompile>
@@ -100,8 +121,8 @@ xmake version 2.7.1+HEAD.0162040cd
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Window.cpp">
       <Filter>Coust\src\Coust</Filter>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
-      <Filter>Coust\src</Filter>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\pch.cpp">
+      <Filter>Coust\src\Coust</Filter>
     </ClCompile>
 
 

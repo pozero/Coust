@@ -18,6 +18,58 @@ end
 set_allowedarchs("windows|x64")
 set_languages("c++17")
 
+target("Coust")
+    set_kind("static")
+
+    set_warnings("all", "error")
+
+    add_syslinks("user32", "gdi32", "shell32", "opengl32")
+
+    add_includedirs("Coust/src")
+    set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
+
+    -- source file
+    add_files("Coust/src/*.cpp")
+    add_files("Coust/src/Coust/*.cpp")
+    add_files("Coust/src/Coust/Event/*.cpp")
+    add_files("Coust/src/Coust/ImGui/*.cpp")
+
+    add_headerfiles("Coust/src/*.h")
+    add_headerfiles("Coust/src/Coust/*.h")
+    add_headerfiles("Coust/src/Coust/Event/*.h")
+    add_headerfiles("Coust/src/Coust/ImGui/*.h")
+    -- source file
+
+    -- third party 
+    add_includedirs("Coust/third_party/spdlog/include")
+
+    add_deps("GLFW")
+    add_includedirs("Coust/third_party/GLFW/include")
+
+    add_deps("Glad")
+    add_includedirs("Coust/third_party/glad/include")
+
+    add_deps("imgui")
+    add_includedirs("Coust/third_party/imgui")    
+    -- third party 
+
+target("Coustol")
+    set_kind("binary")
+
+    set_warnings("all", "error")
+    
+    -- source file
+    add_files("Coustol/*.cpp")
+    add_headerfiles("Coustol/*.h")
+    -- source file
+
+    add_deps("Coust")
+    add_includedirs("Coust/src")
+
+    -- third party inlude
+    add_includedirs("Coust/third_party/spdlog/include")
+    -- third party inlude
+
 target("GLFW")
     set_kind("static")
 
@@ -60,49 +112,28 @@ target("Glad")
 
     add_files("Coust/third_party/glad/src/glad.c")
 
-target("Coust")
+target("imgui")
     set_kind("static")
 
-    set_warnings("all", "error")
+    add_headerfiles("Coust/third_party/imgui/imgui.h")
+    add_headerfiles("Coust/third_party/imgui/imconfig.h")
+    add_headerfiles("Coust/third_party/imgui/imgui_internal.h")
+    add_headerfiles("Coust/third_party/imgui/imstb_rectpack.h")
+    add_headerfiles("Coust/third_party/imgui/imstb_textedit.h")
+    add_headerfiles("Coust/third_party/imgui/imstb_truetype.h")
 
-    add_syslinks("user32", "gdi32", "shell32", "opengl32")
+    add_files("Coust/third_party/imgui/imgui.cpp")
+    add_files("Coust/third_party/imgui/imgui_demo.cpp")
+    add_files("Coust/third_party/imgui/imgui_draw.cpp")
+    add_files("Coust/third_party/imgui/imgui_tables.cpp")
+    add_files("Coust/third_party/imgui/imgui_widgets.cpp")
 
-    add_includedirs("Coust/src")
-    set_pcxxheader("Coust/src/pch.h")
-
-    -- source file
-    add_files("Coust/src/*.cpp")
-    add_files("Coust/src/Coust/*.cpp")
-    add_files("Coust/src/Coust/Event/*.cpp")
-
-    add_headerfiles("Coust/src/*.h")
-    add_headerfiles("Coust/src/Coust/*.h")
-    add_headerfiles("Coust/src/Coust/Event/*.h")
-    -- source file
-
-    -- third party 
-    add_includedirs("Coust/third_party/spdlog/include")
-
-    add_deps("GLFW")
+    -- Render Backends
+    add_includedirs("Coust/third_party/imgui")
     add_includedirs("Coust/third_party/GLFW/include")
 
-    add_deps("Glad")
-    add_includedirs("Coust/third_party/glad/include")
-    -- third party 
+    add_headerfiles("Coust/third_party/imgui/backends/imgui_impl_glfw.h")
+    add_headerfiles("Coust/third_party/imgui/backends/imgui_impl_opengl3.h")
 
-target("Coustol")
-    set_kind("binary")
-
-    set_warnings("all", "error")
-    
-    -- source file
-    add_files("Coustol/*.cpp")
-    add_headerfiles("Coustol/*.h")
-    -- source file
-
-    add_deps("Coust")
-    add_includedirs("Coust/src")
-
-    -- third party inlude
-    add_includedirs("Coust/third_party/spdlog/include")
-    -- third party inlude
+    add_files("Coust/third_party/imgui/backends/imgui_impl_glfw.cpp")
+    add_files("Coust/third_party/imgui/backends/imgui_impl_opengl3.cpp")

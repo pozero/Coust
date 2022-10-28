@@ -1,9 +1,9 @@
 #include "pch.h"
 
 #include "Application.h"
-#include "Window.h"
 
 #include "Event/ApplicationEvent.h"
+#include "ImGui/ImGuiLayer.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -23,6 +23,11 @@ namespace Coust
         });
 
         m_Window = std::make_unique<Window>();
+
+        m_ImGuiLayer = new ImGuiLayer();
+        PushOverLayer(m_ImGuiLayer);
+
+        m_Timer.Reset();
     }
 
     Application::~Application()
@@ -33,14 +38,23 @@ namespace Coust
     {
         while (m_IsRunning)
         {
-            glClearColor(0.5f, 0.3f, 0.7f, 1.0f);
+            TimeStep ts = m_Timer.GetTimeElapsed();
+            m_Timer.Reset();
+
+            glClearColor(0.5f, 0.5f, 0.2f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            float deltaTime = 1.0f / 60.0f;
             for (auto layer : m_LayerStack)
             {
-                layer->OnUpdate(deltaTime);
+                layer->OnUpdate(ts);
             }
+
+            m_ImGuiLayer->Begin();
+            for (auto layer : m_LayerStack)
+            {
+                layer->OnUIRender();
+            }
+            m_ImGuiLayer->End();
 
             m_Window->OnUpdate();
         }
@@ -65,13 +79,4 @@ namespace Coust
         }
     }
 
-    void Application::PushLayer(Layer* layer)
-    {
-        m_LayerStack.PushLayer(layer);
-    }
-
-    void Application::PopLayer(Layer* layer)
-    {
-        m_LayerStack.PopLayer(layer);
-    }
 }

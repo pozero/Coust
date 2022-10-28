@@ -160,6 +160,9 @@ xmake version 2.7.1+HEAD.0162040cd
     <ProjectReference Include="..\Glad\Glad.vcxproj">
       <Project>{6D017E36-3E64-4E4D-A2B5-4C1389F5FDF5}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\imgui\imgui.vcxproj">
+      <Project>{C4C1AA12-E349-4A62-AE81-F3B2FD2A3691}</Project>
+    </ProjectReference>
 
   </ItemGroup> -->
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.targets" />

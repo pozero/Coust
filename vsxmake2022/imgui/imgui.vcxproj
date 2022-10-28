@@ -27,13 +27,13 @@ xmake version 2.7.1+HEAD.0162040cd
 
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{04BDE6C7-F56F-4698-BA45-645B16A89A87}</ProjectGuid>
+    <ProjectGuid>{C4C1AA12-E349-4A62-AE81-F3B2FD2A3691}</ProjectGuid>
     <Configuration Condition="'$(Configuration)' == ''">release</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <XmakeScriptDir>..\..</XmakeScriptDir>
     <XmakeProjectDir>..\..</XmakeProjectDir>
     <XmakeProjectFile><!-- nil --></XmakeProjectFile>
-    <XmakeTarget>Coust</XmakeTarget>
+    <XmakeTarget>imgui</XmakeTarget>
   </PropertyGroup>
   <PropertyGroup Label="XmakeProgram">
     <XmakeProgramDir Condition="'$(XmakeProgramDir)' == ''">$(XMAKE_PROGRAM_DIR)</XmakeProgramDir>
@@ -41,8 +41,8 @@ xmake version 2.7.1+HEAD.0162040cd
   </PropertyGroup>
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.Defaults.props" />
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-    <XmakeBasename>Coust</XmakeBasename>
-    <XmakeFilename>Coust.lib</XmakeFilename>
+    <XmakeBasename>imgui</XmakeBasename>
+    <XmakeFilename>imgui.lib</XmakeFilename>
     <XmakeMode>debug</XmakeMode>
     <XmakePlat>windows</XmakePlat>
     <XmakeArch>x64</XmakeArch>
@@ -57,14 +57,14 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
+    <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\debug\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
-    <XmakeBasename>Coust</XmakeBasename>
-    <XmakeFilename>Coust.lib</XmakeFilename>
+    <XmakeBasename>imgui</XmakeBasename>
+    <XmakeFilename>imgui.lib</XmakeFilename>
     <XmakeMode>releasedbg</XmakeMode>
     <XmakePlat>windows</XmakePlat>
     <XmakeArch>x64</XmakeArch>
@@ -79,14 +79,14 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
+    <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\releasedbg\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-    <XmakeBasename>Coust</XmakeBasename>
-    <XmakeFilename>Coust.lib</XmakeFilename>
+    <XmakeBasename>imgui</XmakeBasename>
+    <XmakeFilename>imgui.lib</XmakeFilename>
     <XmakeMode>release</XmakeMode>
     <XmakePlat>windows</XmakePlat>
     <XmakeArch>x64</XmakeArch>
@@ -101,10 +101,10 @@ xmake version 2.7.1+HEAD.0162040cd
     <XmakeRunEnvs>PATH=;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\GLFW\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
-    <XmakeLinkDirs>$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\third_party\imgui</XmakeIncludeDirs>
+    <XmakeLinkDirs></XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\release\Coust\src\pch.h</XmakePrecompiledHeader>
+    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
   </PropertyGroup>
 
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
@@ -131,49 +131,34 @@ xmake version 2.7.1+HEAD.0162040cd
 
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.props" />
   <ItemGroup>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Application.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\EntryPoint.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\ApplicationEvent.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\KeyEvent.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\ImGui\ImGuiLayer.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Input.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\KeyCode.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Layer.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Timer.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Window.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_opengl3.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imconfig.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui_internal.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imstb_rectpack.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imstb_textedit.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\third_party\imgui\imstb_truetype.h" />
 
 
   </ItemGroup>
   <ItemGroup>
 
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Application.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\backends\imgui_impl_opengl3.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\ImGui\ImGuiLayer.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui_demo.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Input.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui_draw.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\LayerStack.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui_tables.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Logger.cpp">
-      <CompileAs>CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Window.cpp">
-      <CompileAs>CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\pch.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\third_party\imgui\imgui_widgets.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
 
@@ -188,15 +173,6 @@ xmake version 2.7.1+HEAD.0162040cd
 
   </ItemGroup>
   <!-- <ItemGroup>
-    <ProjectReference Include="..\GLFW\GLFW.vcxproj">
-      <Project>{3EC7D893-B6E4-4659-B609-710C30E2D0DD}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Glad\Glad.vcxproj">
-      <Project>{6D017E36-3E64-4E4D-A2B5-4C1389F5FDF5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\imgui\imgui.vcxproj">
-      <Project>{C4C1AA12-E349-4A62-AE81-F3B2FD2A3691}</Project>
-    </ProjectReference>
 
   </ItemGroup> -->
   <Import Project="$(XmakeProgramDir)\plugins\project\vsxmake\vsproj\Xmake.targets" />

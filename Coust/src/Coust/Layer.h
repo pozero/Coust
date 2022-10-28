@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Event/Event.h"
+#include "Coust/Event/Event.h"
+#include "Coust/Timer.h"
 
 namespace Coust
 {
@@ -16,7 +17,9 @@ namespace Coust
 
 		virtual void OnEvent(Event& e) {}
 
-		virtual void OnUpdate(float deltaTime) {}
+		virtual void OnUpdate(const TimeStep& ts) {}
+
+		virtual void OnUIRender() {}
 
 		const std::string& GetName() { return m_Name; }
 	private:

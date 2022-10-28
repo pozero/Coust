@@ -29,6 +29,13 @@ namespace Coust
             if (e.IsInCategory("Dull"))
                 COUST_INFO(e);
         }
+
+        void OnUpdate(const TimeStep& ts) override
+        {
+            COUST_INFO("Delta Milisecond: {0}", ts.ToMiliSecond());
+            if (Input::IsKeyDown(KeyCode::A))
+                COUST_INFO("Key A Is Pressed");
+        }
     };
 
     class Coustol : public Application

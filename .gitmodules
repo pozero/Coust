@@ -4,3 +4,6 @@
 [submodule "Coust/third_party/spdlog"]
 	path = Coust/third_party/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "Coust/third_party/imgui"]
+	path = Coust/third_party/imgui
+	url = https://github.com/ocornut/imgui

@@ -1,6 +1,8 @@
 #pragma once
 
-#include "LayerStack.h"
+#include "Coust/Window.h"
+#include "Coust/LayerStack.h"
+#include "Coust/Timer.h"
 
 namespace Coust
 {
@@ -14,8 +16,25 @@ namespace Coust
 
         void OnEvent(Event& e);
 
-        void PushLayer(Layer* layer);
-        void PopLayer(Layer* layer);
+        void PushLayer(Layer* layer)
+        {
+            m_LayerStack.PushLayer(layer);
+        }
+
+        void PopLayer(Layer* layer)
+        {
+            m_LayerStack.PopLayer(layer);
+        }
+
+        void PushOverLayer(Layer* layer)
+        {
+            m_LayerStack.PushOverLayer(layer);
+        }
+
+        void PopOverLayer(Layer* layer)
+        {
+            m_LayerStack.PopOverLayer(layer);
+        }
 
         bool Close() 
         { 
@@ -23,12 +42,12 @@ namespace Coust
             return true;
         }
 
-        class Window* GetWindow() { return m_Window.get(); }
+        class Window& GetWindow() { return *m_Window.get(); }
 
-        static Application* GetInstance() 
+        static Application& GetInstance() 
         { 
             COUST_CORE_ASSERT(s_Instance, "Coust::Application Instance Not Instantiated Yet");
-            return s_Instance; 
+            return *s_Instance; 
         }
 
     private:
@@ -36,10 +55,12 @@ namespace Coust
 
     private:
         LayerStack m_LayerStack;
+        class ImGuiLayer* m_ImGuiLayer;
         std::unique_ptr<class Window> m_Window;
 
     private:
         bool m_IsRunning = true;
+        Timer m_Timer{};
     };
 
     Application* CreateApplication();
