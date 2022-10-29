@@ -28,7 +28,7 @@ target("Coust")
     add_includedirs("Coust/src")
     -- set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
 
-    add_defines("CURRENT_DIRECTORY=\"$(shell python3 ./Tool/GetCurrentDirectoryPath.py)\"")
+    add_defines("CURRENT_DIRECTORY=\"$(shell python ./Tool/GetCurrentDirectoryPath.py)\"")
 
     -- source file
     add_files("Coust/src/*.cpp")
@@ -44,6 +44,8 @@ target("Coust")
 
     -- third party 
     add_includedirs("Coust/third_party/spdlog/include")
+
+    add_includedirs("Coust/third_party/glm")
 
     add_deps("GLFW")
     add_includedirs("Coust/third_party/GLFW/include")
@@ -70,6 +72,7 @@ target("Coustol")
 
     -- third party inlude
     add_includedirs("Coust/third_party/spdlog/include")
+    add_includedirs("Coust/third_party/glm")
     -- third party inlude
 
 target("GLFW")
