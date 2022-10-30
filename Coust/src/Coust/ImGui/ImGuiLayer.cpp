@@ -25,9 +25,9 @@ namespace Coust
    		//io.ConfigViewportsNoAutoMerge = true;
    		//io.ConfigViewportsNoTaskBarIcon = true;
 
-		float fontSize = 24.0f;
+		float fontSize = 23.0f;
         FilePath path{};
-        path.AddDirectory("Coust").AddDirectory("third_party").AddDirectory("imgui").AddDirectory("misc").AddDirectory("fonts").AddFile("Cousine-Regular.ttf");
+        path.AddDirectory("Resources").AddDirectory("fonts").AddFile("FiraCode-Retina.ttf");
 		ImFont* font = io.Fonts->AddFontFromFileTTF(path.Get(), fontSize);
 		io.FontDefault = font;
 
@@ -84,7 +84,5 @@ namespace Coust
 
 	void ImGuiLayer::OnUIRender()
 	{
-		static bool dull = true;
-		ImGui::ShowDemoWindow(&dull);
 	}
 }

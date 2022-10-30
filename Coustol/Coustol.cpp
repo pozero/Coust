@@ -1,5 +1,7 @@
 #include <Coust.h>
 
+#include <imgui.h>
+
 namespace Coust
 {
     class HoorayEvent : public Event
@@ -19,6 +21,7 @@ namespace Coust
 
     class ExampleLayer : public Layer
     {
+    public:
         void OnAttach() override
         {
             EventBus::Publish(HoorayEvent{});
@@ -32,10 +35,20 @@ namespace Coust
 
         void OnUpdate(const TimeStep& ts) override
         {
-            COUST_INFO("Delta Milisecond: {0}", ts.ToMiliSecond());
+            m_DeltaTime = ts.ToMiliSecond();
             if (Input::IsKeyDown(KeyCode::A))
                 COUST_INFO("Key A Is Pressed");
         }
+
+        void OnUIRender() override
+        {
+            ImGui::Begin("Delta Time");
+            ImGui::Text("MiliSecond Per Frame: %f", m_DeltaTime);
+            ImGui::End();
+        }
+
+    private:
+        float m_DeltaTime= 0;
     };
 
     class Coustol : public Application

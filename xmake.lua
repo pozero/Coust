@@ -72,6 +72,7 @@ target("Coustol")
 
     -- third party inlude
     add_includedirs("Coust/third_party/spdlog/include")
+    add_includedirs("Coust/third_party/imgui")
     add_includedirs("Coust/third_party/glm")
     -- third party inlude
 

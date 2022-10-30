@@ -44,6 +44,11 @@ namespace Coust
         int gladInitializationSuccess = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
         COUST_CORE_ASSERT(gladInitializationSuccess, "GLAD Initialization Failed");
 
+        COUST_CORE_INFO("OpenGL Info:");
+        COUST_CORE_INFO("\tVendor: {0}", (char*) glGetString(GL_VENDOR));
+        COUST_CORE_INFO("\tRenderer: {0}", (char*) glGetString(GL_RENDERER));
+        COUST_CORE_INFO("\tVersion: {0}", (char*) glGetString(GL_VERSION));
+
         /* Set Window Event Callbacks */
         glfwSetKeyCallback(m_WindowHandle, 
             [](GLFWwindow* window, int key, int scancode, int action, int mods)
