@@ -3,6 +3,7 @@
 #include "Coust/Window.h"
 #include "Coust/LayerStack.h"
 #include "Coust/Timer.h"
+#include "Coust/Renderer/Renderer.h"
 
 namespace Coust
 {
@@ -55,8 +56,8 @@ namespace Coust
 
     private:
         LayerStack m_LayerStack;
-        class ImGuiLayer* m_ImGuiLayer;
         std::unique_ptr<class Window> m_Window;
+        std::unique_ptr<Renderer> m_Renderer;
 
     private:
         bool m_IsRunning = true;

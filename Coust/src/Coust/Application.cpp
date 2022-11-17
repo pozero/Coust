@@ -3,7 +3,6 @@
 #include "Application.h"
 
 #include "Event/ApplicationEvent.h"
-#include "ImGui/ImGuiLayer.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -24,8 +23,7 @@ namespace Coust
 
         m_Window = std::make_unique<Window>();
 
-        m_ImGuiLayer = new ImGuiLayer();
-        PushOverLayer(m_ImGuiLayer);
+        m_Renderer = std::make_unique<Renderer>();
 
         m_Timer.Reset();
     }
@@ -41,22 +39,21 @@ namespace Coust
             TimeStep ts = m_Timer.GetTimeElapsed();
             m_Timer.Reset();
 
-            glClearColor(0.5f, 0.5f, 0.2f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
             for (auto layer : m_LayerStack)
             {
                 layer->OnUpdate(ts);
             }
 
-            m_ImGuiLayer->Begin();
+            m_Renderer->ImGuiBegin();
             for (auto layer : m_LayerStack)
             {
                 layer->OnUIRender();
             }
-            m_ImGuiLayer->End();
+            m_Renderer->ImGuiEnd();
 
-            m_Window->OnUpdate();
+            glfwPollEvents();
+
+            m_Renderer->Update();
         }
     }
 

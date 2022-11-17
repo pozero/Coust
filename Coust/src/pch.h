@@ -11,6 +11,7 @@
 
 #include <utility>
 #include <cctype>
+#include <optional>
 
 #include <vector>
 #include <unordered_map>

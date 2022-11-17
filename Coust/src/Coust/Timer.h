@@ -29,7 +29,7 @@ namespace Coust
         TimeStep() = default;
 
     private:
-        int64_t m_DeltaMiliSec;    // May be too much?
+        int64_t m_DeltaMiliSec;    
     };
 
     class Timer

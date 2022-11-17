@@ -21,8 +21,6 @@ namespace Coust
         void Init(const Config& config);
         void Shutdown();
 
-        void OnUpdate();
-
         GLFWwindow* GetWindowHandle() const { return m_WindowHandle; }
 
         int GetWidth() const { return m_WindowProp.width; }

@@ -6,7 +6,6 @@
 #include "Event/MouseEvent.h"
 #include "Event/ApplicationEvent.h"
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 namespace Coust
@@ -35,19 +34,10 @@ namespace Coust
 
         glfwSetErrorCallback(GLFWErrorCallback);
 
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
         m_WindowHandle = glfwCreateWindow(config.width, config.height, config.name, nullptr, nullptr);
-        glfwMakeContextCurrent(m_WindowHandle);
-
-        // Enable V Sync
-        glfwSwapInterval(1);
-
-        int gladInitializationSuccess = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-        COUST_CORE_ASSERT(gladInitializationSuccess, "GLAD Initialization Failed");
-
-        COUST_CORE_INFO("OpenGL Info:");
-        COUST_CORE_INFO("\tVendor: {0}", (char*) glGetString(GL_VENDOR));
-        COUST_CORE_INFO("\tRenderer: {0}", (char*) glGetString(GL_RENDERER));
-        COUST_CORE_INFO("\tVersion: {0}", (char*) glGetString(GL_VERSION));
 
         /* Set Window Event Callbacks */
         glfwSetKeyCallback(m_WindowHandle, 
@@ -135,11 +125,5 @@ namespace Coust
     void Window::Shutdown()
     {
         glfwDestroyWindow(m_WindowHandle);
-    }
-
-    void Window::OnUpdate()
-    {
-        glfwPollEvents();
-        glfwSwapBuffers(m_WindowHandle);
     }
 }

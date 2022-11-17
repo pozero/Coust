@@ -16,7 +16,7 @@ if is_mode("release") then
 end
 
 set_allowedarchs("windows|x64")
-set_languages("c++17")
+set_languages("c++20")
 
 target("Coust")
     set_kind("static")
@@ -26,7 +26,7 @@ target("Coust")
     add_syslinks("user32", "gdi32", "shell32", "opengl32")
 
     add_includedirs("Coust/src")
-    -- set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
+    set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
 
     add_defines("CURRENT_DIRECTORY=\"$(shell python ./Tool/GetCurrentDirectoryPath.py)\"")
 
@@ -35,17 +35,27 @@ target("Coust")
     add_files("Coust/src/Coust/*.cpp")
     add_files("Coust/src/Coust/Event/*.cpp")
     add_files("Coust/src/Coust/ImGui/*.cpp")
+    add_files("Coust/src/Coust/Renderer/*.cpp")
+    add_files("Coust/src/Coust/Renderer/Vulkan/*.cpp")
 
     add_headerfiles("Coust/src/*.h")
     add_headerfiles("Coust/src/Coust/*.h")
     add_headerfiles("Coust/src/Coust/Event/*.h")
     add_headerfiles("Coust/src/Coust/ImGui/*.h")
+    add_headerfiles("Coust/src/Coust/Renderer/*.h")
+    add_headerfiles("Coust/src/Coust/Renderer/Vulkan/*.h")
     -- source file
 
     -- third party 
+    add_includedirs("$(env VK_SDK_PATH)/Include")
+
     add_includedirs("Coust/third_party/spdlog/include")
 
     add_includedirs("Coust/third_party/glm")
+
+    add_includedirs("Coust/third_party/volk")
+
+    add_includedirs("Coust/third_party/vma/include")
 
     add_deps("GLFW")
     add_includedirs("Coust/third_party/GLFW/include")
@@ -56,6 +66,7 @@ target("Coust")
     add_deps("imgui")
     add_includedirs("Coust/third_party/imgui")    
     -- third party 
+target_end()
 
 target("Coustol")
     set_kind("binary")
@@ -75,6 +86,7 @@ target("Coustol")
     add_includedirs("Coust/third_party/imgui")
     add_includedirs("Coust/third_party/glm")
     -- third party inlude
+target_end()
 
 target("GLFW")
     set_kind("static")
@@ -107,26 +119,20 @@ target("GLFW")
 	add_files("Coust/third_party/GLFW/src/wgl_context.c")
 	add_files("Coust/third_party/GLFW/src/egl_context.c")
 	add_files("Coust/third_party/GLFW/src/osmesa_context.c")
+target_end()
 
 target("Glad")
     set_kind("static")
 
     add_includedirs("Coust/third_party/glad/include")
 
-    add_headerfiles("Coust/third_party/glad/include/glad/glad.h")
-    add_headerfiles("Coust/third_party/glad/include/KHR/khrplatform.h")
-
     add_files("Coust/third_party/glad/src/glad.c")
+target_end()
 
 target("imgui")
     set_kind("static")
 
-    add_headerfiles("Coust/third_party/imgui/imgui.h")
-    add_headerfiles("Coust/third_party/imgui/imconfig.h")
-    add_headerfiles("Coust/third_party/imgui/imgui_internal.h")
-    add_headerfiles("Coust/third_party/imgui/imstb_rectpack.h")
-    add_headerfiles("Coust/third_party/imgui/imstb_textedit.h")
-    add_headerfiles("Coust/third_party/imgui/imstb_truetype.h")
+    add_includedirs("Coust/third_party/imgui")
 
     add_files("Coust/third_party/imgui/imgui.cpp")
     add_files("Coust/third_party/imgui/imgui_demo.cpp")
@@ -135,11 +141,12 @@ target("imgui")
     add_files("Coust/third_party/imgui/imgui_widgets.cpp")
 
     -- Render Backends
-    add_includedirs("Coust/third_party/imgui")
     add_includedirs("Coust/third_party/GLFW/include")
+    add_includedirs("$(env VK_SDK_PATH)/Include")
 
     add_headerfiles("Coust/third_party/imgui/backends/imgui_impl_glfw.h")
     add_headerfiles("Coust/third_party/imgui/backends/imgui_impl_opengl3.h")
 
     add_files("Coust/third_party/imgui/backends/imgui_impl_glfw.cpp")
     add_files("Coust/third_party/imgui/backends/imgui_impl_opengl3.cpp")
+target_end()

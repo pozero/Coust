@@ -123,6 +123,11 @@ namespace Coust
             mainCallback(e);
         }
 
+        static void Publish(Event&& e)
+        {
+            mainCallback(e);
+        }
+
         template<typename T>
         static bool Dispatch(Event& e, const std::function<bool(T&)>& f)
         {
