@@ -1,68 +1,77 @@
 #pragma once
 
 #include <volk.h>
-#include "vk_mem_alloc.h"
+#include <vk_mem_alloc.h>
 
 #include <vector>
 #include <functional>
+
+#include "Coust/Renderer/Vulkan/VulkanSwapchain.h"
 
 namespace Coust
 {
 	namespace VK
 	{
-		constexpr uint32_t FRAME_IN_FLIGHT = 2;
+		constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_2;
 
 		class Backend
 		{
 		public:
-			void Initialize();
+			static bool Init();
+			static void Shut();
+
+		private:
+			static Backend* s_Instance;
+
+		private:
+			bool Initialize();
 			void Shutdown();
 
 		private:
-			void CreateInstance();
+			bool CreateInstance();
 
 #ifndef COUST_FULL_RELEASE
-			void CreateDebugMessenger();
+			bool CreateDebugMessengerAndReportCallback();
 #endif
 
-			void CreateSurface();
+			bool CreateSurface();
 
-			void SelectPhysicalDeviceAndCreateDevice();
-
-			void CreateSwapchain();
-
-			void CreateFramebuffers();
-
-			void CreateCommandObj();
-
-			void CreateSyncObj();
+			bool SelectPhysicalDeviceAndCreateDevice();
 
 		private:
-			void CleanupSwapchain();
+			VmaAllocator m_VmaAlloc = nullptr;
 
-			void RecreateSwapchain();
+			VkInstance m_Instance = VK_NULL_HANDLE;
+
+			VkDebugUtilsMessengerEXT m_DebugMessenger = VK_NULL_HANDLE;
+			VkDebugReportCallbackEXT m_DebugReportCallback = VK_NULL_HANDLE;
+
+			VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
+
+			VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+
+			VkDevice m_Device = VK_NULL_HANDLE;
+
+			uint32_t m_PresentQueueFamilyIndex = -1;
+			uint32_t m_GraphicsQueueFamilyIndex = -1;
+
+			VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
+			VkQueue m_PresentQueue = VK_NULL_HANDLE;
+
+			VkPhysicalDeviceProperties m_PhysicalDevProps{};
+
+		public:
+			using FramebufferRecreateFn = std::function<bool(uint32_t width, uint32_t height, const std::vector<VkImageView>& colorImageViews, VkImageView depthImageView)>;
+
+		public:
+			static bool RecreateSwapchainAndFramebuffers();
+
+			static void AddFramebufferRecreator(FramebufferRecreateFn&& fn);
 
 		private:
-			VmaAllocator m_VmaAlloc;
+			Swapchain m_Swapchain{};
 
-			VkInstance m_Instance;
-
-			VkDebugUtilsMessengerEXT m_DebugMessenger;
-
-			VkSurfaceKHR m_Surface;
-
-			VkPhysicalDevice m_PhysicalDevice;
-
-			VkDevice m_Device;
-
-			uint32_t m_PresentQueueFamilyIndex;
-			uint32_t m_GraphicsQueueFamilyIndex;
-
-			VkQueue m_GraphicsQueue;
-			VkQueue m_PresentQueue;
-
-			VkPhysicalDeviceProperties m_PhysicalDevProps;
-
+			std::vector<FramebufferRecreateFn> m_FramebufferRecreators{};
 
 		private:
 			void AddDeletor(std::function<void()>&& f)
@@ -82,5 +91,7 @@ namespace Coust
 			std::vector<std::function<void()>> m_Deletor{};
 
 		};
+
+		const Backend* GetBackend();
 	}
 }

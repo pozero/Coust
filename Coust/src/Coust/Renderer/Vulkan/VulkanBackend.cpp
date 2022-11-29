@@ -1,61 +1,80 @@
 #include "pch.h"
 
-#include "VulkanBackend.h"
+#include "Coust/Renderer/Vulkan/VulkanBackend.h"
 
-#include "Coust/Application.h"
-
-#include "VulkanUtils.h"
+#include "Coust/Renderer/Vulkan/VulkanUtils.h"
 
 #include <GLFW/glfw3.h>
 
-#define VK_CHECK(func)										\
-	do														\
-	{														\
-		VkResult err = func;								\
-		COUST_CORE_ASSERT(err == VK_SUCCESS, #func);		\
-	} while (false)
-
 namespace Coust
 {
+	extern GLFWwindow* g_WindowHandle;
 	namespace VK
 	{
 		VkInstance g_Instance								= VK_NULL_HANDLE;
+		VkSurfaceKHR g_Surface								= VK_NULL_HANDLE;
 		VkPhysicalDevice g_PhysicalDevice					= VK_NULL_HANDLE;
 		VkPhysicalDeviceProperties* g_pPhysicalDevProps		= VK_NULL_HANDLE;
 		VkDevice g_Device									= VK_NULL_HANDLE;
 		VkQueue g_GraphicsQueue								= VK_NULL_HANDLE;
 		VmaAllocator g_VmaAlloc								= VK_NULL_HANDLE;
+		uint32_t g_GraphicsQueueFamilyIndex					= 0;
+		uint32_t g_PresentQueueFamilyIndex					= 0;
+		const Swapchain* g_Swapchain						= nullptr;
+		bool g_AllVulkanGlobalVarSet						= false;
 
-		void Backend::Initialize()
+		Backend* Backend::s_Instance = nullptr;
+
+		bool Backend::Init()
+		{
+            if (s_Instance)
+            {
+			    COUST_CORE_ERROR("Vulkan backend already initialized");
+                return false;
+            }
+
+			s_Instance = new Backend();
+			return s_Instance->Initialize();
+		}
+
+		void Backend::Shut()
+		{
+			if (s_Instance)
+			{
+				s_Instance->Shutdown();
+				s_Instance = nullptr;
+			}
+		}
+
+		bool Backend::Initialize()
 		{
 			VK_CHECK(volkInitialize());
 
-			CreateInstance();
+			bool result = true;
 
+			result =	CreateInstance() &&
 #ifndef COUST_FULL_RELEASE
-			CreateDebugMessenger();
+						CreateDebugMessengerAndReportCallback() &&
 #endif
-			CreateSurface();
+						CreateSurface() &&
+						SelectPhysicalDeviceAndCreateDevice() &&
+						m_Swapchain.Initialize() && m_Swapchain.Create();
 
-			SelectPhysicalDeviceAndCreateDevice();
+			g_AllVulkanGlobalVarSet = true;
 
-			CreateSwapchain();
-
-			CreateFramebuffers();
-
-			CreateCommandObj();
-
-			CreateSyncObj();
+			if (result)
+				s_Instance = this;
+			return result;
 		}
 		
 		void Backend::Shutdown()
 		{
-			CleanupSwapchain();
+			m_Swapchain.Cleanup();
 
 			FlushDeletor();
 		}
 		
-		void Backend::CreateInstance()
+		bool Backend::CreateInstance()
 		{
 			VkApplicationInfo appInfo
 			{
@@ -63,7 +82,7 @@ namespace Coust
 				.applicationVersion  = VK_MAKE_VERSION(1, 0, 0),
 				.pEngineName         = "No Engine",
 				.engineVersion       = VK_MAKE_VERSION(1, 0, 0),
-				.apiVersion          = VK_API_VERSION_1_2
+				.apiVersion          = VULKAN_API_VERSION,
 			};
 	
 			VkInstanceCreateInfo instanceInfo
@@ -75,8 +94,10 @@ namespace Coust
    			std::vector<const char*> requiredExtensions
 			{ 
 #ifndef COUST_FULL_RELEASE
-				"VK_EXT_debug_utils" 
+				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+				VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 #endif
+				VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 			};
 			{
 				uint32_t glfwRequiredExtensionCount = 0;
@@ -99,7 +120,11 @@ namespace Coust
 						if (strcmp(requiredEXT, providedEXT.extensionName) == 0)
 							found = true;
 					}
-					COUST_CORE_ASSERT(found, "Required extension not found when creating vulkan instance");
+					if (!found)
+					{
+						COUST_CORE_ERROR("Required extension not found when creating vulkan instance");
+						return false;
+					}
 				}
 				instanceInfo.enabledExtensionCount   = (uint32_t) requiredExtensions.size();
 				instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
@@ -124,7 +149,11 @@ namespace Coust
 						if (strcmp(requiredLayer, providedLayer.layerName) == 0)
 							found = true;
 					}
-					COUST_CORE_ASSERT(found, "Required layer not found when creating vulkan instance");
+					if (!found)
+					{
+						COUST_CORE_ERROR("Required layer not found when creating vulkan instance");
+						return false;
+					}
 				}
 				instanceInfo.enabledLayerCount = (uint32_t) requiredLayers.size();
 				instanceInfo.ppEnabledLayerNames = requiredLayers.data();
@@ -140,26 +169,43 @@ namespace Coust
 			g_Instance = m_Instance;
 	
 			volkLoadInstance(m_Instance);
+			return true;
 		}
+
 
 		
 #ifndef COUST_FULL_RELEASE
-		void Backend::CreateDebugMessenger()
+		bool Backend::CreateDebugMessengerAndReportCallback()
 		{
-			VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = Utils::DebugMessengerCreateInfo();
-    		VK_CHECK(vkCreateDebugUtilsMessengerEXT(m_Instance, &debugMessengerInfo, nullptr, &m_DebugMessenger));
-			AddDeletor([=]() { vkDestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr); });
+			{
+				VkDebugUtilsMessengerCreateInfoEXT info = Utils::DebugMessengerCreateInfo();
+    			VK_CHECK(vkCreateDebugUtilsMessengerEXT(m_Instance, &info, nullptr, &m_DebugMessenger));
+			}
+
+			{
+				VkDebugReportCallbackCreateInfoEXT info = Utils::DebugReportCallbackCreateInfo();
+				VK_CHECK(vkCreateDebugReportCallbackEXT(m_Instance, &info, nullptr, &m_DebugReportCallback));
+			}
+
+			AddDeletor([=]()
+			{
+				vkDestroyDebugReportCallbackEXT(m_Instance, m_DebugReportCallback, nullptr);
+				vkDestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr); 
+			});
+			return true;
 		}
 #endif
 		
-		void Backend::CreateSurface()
+		bool Backend::CreateSurface()
 		{
-			VK_CHECK(glfwCreateWindowSurface(m_Instance, Application::GetInstance().GetWindow().GetWindowHandle(), nullptr, &m_Surface));
+			VK_CHECK(glfwCreateWindowSurface(m_Instance, g_WindowHandle, nullptr, &m_Surface));
 			AddDeletor([=]() { vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr); });
+			g_Surface = m_Surface;
+			return true;
 		}
 
 		
-		void Backend::SelectPhysicalDeviceAndCreateDevice()
+		bool Backend::SelectPhysicalDeviceAndCreateDevice()
 		{
 			std::vector <const char*> requiredDeviceExtensions
 			{
@@ -168,7 +214,11 @@ namespace Coust
 			{
 				uint32_t physicalDeviceCount = 0;
 				vkEnumeratePhysicalDevices(m_Instance, &physicalDeviceCount, nullptr);
-				COUST_CORE_ASSERT(physicalDeviceCount > 0, "Not physical device with vulkan support found");
+				if (physicalDeviceCount == 0)
+				{
+					COUST_CORE_ERROR("Not physical device with vulkan support found");
+					return false;
+				}
 				std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
 				vkEnumeratePhysicalDevices(m_Instance, &physicalDeviceCount, physicalDevices.data());
 
@@ -240,7 +290,12 @@ namespace Coust
 						}
 					}
 				}
-				COUST_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "No suitable physical device found");
+				if (m_PhysicalDevice == VK_NULL_HANDLE)
+				{
+					COUST_CORE_ERROR("No suitable physical device found");
+					return false;
+				}
+
 				vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalDevProps);
 
 				g_PhysicalDevice = m_PhysicalDevice;
@@ -331,41 +386,40 @@ namespace Coust
 					};
 					VmaAllocatorCreateInfo vmaAllocInfo 
 					{
-						.physicalDevice = m_PhysicalDevice,
-						.device = m_Device,
-						.pVulkanFunctions = &functions,
-						.instance = m_Instance,
-						.vulkanApiVersion = VK_API_VERSION_1_2,
+						.physicalDevice		= m_PhysicalDevice,
+						.device				= m_Device,
+						.pVulkanFunctions	= &functions,
+						.instance			= m_Instance,
+						.vulkanApiVersion	= VULKAN_API_VERSION,
 					};
 					VK_CHECK(vmaCreateAllocator(&vmaAllocInfo, &m_VmaAlloc));
 					AddDeletor([=]() { vmaDestroyAllocator(m_VmaAlloc); });
 					g_VmaAlloc = m_VmaAlloc;
 				}
 			}
+			return true;
 		}
-		
-		void Backend::CreateSwapchain()
+
+		void Backend::AddFramebufferRecreator(FramebufferRecreateFn&& fn)
 		{
+			s_Instance->m_FramebufferRecreators.push_back(fn);
 		}
-		
-		void Backend::CreateFramebuffers()
+
+		bool Backend::RecreateSwapchainAndFramebuffers()
 		{
-		}
-		
-		void Backend::CreateCommandObj()
-		{
-		}
-		
-		void Backend::CreateSyncObj()
-		{
-		}
-		
-		void Backend::CleanupSwapchain()
-		{
-		}
-		
-		void Backend::RecreateSwapchain()
-		{
+			bool result = s_Instance->m_Swapchain.Recreate();
+			if (result)
+			{
+				uint32_t width = s_Instance->m_Swapchain.m_Extent.width;
+				uint32_t height = s_Instance->m_Swapchain.m_Extent.height;
+				const std::vector<VkImageView>& colorImageViews = s_Instance->m_Swapchain.GetColorImageViews();
+				VkImageView depthImageView = s_Instance->m_Swapchain.GetDepthImageView();
+				for (const auto& recreator : s_Instance->m_FramebufferRecreators)
+				{
+					result = recreator(width, height, colorImageViews, depthImageView);
+				}
+			}
+			return result;
 		}
 	}
 }

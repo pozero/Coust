@@ -2,8 +2,6 @@
 
 #include "pch.h"
 
-#include "Coust/Logger.h"
-
 namespace Coust
 {
     class EventManager
@@ -53,7 +51,11 @@ namespace Coust
                         if (categoryName[categoryIndex] == category)
                             break;
                     }
-                    COUST_CORE_ASSERT(categoryIndex < 8 * sizeof(mask), "Too Much Event Category Defined");
+                    if (categoryIndex >= 8 * sizeof(mask))
+                    {
+                        std::cerr << "Too Much Event Category Defined\n";
+                        return;
+                    }
                     eventCategory |= 1 << categoryIndex;
                 }
 

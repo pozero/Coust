@@ -3,6 +3,8 @@
 build
 vsxmake2022/.vs
 .vscode
+.cache/
 
 # Files
 *.user
+compile_commands.json

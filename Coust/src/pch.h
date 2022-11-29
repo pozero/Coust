@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <sstream>
 
 #include <memory>
@@ -20,4 +21,4 @@
 #include <Windows.h>
 
 #include "Coust/Event/Event.h"
-#include "Coust/Logger.h"
+#include "Coust/Core/Logger.h"
