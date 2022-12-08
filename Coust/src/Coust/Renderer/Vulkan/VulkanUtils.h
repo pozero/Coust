@@ -74,12 +74,16 @@ namespace Coust
 				const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 				void* pUserData)
 			{
-				if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-					COUST_CORE_INFO(pCallbackData->pMessage);
-				else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-					COUST_CORE_WARN(pCallbackData->pMessage);
-				else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-					COUST_CORE_ERROR(pCallbackData->pMessage);
+				/* Redundant validation error message... */
+
+				// if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+				// 	COUST_CORE_INFO(pCallbackData->pMessage);
+				// else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+				// 	COUST_CORE_WARN(pCallbackData->pMessage);
+				// else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+				// 	COUST_CORE_ERROR(pCallbackData->pMessage);
+
+				/* Redundant validation error message... */
 
 				return VK_FALSE;
 			}

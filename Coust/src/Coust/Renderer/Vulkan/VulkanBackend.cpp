@@ -116,6 +116,8 @@ namespace Coust
 			static uint32_t frameNumber = 0;
 			static VkRenderPass renderPass = VK_NULL_HANDLE;
 			static std::vector<VkFramebuffer> framebuffers(g_Swapchain->m_CurrentSwapchainImageCount, VK_NULL_HANDLE);
+			static VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+			static VkPipeline pipeline = VK_NULL_HANDLE;
 			if (!initialized)
 			{
 				RenderPassManager::Param renderpassParam
@@ -128,15 +130,36 @@ namespace Coust
 					.firstPass = true,
 					.lastPass = true,
 				};
-				if (!m_RenderPassManager.CreateRenderPass(renderpassParam, &renderPass))
+				if (!renderPass && !m_RenderPassManager.CreateRenderPass(renderpassParam, &renderPass))
 				{
 					renderPass = VK_NULL_HANDLE;
 					return false;
 				}
 
-				if (!m_FramebufferManager.CreateFramebuffersAttachedToSwapchain(renderPass, false, framebuffers.data()))
+				if (!framebuffers[0] && !m_FramebufferManager.CreateFramebuffersAttachedToSwapchain(renderPass, false, framebuffers.data()))
 				{
 					framebuffers = std::vector<VkFramebuffer>(g_Swapchain->m_CurrentSwapchainImageCount, VK_NULL_HANDLE);
+					return false;
+				}
+
+				Utils::Param_CreatePipelineLayout pipelineLayoutParam
+				{
+					.descriptorSetCount = 0,
+					.pDescriptorSets = nullptr,
+				};
+				Utils::CreatePipelineLayout(pipelineLayoutParam, &pipelineLayout);
+				PipelineManager::Param pipelineParam
+				{
+					.shaderFiles = {"Coust/shaders/triangle.vert", "Coust/shaders/triangle.frag"},
+					.macroes = {{}, {}},
+					.useDepth = false,
+					.useBlending = false,
+					.layout = pipelineLayout,
+					.renderpass = renderPass,
+				};
+				if (!pipeline && !m_PipelineManager.BuildGraphics(pipelineParam, &pipeline))
+				{
+					pipeline = VK_NULL_HANDLE;
 					return false;
 				}
 
@@ -168,6 +191,28 @@ namespace Coust
 						.pClearValues = &clearValue,
 					};
 					vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+					VkViewport viewport
+					{
+						.x = 0.0f,
+						.y = 0.0f,
+						.width =  (float) g_Swapchain->m_Extent.width,
+						.height = (float) g_Swapchain->m_Extent.height,
+						.minDepth = 0.0f,
+						.maxDepth = 1.0f,
+					};
+					vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+					VkRect2D scissor
+					{
+						.offset = { 0, 0 },
+						.extent = g_Swapchain->m_Extent,
+					};
+					vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+					vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+					vkCmdDraw(cmd, 3, 1, 0, 0);
+
 					vkCmdEndRenderPass(cmd);
 					VK_CHECK(vkEndCommandBuffer(cmd));
 					return true;

@@ -105,8 +105,12 @@ namespace Coust
             m_Options.AddMacroDefinition(name, nameSize, value, valueSize);
 	    }
 
-	    if (IsSpirV(path.GetName()))
+        if (IsSpirV(path.GetName()))
+        {
+	    	const auto kind = InferShaderKindFromName(path.GetName());
+            m_Type = kind.second;
             m_ByteCode = FileStream::ReadWholeBinary<uint32_t>(path.Get());
+        }
 	    else
 	    {
 	    	const auto kind = InferShaderKindFromName(path.GetName());

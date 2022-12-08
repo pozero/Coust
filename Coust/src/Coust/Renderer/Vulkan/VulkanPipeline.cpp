@@ -70,6 +70,9 @@ namespace Coust
             {
                 FilePath path{ param.shaderFiles[i] };
                 Shader shader{ path, param.macroes[i] };
+#ifndef COUST_FULL_RELEASE
+                shader.SaveFile();
+#endif
 
                 VkShaderModule module;
                 {
@@ -112,6 +115,29 @@ namespace Coust
             // {
             //     .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
             // };
+
+            VkViewport viewport
+            {
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = (float) g_Swapchain->m_Extent.width,
+                .height = (float) g_Swapchain->m_Extent.width,
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f,
+            };
+            VkRect2D scissor
+            {
+                .offset = { 0, 0 },
+                .extent = g_Swapchain->m_Extent,
+            };
+            VkPipelineViewportStateCreateInfo viewportState
+            {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+                .viewportCount = 1,
+                .pViewports = &viewport,
+                .scissorCount = 1,
+                .pScissors = &scissor,
+            };
 
             VkPipelineRasterizationStateCreateInfo rasterizationState
             {
@@ -186,7 +212,7 @@ namespace Coust
                 .pVertexInputState = &vertexInputState,
                 .pInputAssemblyState = &inputAssemblyState,
                 .pTessellationState = nullptr,
-                .pViewportState = nullptr,
+                .pViewportState = &viewportState,
                 .pRasterizationState = &rasterizationState,
                 .pMultisampleState = &multisampleState,
                 .pDepthStencilState = param.useDepth ? &depthStencilState : nullptr,

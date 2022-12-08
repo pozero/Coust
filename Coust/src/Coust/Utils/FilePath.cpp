@@ -31,7 +31,7 @@ namespace Coust
 
     FilePath::FilePath(const char* pathStr)
     {
-        if (pathStr[1] != ':')  // absolute path
+        if (pathStr[1] == ':')  // absolute path
         {
             const char* src = pathStr;
             char* dst = m_Buf;
@@ -46,9 +46,17 @@ namespace Coust
             std::memcpy(dst, src, size);
 
             src = pathStr;
-            dst += size;
-            size = std::strlen(src) + 1;
-            std::memcpy(dst, src, size);
+            dst += size - 1;
+            *(dst++) = '\\';
+            while (*src != '\0')
+            {
+                char c = *src;
+                if (std::isalnum(c) || c == '.')
+                    *dst = c;
+                else
+                    *dst = '\\';
+                ++dst; ++src;
+            }
         }
     }
 
