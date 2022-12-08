@@ -101,6 +101,7 @@ namespace Coust
     			}
 				else
    					bestSurfaceExtent = surfaceCapabilities.currentExtent;
+
 				m_Extent = bestSurfaceExtent;
 			}
 
@@ -153,7 +154,24 @@ namespace Coust
 				m_ImageViews.resize(m_Images.size());
 				for (int i = 0; i < m_Images.size(); ++i)
 				{
-					VkImageViewCreateInfo imageViewInfo = Utils::Basic2DImageViewInfo(m_Images[i], m_Format.format, VK_IMAGE_ASPECT_COLOR_BIT);
+                    VkImageViewCreateInfo imageViewInfo
+                    {
+				        .sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				        .image              = m_Images[i],
+				        .viewType           = VK_IMAGE_VIEW_TYPE_2D,
+				        .format      		= m_Format.format,
+				        .components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
+        	            						VK_COMPONENT_SWIZZLE_IDENTITY,
+        	            						VK_COMPONENT_SWIZZLE_IDENTITY,
+        	            						VK_COMPONENT_SWIZZLE_IDENTITY },
+				        .subresourceRange	= {
+    			        					  	.aspectMask 		= VK_IMAGE_ASPECT_COLOR_BIT,
+    			        					  	.baseMipLevel 		= 0,
+    			        					  	.levelCount 		= 1,
+    			        					  	.baseArrayLayer 	= 0,
+    			        					  	.layerCount 		= 1,
+				        					  },
+                    };
 					vkCreateImageView(g_Device, &imageViewInfo, nullptr, &m_ImageViews[i]);
 				}
 			}
@@ -165,15 +183,42 @@ namespace Coust
 					.height = m_Extent.height,
 					.depth = 1,
 				};
-				auto imageInfo = Utils::GPUBasic2DImageInfo(m_DepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_Extent.width, m_Extent.height);
+                VkImageCreateInfo imageInfo
+                {
+					.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+					.imageType		= VK_IMAGE_TYPE_2D,
+					.format			= m_DepthFormat,
+					.extent			= extent,
+					.mipLevels		= 1,
+					.arrayLayers	= 1,
+					.samples		= VK_SAMPLE_COUNT_1_BIT,
+					.tiling			= VK_IMAGE_TILING_OPTIMAL,
+					.usage			= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                };
 				VmaAllocationCreateInfo allocInfo 
 				{
 					.usage = VMA_MEMORY_USAGE_GPU_ONLY,
 					.requiredFlags = (VkMemoryPropertyFlags) VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				};
 				VK_CHECK(vmaCreateImage(g_VmaAlloc, &imageInfo, &allocInfo, &m_DepthImageAlloc.image, &m_DepthImageAlloc.alloc, nullptr));
-		
-				auto imageViewInfo = Utils::Basic2DImageViewInfo(m_DepthImageAlloc.image, m_DepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+                VkImageViewCreateInfo imageViewInfo
+                {
+					.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					.image              = m_DepthImageAlloc.image,
+					.viewType           = VK_IMAGE_VIEW_TYPE_2D,
+					.format      		= m_DepthFormat,
+					.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
+        	    							VK_COMPONENT_SWIZZLE_IDENTITY,
+        	    							VK_COMPONENT_SWIZZLE_IDENTITY,
+        	    							VK_COMPONENT_SWIZZLE_IDENTITY },
+					.subresourceRange	= {
+    									  	.aspectMask 		= VK_IMAGE_ASPECT_DEPTH_BIT,
+    									  	.baseMipLevel 		= 0,
+    									  	.levelCount 		= 1,
+    									  	.baseArrayLayer 	= 0,
+    									  	.layerCount 		= 1,
+										  },
+                };
 				VK_CHECK(vkCreateImageView(g_Device, &imageViewInfo, nullptr, &m_DepthImageView));
 			}
 
@@ -213,9 +258,9 @@ namespace Coust
 
 			m_Recreation = true;
 			VkSwapchainKHR old = m_Swapchain;
+			m_OldSwapchainImageCount = m_CurrentSwapchainImageCount;
 
 			Cleanup();
-
 			bool result = Create();
 
 			m_Recreation = false;

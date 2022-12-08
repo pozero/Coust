@@ -6,13 +6,19 @@
 #include <vector>
 #include <functional>
 
+#include "Coust/Renderer/Vulkan/VulkanRenderPass.h"
+#include "Coust/Renderer/Vulkan/VulkanDescriptorSet.h"
 #include "Coust/Renderer/Vulkan/VulkanSwapchain.h"
+#include "Coust/Renderer/Vulkan/VulkanFramebuffer.h"
+#include "Coust/Renderer/Vulkan/VulkanPipeline.h"	
+#include "Coust/Renderer/Vulkan/VulkanCommandBuffer.h"
 
 namespace Coust
 {
 	namespace VK
 	{
 		constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_2;
+		constexpr uint32_t FRAME_IN_FLIGHT = 2;
 
 		class Backend
 		{
@@ -20,12 +26,18 @@ namespace Coust
 			static bool Init();
 			static void Shut();
 
+			static bool Commit();
+
+			static bool RecreateSwapchainAndFramebuffers();
+
 		private:
 			static Backend* s_Instance;
 
 		private:
 			bool Initialize();
 			void Shutdown();
+
+			bool CommitDrawCommands();
 
 		private:
 			bool CreateInstance();
@@ -37,6 +49,25 @@ namespace Coust
 			bool CreateSurface();
 
 			bool SelectPhysicalDeviceAndCreateDevice();
+
+		private:
+			uint32_t m_FrameIndex = 0;
+			VkSemaphore m_RenderSemaphore[FRAME_IN_FLIGHT]{};
+			VkSemaphore m_PresentSemaphore[FRAME_IN_FLIGHT]{};
+			VkFence m_RenderFence[FRAME_IN_FLIGHT]{};
+
+			bool CreateFrameSynchronizationObject();
+
+		public:
+			FramebufferManager m_FramebufferManager{};
+
+			PipelineManager m_PipelineManager{};
+
+            DesriptorSetManager m_DescriptorSetManager{};
+            
+            RenderPassManager m_RenderPassManager{};
+
+			CommandBufferManager m_CommandBufferManager{};
 
 		private:
 			VmaAllocator m_VmaAlloc = nullptr;
@@ -60,18 +91,7 @@ namespace Coust
 
 			VkPhysicalDeviceProperties m_PhysicalDevProps{};
 
-		public:
-			using FramebufferRecreateFn = std::function<bool(uint32_t width, uint32_t height, const std::vector<VkImageView>& colorImageViews, VkImageView depthImageView)>;
-
-		public:
-			static bool RecreateSwapchainAndFramebuffers();
-
-			static void AddFramebufferRecreator(FramebufferRecreateFn&& fn);
-
-		private:
 			Swapchain m_Swapchain{};
-
-			std::vector<FramebufferRecreateFn> m_FramebufferRecreators{};
 
 		private:
 			void AddDeletor(std::function<void()>&& f)
@@ -89,9 +109,6 @@ namespace Coust
 
 		private:
 			std::vector<std::function<void()>> m_Deletor{};
-
 		};
-
-		const Backend* GetBackend();
 	}
 }

@@ -3,6 +3,7 @@
 #include <volk.h>
 #include "vk_mem_alloc.h"
 
+#include "Coust/Core/Logger.h"
 #include "Coust/Renderer/Vulkan/VulkanStructs.h"
 #include "Coust/Renderer/Vulkan/VulkanSwapchain.h"
 
@@ -18,6 +19,19 @@
 			COUST_CORE_ERROR("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, VulkanReturnCodeToStr(err));	\
 			return false;																												\
 		}																																\
+	} while (false)
+
+#define VK_REPORT(func, status)																											\
+	do																																	\
+	{																																	\
+		VkResult err = func;																											\
+		if (err != VK_SUCCESS)																											\
+		{																																\
+			status = false;																												\
+			COUST_CORE_WARN("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, VulkanReturnCodeToStr(err));	\
+		}																																\
+		else																															\
+			status = true;																												\
 	} while (false)
 
 #ifndef COUST_FULL_RELEASE
@@ -103,7 +117,7 @@ namespace Coust
 
 			inline VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo()
 			{
-				VkDebugUtilsMessengerCreateInfoEXT info
+				return VkDebugUtilsMessengerCreateInfoEXT
 				{
 					.sType              = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 					.messageSeverity    =	VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
@@ -111,96 +125,78 @@ namespace Coust
 					.messageType        =	VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 					.pfnUserCallback    = DebugCallback,
 				};
-				return info;
 			}
 
 			inline VkDebugReportCallbackCreateInfoEXT DebugReportCallbackCreateInfo()
 			{
-				VkDebugReportCallbackCreateInfoEXT info
+				return VkDebugReportCallbackCreateInfoEXT
 				{
 					.sType =			VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
 					.flags =			VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
 										VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT,
 					.pfnCallback =		DebugReportCallback,
 				};
-				return info;
 			}
 #endif
-			inline VkImageCreateInfo GPUBasic2DImageInfo(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height)
-			{
-				VkExtent3D extent
-				{
-					.width = width,
-					.height = height,
-					.depth = 1,
-				};
-				VkImageCreateInfo info
-				{
-					.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-					.imageType		= VK_IMAGE_TYPE_2D,
-					.format			= format,
-					.extent			= extent,
-					.mipLevels		= 1,
-					.arrayLayers	= 1,
-					.samples		= VK_SAMPLE_COUNT_1_BIT,
-					.tiling			= VK_IMAGE_TILING_OPTIMAL,
-					.usage			= usage,
-				};
-				return info;
-			}
-
-			inline VkImageViewCreateInfo Basic2DImageViewInfo(VkImage image, VkFormat format, VkImageAspectFlags aspect)
-			{
-				VkImageViewCreateInfo info 
-				{
-					.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-					.image              = image,
-					.viewType           = VK_IMAGE_VIEW_TYPE_2D,
-					.format      		= format,
-					.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
-        	    							VK_COMPONENT_SWIZZLE_IDENTITY,
-        	    							VK_COMPONENT_SWIZZLE_IDENTITY,
-        	    							VK_COMPONENT_SWIZZLE_IDENTITY },
-					.subresourceRange	= {
-    									  	.aspectMask 		= aspect,
-    									  	.baseMipLevel 		= 0,
-    									  	.levelCount 		= 1,
-    									  	.baseArrayLayer 	= 0,
-    									  	.layerCount 		= 1,
-										  },
-				};
-				return info;
-			}
 
 			bool CreatePrimaryCmdBuf(VkCommandPool pool, uint32_t count, VkCommandBuffer* out_Buf);
 
 			bool CreateSecondaryCmdBuf(VkCommandPool pool, uint32_t count, VkCommandBuffer* out_Buf);
 
-			bool CreateSemaphore(VkSemaphore* out_Semaphore);
+			bool CreateSemaphores(VkSemaphore* out_Semaphore);
 
 			bool CreateFence(bool signaled, VkFence* out_Fence);
 
-			struct RenderPassInfo
-			{
-				VkFormat colorFormat = VK_FORMAT_UNDEFINED;
-				bool useColor = true;
-				bool useDepth = true;
-				bool clearColor = false;
-				bool clearDepth = false;
-				bool firstPass = false;
-				bool lastPass = false;
-			};
-			bool CreateRenderPass(const RenderPassInfo& info, VkRenderPass* out_RenderPass);
+            struct Param_CreateBuffer
+            {
+                VkDeviceSize allocSize; 
+                VkBufferUsageFlags bufUsage; 
+                VmaMemoryUsage memUsage;
+            };
+            bool CreateBuffer(const Param_CreateBuffer& param, BufferAlloc& out_BufferAlloc);
 
-			struct FramebufferInfo
+			// we don't use concurrent resource access
+			struct Param_CreateImage
 			{
-				uint32_t count;
+				VkImageCreateFlags flags = 0u;
+				VkImageType type = VK_IMAGE_TYPE_2D;
+				VkFormat format;
 				uint32_t width, height;
-				VkRenderPass renderPass;
-				std::optional<VkImageView*> colorImageViews{};
-				std::optional<VkImageView> depthImageView{};
+				uint32_t depth = 1u;
+				uint32_t mipLevels = 1;
+				uint32_t arrayLayers = 1;
+				VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+				VkImageTiling tiling;
+				VkImageUsageFlags usage;
+				VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                VmaMemoryUsage memUsage;
 			};
-			bool CreateFramebuffers(const FramebufferInfo& info, VkFramebuffer* out_Framebuffers);
+			bool CreateImage(const Param_CreateImage& param, ImageAlloc* out_ImageAlloc);
+
+			struct Param_CreateImageView
+			{
+				const ImageAlloc& imageAlloc;
+				VkImageViewType type;
+				VkFormat format;
+				VkComponentSwizzle rSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+				VkComponentSwizzle gSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+				VkComponentSwizzle bSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+				VkComponentSwizzle aSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+				VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+				uint32_t baseMipLevel = 0, levelCount = 1;
+				uint32_t baseArrayLayer = 0, layerCount = 1;
+			};
+			bool CreateImageView(const Param_CreateImageView& param, VkImageView* out_ImageView);
+
+			struct Param_CreatePipelineLayout
+			{
+				uint32_t descriptorSetCount;
+				const VkDescriptorSetLayout* pDescriptorSets;
+				uint32_t pushConstantRangeCount = 0;
+				const VkPushConstantRange* pPushConstantRanges = nullptr;
+			};
+			bool CreatePipelineLayout(const Param_CreatePipelineLayout& param, VkPipelineLayout* out_PipelineLayout);
+
 		}
 
 		inline const char* VulkanReturnCodeToStr(int code)

@@ -28,6 +28,8 @@ namespace Coust
 
 			bool Recreate();
 
+			VkSwapchainKHR GetHandle() const { return m_Swapchain; }
+
 			VkImageView GetDepthImageView() const { return m_DepthImageView; }
 
 			const std::vector<VkImageView>& GetColorImageViews() const { return m_ImageViews; }
@@ -40,6 +42,8 @@ namespace Coust
 			VkPresentModeKHR m_PresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
 			uint32_t m_CurrentSwapchainImageCount = 0;
+            // in case the number of swapchain image changes...
+            uint32_t m_OldSwapchainImageCount = 0;
 
 		private:
 			bool m_Recreation = false;

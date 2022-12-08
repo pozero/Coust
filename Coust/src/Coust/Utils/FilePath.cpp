@@ -31,15 +31,25 @@ namespace Coust
 
     FilePath::FilePath(const char* pathStr)
     {
-        if (std::strlen(pathStr) < 2)
-            return;
-        if (!std::isupper(pathStr[0]) || pathStr[1] != ':' || (pathStr[2] != '/' && pathStr[2] != '\\'))
-            return;
+        if (pathStr[1] != ':')  // absolute path
+        {
+            const char* src = pathStr;
+            char* dst = m_Buf;
+            std::size_t size = std::strlen(src) + 1;
+            std::memcpy(dst, src, size);
+        }
+        else
+        {
+            const char* src = CURRENT_DIRECTORY;
+            char* dst = (char*) m_Buf;
+            std::size_t size = std::strlen(src) + 1;
+            std::memcpy(dst, src, size);
 
-        const char* src = pathStr;
-        char* dst = m_Buf;
-        std::size_t size = std::strlen(src) + 1;
-        std::memcpy(dst, src, size);
+            src = pathStr;
+            dst += size;
+            size = std::strlen(src) + 1;
+            std::memcpy(dst, src, size);
+        }
     }
 
     FilePath& FilePath::AddDirectory(const char* directoryName)

@@ -104,22 +104,28 @@ xmake version 2.7.3+HEAD.b35ff3118
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderBackend.h">
       <Filter>Coust\src\Coust\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderLayer\ClearLayer.h">
-      <Filter>Coust\src\Coust\Renderer\RenderLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderLayer\ImGuiLayer.h">
-      <Filter>Coust\src\Coust\Renderer\RenderLayer</Filter>
-    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderLayer\RenderLayerBase.h">
       <Filter>Coust\src\Coust\Renderer\RenderLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RendererBase.h">
-      <Filter>Coust\src\Coust\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Resources\Shader.h">
       <Filter>Coust\src\Coust\Renderer\Resources</Filter>
     </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanBackend.h">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanCommandBuffer.h">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanDescriptorSet.h">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanFramebuffer.h">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanPipeline.h">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanRenderPass.h">
       <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanStructs.h">
@@ -169,15 +175,6 @@ xmake version 2.7.3+HEAD.b35ff3118
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderBackend.cpp">
       <Filter>Coust\src\Coust\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderLayer\ClearLayer.cpp">
-      <Filter>Coust\src\Coust\Renderer\RenderLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderLayer\ImGuiLayer.cpp">
-      <Filter>Coust\src\Coust\Renderer\RenderLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RendererBase.cpp">
-      <Filter>Coust\src\Coust\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Resources\Shader.cpp">
       <Filter>Coust\src\Coust\Renderer\Resources</Filter>
     </ClCompile>
@@ -190,11 +187,29 @@ xmake version 2.7.3+HEAD.b35ff3118
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanBackend.cpp">
       <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanCommandBuffer.cpp">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanDescriptorSet.cpp">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanFramebuffer.cpp">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanPipeline.cpp">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanRenderPass.cpp">
+      <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanSwapchain.cpp">
       <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanUtils.cpp">
       <Filter>Coust\src\Coust\Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FilePath.cpp">
+      <Filter>Coust\src\Coust\Utils</Filter>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileStream.cpp">
       <Filter>Coust\src\Coust\Utils</Filter>

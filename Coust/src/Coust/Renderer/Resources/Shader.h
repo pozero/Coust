@@ -15,12 +15,25 @@ namespace Coust
 	class Shader
 	{
 	public:
+		enum class Type
+		{
+			UNDEFINED,
+			VERTEX,
+			FRAGMENT,
+			TESSELLATION_CONTROL,
+			TESSELLATION_EVALUATION,
+			GEOMETRY,
+			COMPUTE,
+		};
+	public:
 		Shader() = delete;
 		Shader(const Shader& other) = delete;
 		Shader& operator=(const Shader& other) = delete;
 
-		Shader(const FilePath& path, const std::initializer_list<std::pair<std::string, std::string>>& macroes);
+		Shader(const FilePath& path, const std::vector<const char*>& macroes);
 		~Shader();
+
+		const std::vector<uint32_t>& GetByteCode() const { return m_ByteCode; }
 
         void SaveFile();
 
@@ -42,6 +55,9 @@ namespace Coust
                 std::string fileContent;
             };
 		};
+
+	public:
+		Type m_Type = Type::UNDEFINED;
 
 	private:
 	    shaderc::CompileOptions m_Options;

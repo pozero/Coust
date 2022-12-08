@@ -14,8 +14,8 @@ namespace Coust
         FilePath(const FilePath& other);
         FilePath& operator=(const FilePath& other);
 
-        // Just simply check string comes in. If the path is invalid, bahavior is undefined
-        FilePath(const char* pathStr);
+        // Support absolute path and relative path. If the path is invalid, bahavior is undefined
+        explicit FilePath(const char* pathStr);
 
         FilePath& AddDirectory(const char* directoryName);
 

@@ -15,8 +15,13 @@ namespace Coust
 		return VK::Backend::Shut();
 	}
 
-	bool RenderBackend::OnWindowResize()
+	bool RenderBackend::Commit()
 	{
-		return VK::Backend::RecreateSwapchainAndFramebuffers();
+		return VK::Backend::Commit();
 	}
+
+	bool RenderBackend::OnWindowResize()
+    {
+		return VK::Backend::RecreateSwapchainAndFramebuffers();
+    }
 }

@@ -5,13 +5,12 @@
 
 namespace Coust
 {
-	class FileStream
+	namespace FileStream
 	{
-	public:
-		static std::string ReadWholeText(const char* filePath);
+		std::string ReadWholeText(const char* filePath);
 
         template<typename T>
-        static std::vector<T> ReadWholeBinary(const char* filePath)
+        std::vector<T> ReadWholeBinary(const char* filePath)
         {
             std::ifstream file{ filePath, std::ios::ate | std::ios::binary };
             if (!file.is_open())
@@ -27,8 +26,8 @@ namespace Coust
             return buffer;
         }
 
-		static bool WriteWholeText(const char* filePath, const char* text);
+		bool WriteWholeText(const char* filePath, const char* text);
 
-		static bool WriteWholeBinary(const char* filePath, std::size_t sizeInByte, const char* data);
+		bool WriteWholeBinary(const char* filePath, std::size_t sizeInByte, const char* data);
 	};
 }

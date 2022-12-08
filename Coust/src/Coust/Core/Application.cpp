@@ -5,10 +5,10 @@
 #include "Coust/Event/ApplicationEvent.h"
 #include "Coust/Renderer/RenderBackend.h"
 
-#include "Coust/Renderer/Resources/Shader.h"
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include "Coust/Renderer/Vulkan/VulkanBackend.h"
 
 namespace Coust
 {
@@ -28,11 +28,6 @@ namespace Coust
         {
             this->OnEvent(e);
         });
-
-        FilePath f{};
-        f.AddDirectory("Coust").AddDirectory("shaders").AddFile("test.vert");
-        Shader s{f, {}};
-        s.SaveFile();
 
         m_Timer.Reset();
     }
@@ -54,11 +49,13 @@ namespace Coust
             }
 
             // ImGuiBegin();
-            for (auto layer : m_LayerStack)
-            {
-                layer->OnUIRender();
-            }
+            // for (auto layer : m_LayerStack)
+            // {
+            //     layer->OnUIRender();
+            // }
             // ImGuiEnd();
+
+            RenderBackend::Commit();
 
             glfwPollEvents();
         }

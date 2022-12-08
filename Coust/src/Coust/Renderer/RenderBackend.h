@@ -9,6 +9,8 @@ namespace Coust
 		[[nodiscard]] static bool Init();
 		static void Shut();
 
+		static bool Commit();
+
 		static bool OnWindowResize();
 	};
 }

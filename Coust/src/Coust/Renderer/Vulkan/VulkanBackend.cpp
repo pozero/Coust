@@ -5,6 +5,7 @@
 #include "Coust/Renderer/Vulkan/VulkanUtils.h"
 
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 namespace Coust
 {
@@ -46,21 +47,45 @@ namespace Coust
 			}
 		}
 
+		bool Backend::Commit()
+		{
+			if (!s_Instance)
+				return false;
+
+			return s_Instance->CommitDrawCommands();
+		}
+
+		bool Backend::RecreateSwapchainAndFramebuffers()
+		{
+			if (!s_Instance)
+				return false;
+
+			bool result = true;
+			result = s_Instance->m_Swapchain.Recreate();
+			result = s_Instance->m_FramebufferManager.RecreateFramebuffersAttachedToSwapchain();
+			return result;
+		}
+
 		bool Backend::Initialize()
 		{
 			VK_CHECK(volkInitialize());
 
 			bool result = true;
 
-			result =	CreateInstance() &&
+			result = CreateInstance() &&
 #ifndef COUST_FULL_RELEASE
-						CreateDebugMessengerAndReportCallback() &&
+				CreateDebugMessengerAndReportCallback() &&
 #endif
-						CreateSurface() &&
-						SelectPhysicalDeviceAndCreateDevice() &&
-						m_Swapchain.Initialize() && m_Swapchain.Create();
+				CreateSurface() &&
+				SelectPhysicalDeviceAndCreateDevice() &&
+				CreateFrameSynchronizationObject() &&
+				m_Swapchain.Initialize() && m_Swapchain.Create() &&
+				m_PipelineManager.Initialize() &&
+				m_CommandBufferManager.Initialize(FRAME_IN_FLIGHT);
 
-			g_AllVulkanGlobalVarSet = true;
+			g_Swapchain = &m_Swapchain;
+
+			g_AllVulkanGlobalVarSet = result;
 
 			if (result)
 				s_Instance = this;
@@ -69,10 +94,134 @@ namespace Coust
 		
 		void Backend::Shutdown()
 		{
+			m_CommandBufferManager.Cleanup();
+
+			m_DescriptorSetManager.Cleanup();
+
+			m_RenderPassManager.Cleanup();
+
+			m_PipelineManager.Cleanup();
+
+            m_FramebufferManager.Cleanup();
+
 			m_Swapchain.Cleanup();
 
 			FlushDeletor();
 		}
+
+		/******* TEST FUNC *******/
+		bool Backend::CommitDrawCommands()
+		{
+			static bool initialized = false;
+			static uint32_t frameNumber = 0;
+			static VkRenderPass renderPass = VK_NULL_HANDLE;
+			static std::vector<VkFramebuffer> framebuffers(g_Swapchain->m_CurrentSwapchainImageCount, VK_NULL_HANDLE);
+			if (!initialized)
+			{
+				RenderPassManager::Param renderpassParam
+				{
+					.colorFormat = g_Swapchain->m_Format.format,
+					.useColor = true,
+					.useDepth = false,
+					.clearColor = true,
+					.clearDepth = false,
+					.firstPass = true,
+					.lastPass = true,
+				};
+				if (!m_RenderPassManager.CreateRenderPass(renderpassParam, &renderPass))
+				{
+					renderPass = VK_NULL_HANDLE;
+					return false;
+				}
+
+				if (!m_FramebufferManager.CreateFramebuffersAttachedToSwapchain(renderPass, false, framebuffers.data()))
+				{
+					framebuffers = std::vector<VkFramebuffer>(g_Swapchain->m_CurrentSwapchainImageCount, VK_NULL_HANDLE);
+					return false;
+				}
+
+				m_CommandBufferManager.AddDrawCmd([](VkCommandBuffer cmd, uint32_t swapchainImageIdx) -> bool
+				{
+					VkCommandBufferBeginInfo beginInfo
+					{
+						.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+						.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+					};
+					VK_CHECK(vkBeginCommandBuffer(cmd, &beginInfo));
+
+					VkClearValue clearValue
+					{
+						.color = { { 0.2f, 0.2f, 0.2f, 1.0f } },
+					};
+					VkRect2D renderArea
+					{
+						.offset = { 0, 0 },
+						.extent = g_Swapchain->m_Extent,
+					};
+					VkRenderPassBeginInfo renderPassInfo
+					{
+						.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+						.renderPass = renderPass,
+						.framebuffer = framebuffers[swapchainImageIdx],
+						.renderArea = renderArea,
+						.clearValueCount = 1,
+						.pClearValues = &clearValue,
+					};
+					vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+					vkCmdEndRenderPass(cmd);
+					VK_CHECK(vkEndCommandBuffer(cmd));
+					return true;
+				});
+
+				initialized = true;
+			}
+
+			// 1 min 
+			uint64_t timeout = (uint64_t)1e9;
+			VK_CHECK(vkWaitForFences(g_Device, 1, &m_RenderFence[m_FrameIndex], true, timeout));
+			VK_CHECK(vkResetFences(g_Device, 1, &m_RenderFence[m_FrameIndex]));
+
+			uint32_t swapchainImageIdx = 0;
+			VK_CHECK(vkAcquireNextImageKHR(g_Device, g_Swapchain->GetHandle(), timeout, m_PresentSemaphore[m_FrameIndex], nullptr, &swapchainImageIdx));
+
+			if (!m_CommandBufferManager.Record(m_FrameIndex, swapchainImageIdx))
+			{
+				COUST_CORE_ERROR("Failed to record vulkan commands");
+				return false;
+			}
+
+			VkCommandBuffer cmd = m_CommandBufferManager.GetCommandBuffer(m_FrameIndex);
+			VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			VkSubmitInfo submitInfo
+			{
+				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = &m_PresentSemaphore[m_FrameIndex],
+				.pWaitDstStageMask = &waitStage,
+				.commandBufferCount = 1,
+				.pCommandBuffers = &cmd,
+				.signalSemaphoreCount = 1,
+				.pSignalSemaphores = &m_RenderSemaphore[m_FrameIndex],
+			};
+			VK_CHECK(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_RenderFence[m_FrameIndex]));
+
+			VkSwapchainKHR swapchain = g_Swapchain->GetHandle();
+			VkPresentInfoKHR presentInfo
+			{
+				.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = &m_RenderSemaphore[m_FrameIndex],
+				.swapchainCount = 1,
+				.pSwapchains = &swapchain,
+				.pImageIndices = &swapchainImageIdx,
+			};
+			VK_CHECK(vkQueuePresentKHR(m_GraphicsQueue, &presentInfo));
+
+			m_FrameIndex = (m_FrameIndex + 1) % FRAME_IN_FLIGHT;
+
+			return true;
+		}
+		/******* TEST FUNC *******/
 		
 		bool Backend::CreateInstance()
 		{
@@ -332,10 +481,18 @@ namespace Coust
 						.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
 						.shaderDrawParameters = VK_TRUE,
 					};
+					VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures
+					{
+						.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
+						.pNext = &shaderFeatures,
+						.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+						.descriptorBindingVariableDescriptorCount = VK_TRUE,
+						.runtimeDescriptorArray = VK_TRUE,
+					};
 					VkDeviceCreateInfo deviceInfo
 					{
 						.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-						.pNext = &shaderFeatures,
+						.pNext = &physicalDeviceDescriptorIndexingFeatures,
 						.queueCreateInfoCount = (uint32_t)deviceQueueInfo.size(),
 						.pQueueCreateInfos = deviceQueueInfo.data(),
 						.enabledLayerCount = 0,
@@ -359,30 +516,6 @@ namespace Coust
 					{
 						.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
 						.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-						// .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
-						// .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
-						// .vkAllocateMemory = vkAllocateMemory,
-						// .vkFreeMemory = vkFreeMemory,
-						// .vkMapMemory = vkMapMemory,
-						// .vkUnmapMemory = vkUnmapMemory,
-						// .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
-						// .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
-						// .vkBindBufferMemory = vkBindBufferMemory,
-						// .vkBindImageMemory = vkBindImageMemory,
-						// .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
-						// .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
-						// .vkCreateBuffer = vkCreateBuffer,
-						// .vkDestroyBuffer = vkDestroyBuffer,
-						// .vkCreateImage = vkCreateImage,
-						// .vkDestroyImage = vkDestroyImage,
-						// .vkCmdCopyBuffer = vkCmdCopyBuffer,
-						// .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR,
-						// .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR,
-						// .vkBindBufferMemory2KHR = vkBindBufferMemory2KHR,
-						// .vkBindImageMemory2KHR = vkBindImageMemory2KHR,
-						// .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR,
-						// .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
-						// .vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
 					};
 					VmaAllocatorCreateInfo vmaAllocInfo 
 					{
@@ -400,25 +533,22 @@ namespace Coust
 			return true;
 		}
 
-		void Backend::AddFramebufferRecreator(FramebufferRecreateFn&& fn)
+		bool Backend::CreateFrameSynchronizationObject()
 		{
-			s_Instance->m_FramebufferRecreators.push_back(fn);
-		}
-
-		bool Backend::RecreateSwapchainAndFramebuffers()
-		{
-			bool result = s_Instance->m_Swapchain.Recreate();
-			if (result)
+			bool result = true;
+			for (uint32_t i = 0; i < FRAME_IN_FLIGHT; ++i)
 			{
-				uint32_t width = s_Instance->m_Swapchain.m_Extent.width;
-				uint32_t height = s_Instance->m_Swapchain.m_Extent.height;
-				const std::vector<VkImageView>& colorImageViews = s_Instance->m_Swapchain.GetColorImageViews();
-				VkImageView depthImageView = s_Instance->m_Swapchain.GetDepthImageView();
-				for (const auto& recreator : s_Instance->m_FramebufferRecreators)
+				result = Utils::CreateFence(true, &m_RenderFence[i]);
+				result = Utils::CreateSemaphores(&m_RenderSemaphore[i]);
+				result = Utils::CreateSemaphores(&m_PresentSemaphore[i]);
+				AddDeletor([=]()
 				{
-					result = recreator(width, height, colorImageViews, depthImageView);
-				}
+					vkDestroyFence(m_Device, m_RenderFence[i], nullptr);
+					vkDestroySemaphore(m_Device, m_RenderSemaphore[i], nullptr);
+					vkDestroySemaphore(m_Device, m_PresentSemaphore[i], nullptr);
+				});
 			}
+
 			return result;
 		}
 	}
