@@ -1,3 +1,4 @@
+#include "Coust/Renderer/Vulkan/VulkanUtils.h"
 #include "pch.h"
 
 #include "Coust/Renderer/Vulkan/VulkanPipeline.h"
@@ -70,9 +71,6 @@ namespace Coust
             {
                 FilePath path{ param.shaderFiles[i] };
                 Shader shader{ path, param.macroes[i] };
-#ifndef COUST_FULL_RELEASE
-                shader.SaveFile();
-#endif
 
                 VkShaderModule module;
                 {
@@ -155,7 +153,7 @@ namespace Coust
             VkPipelineMultisampleStateCreateInfo multisampleState
             {
 	            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-	            .rasterizationSamples   = VK_SAMPLE_COUNT_1_BIT,
+	            .rasterizationSamples   = g_MSAASampleCount,
 	            .sampleShadingEnable    = VK_FALSE,
 	            .minSampleShading       = 1.0f,
             };

@@ -12,12 +12,12 @@
 #include "Coust/Renderer/Vulkan/VulkanFramebuffer.h"
 #include "Coust/Renderer/Vulkan/VulkanPipeline.h"	
 #include "Coust/Renderer/Vulkan/VulkanCommandBuffer.h"
+#include "vulkan/vulkan_core.h"
 
 namespace Coust
 {
 	namespace VK
 	{
-		constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_2;
 		constexpr uint32_t FRAME_IN_FLIGHT = 2;
 
 		class Backend
@@ -59,13 +59,15 @@ namespace Coust
 			bool CreateFrameSynchronizationObject();
 
 		public:
+			Swapchain m_Swapchain{};
+
 			FramebufferManager m_FramebufferManager{};
 
 			PipelineManager m_PipelineManager{};
 
-            DesriptorSetManager m_DescriptorSetManager{};
-            
-            RenderPassManager m_RenderPassManager{};
+			DesriptorSetManager m_DescriptorSetManager{};
+			
+			RenderPassManager m_RenderPassManager{};
 
 			CommandBufferManager m_CommandBufferManager{};
 
@@ -91,7 +93,7 @@ namespace Coust
 
 			VkPhysicalDeviceProperties m_PhysicalDevProps{};
 
-			Swapchain m_Swapchain{};
+			VkSampleCountFlagBits m_MSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 		private:
 			void AddDeletor(std::function<void()>&& f)

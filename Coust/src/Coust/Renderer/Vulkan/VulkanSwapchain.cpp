@@ -2,17 +2,18 @@
 
 #include "Coust/Renderer/Vulkan/VulkanSwapchain.h"
 #include "Coust/Renderer/Vulkan/VulkanUtils.h"
+#include "vulkan/vulkan_core.h"
 
 #include <GLFW/glfw3.h>
 
 namespace Coust
 {
 	extern GLFWwindow* g_WindowHandle;
-    namespace VK
-    {
+	namespace VK
+	{
 
-        bool Swapchain::Initialize()
-        {
+		bool Swapchain::Initialize()
+		{
 			{
 				VkSurfaceFormatKHR bestSurfaceFormat{};
 				uint32_t surfaceFormatCount = 0;
@@ -42,10 +43,10 @@ namespace Coust
 				for (const auto& mode : surfacePresentModes)
 				{
 					if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
-        			{
-        				bestSurfacePresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-            			break;
-        			}
+					{
+						bestSurfacePresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+						break;
+					}
 				}
 				m_PresentMode = bestSurfacePresentMode;
 			}
@@ -66,7 +67,7 @@ namespace Coust
 				{
 					VkFormatProperties props{};
 					vkGetPhysicalDeviceFormatProperties(g_PhysicalDevice, candidates[i], &props);
-                    // select optimal tiling
+					// select optimal tiling
 					if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 					{
 						bestDepthFormat = candidates[i];
@@ -74,31 +75,31 @@ namespace Coust
 						break;
 					}
 				}
-                if (bestDepthFormat == VK_FORMAT_UNDEFINED)
-                {
-				    COUST_CORE_ERROR("Can't find appropriate depth image format for vulkan");
-                    return false;
-                }
+				if (bestDepthFormat == VK_FORMAT_UNDEFINED)
+				{
+					COUST_CORE_ERROR("Can't find appropriate depth image format for vulkan");
+					return false;
+				}
 				m_DepthFormat = bestDepthFormat;
 			}
 
 			return true;
-        }
+		}
 
-        bool Swapchain::Create()
-        {
+		bool Swapchain::Create()
+		{
    			VkSurfaceCapabilitiesKHR surfaceCapabilities{};
 			{
 				VkExtent2D bestSurfaceExtent{};
    				vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_PhysicalDevice, g_Surface, &surfaceCapabilities);
-   				if (surfaceCapabilities.currentExtent.width == (uint32_t) -1)
+				if (surfaceCapabilities.currentExtent.width == (uint32_t) -1)
    				{
    					int width, height;
    					glfwGetFramebufferSize(g_WindowHandle, &width, &height);
 					uint32_t actualWidth  = std::clamp((uint32_t) width,  surfaceCapabilities.minImageExtent.width,  surfaceCapabilities.maxImageExtent.width);
 					uint32_t actualHeight = std::clamp((uint32_t) height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
-        			bestSurfaceExtent = VkExtent2D{ actualWidth, actualHeight };
-    			}
+					bestSurfaceExtent = VkExtent2D{ actualWidth, actualHeight };
+				}
 				else
    					bestSurfaceExtent = surfaceCapabilities.currentExtent;
 
@@ -154,26 +155,72 @@ namespace Coust
 				m_ImageViews.resize(m_Images.size());
 				for (int i = 0; i < m_Images.size(); ++i)
 				{
-                    VkImageViewCreateInfo imageViewInfo
-                    {
-				        .sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				        .image              = m_Images[i],
-				        .viewType           = VK_IMAGE_VIEW_TYPE_2D,
-				        .format      		= m_Format.format,
-				        .components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
-        	            						VK_COMPONENT_SWIZZLE_IDENTITY,
-        	            						VK_COMPONENT_SWIZZLE_IDENTITY,
-        	            						VK_COMPONENT_SWIZZLE_IDENTITY },
-				        .subresourceRange	= {
-    			        					  	.aspectMask 		= VK_IMAGE_ASPECT_COLOR_BIT,
-    			        					  	.baseMipLevel 		= 0,
-    			        					  	.levelCount 		= 1,
-    			        					  	.baseArrayLayer 	= 0,
-    			        					  	.layerCount 		= 1,
-				        					  },
-                    };
+					VkImageViewCreateInfo imageViewInfo
+					{
+						.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+						.image              = m_Images[i],
+						.viewType           = VK_IMAGE_VIEW_TYPE_2D,
+						.format      		= m_Format.format,
+						.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
+												VK_COMPONENT_SWIZZLE_IDENTITY,
+												VK_COMPONENT_SWIZZLE_IDENTITY,
+												VK_COMPONENT_SWIZZLE_IDENTITY },
+						.subresourceRange	= {
+											  	.aspectMask 		= VK_IMAGE_ASPECT_COLOR_BIT,
+											  	.baseMipLevel 		= 0,
+											  	.levelCount 		= 1,
+											  	.baseArrayLayer 	= 0,
+											  	.layerCount 		= 1,
+											  },
+					};
 					vkCreateImageView(g_Device, &imageViewInfo, nullptr, &m_ImageViews[i]);
 				}
+			}
+
+			{	// Color Image
+				VkExtent3D extent 
+				{
+					.width = m_Extent.width,
+					.height = m_Extent.height,
+					.depth = 1,
+				};
+				VkImageCreateInfo imageInfo
+				{
+					.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+					.imageType		= VK_IMAGE_TYPE_2D,
+					.format			= m_Format.format,
+					.extent			= extent,
+					.mipLevels		= 1,
+					.arrayLayers	= 1,
+					.samples		= g_MSAASampleCount,
+					.tiling			= VK_IMAGE_TILING_OPTIMAL,
+					.usage			= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+				};
+				VmaAllocationCreateInfo allocInfo 
+				{
+					.usage = VMA_MEMORY_USAGE_GPU_ONLY,
+					.requiredFlags = (VkMemoryPropertyFlags) VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				};
+				VK_CHECK(vmaCreateImage(g_VmaAlloc, &imageInfo, &allocInfo, &m_ColorImageAlloc.image, &m_ColorImageAlloc.alloc, nullptr));
+				VkImageViewCreateInfo imageViewInfo
+				{
+					.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					.image              = m_ColorImageAlloc.image,
+					.viewType           = VK_IMAGE_VIEW_TYPE_2D,
+					.format      		= m_Format.format,
+					.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
+											VK_COMPONENT_SWIZZLE_IDENTITY,
+											VK_COMPONENT_SWIZZLE_IDENTITY,
+											VK_COMPONENT_SWIZZLE_IDENTITY },
+					.subresourceRange	= {
+										  	.aspectMask 		= VK_IMAGE_ASPECT_COLOR_BIT,
+										  	.baseMipLevel 		= 0,
+										  	.levelCount 		= 1,
+										  	.baseArrayLayer 	= 0,
+										  	.layerCount 		= 1,
+										  },
+				};
+				VK_CHECK(vkCreateImageView(g_Device, &imageViewInfo, nullptr, &m_ColorImageView));
 			}
 		
 			{	// Depth Image (Buffer)
@@ -183,54 +230,58 @@ namespace Coust
 					.height = m_Extent.height,
 					.depth = 1,
 				};
-                VkImageCreateInfo imageInfo
-                {
+				VkImageCreateInfo imageInfo
+				{
 					.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 					.imageType		= VK_IMAGE_TYPE_2D,
 					.format			= m_DepthFormat,
 					.extent			= extent,
 					.mipLevels		= 1,
 					.arrayLayers	= 1,
-					.samples		= VK_SAMPLE_COUNT_1_BIT,
+					.samples		= g_MSAASampleCount,
 					.tiling			= VK_IMAGE_TILING_OPTIMAL,
 					.usage			= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                };
+				};
 				VmaAllocationCreateInfo allocInfo 
 				{
 					.usage = VMA_MEMORY_USAGE_GPU_ONLY,
 					.requiredFlags = (VkMemoryPropertyFlags) VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				};
 				VK_CHECK(vmaCreateImage(g_VmaAlloc, &imageInfo, &allocInfo, &m_DepthImageAlloc.image, &m_DepthImageAlloc.alloc, nullptr));
-                VkImageViewCreateInfo imageViewInfo
-                {
+				VkImageViewCreateInfo imageViewInfo
+				{
 					.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 					.image              = m_DepthImageAlloc.image,
 					.viewType           = VK_IMAGE_VIEW_TYPE_2D,
 					.format      		= m_DepthFormat,
 					.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
-        	    							VK_COMPONENT_SWIZZLE_IDENTITY,
-        	    							VK_COMPONENT_SWIZZLE_IDENTITY,
-        	    							VK_COMPONENT_SWIZZLE_IDENTITY },
+											VK_COMPONENT_SWIZZLE_IDENTITY,
+											VK_COMPONENT_SWIZZLE_IDENTITY,
+											VK_COMPONENT_SWIZZLE_IDENTITY },
 					.subresourceRange	= {
-    									  	.aspectMask 		= VK_IMAGE_ASPECT_DEPTH_BIT,
-    									  	.baseMipLevel 		= 0,
-    									  	.levelCount 		= 1,
-    									  	.baseArrayLayer 	= 0,
-    									  	.layerCount 		= 1,
+										  	.aspectMask 		= VK_IMAGE_ASPECT_DEPTH_BIT,
+										  	.baseMipLevel 		= 0,
+										  	.levelCount 		= 1,
+										  	.baseArrayLayer 	= 0,
+										  	.layerCount 		= 1,
 										  },
-                };
+				};
 				VK_CHECK(vkCreateImageView(g_Device, &imageViewInfo, nullptr, &m_DepthImageView));
 			}
 
 			return true;
-        }
+		}
 
-        void Swapchain::Cleanup()
-        {
+		void Swapchain::Cleanup()
+		{
 			vkDestroyImageView(g_Device, m_DepthImageView, nullptr);  
 			vmaDestroyImage(g_VmaAlloc, m_DepthImageAlloc.image, m_DepthImageAlloc.alloc); 
 
+			vkDestroyImageView(g_Device, m_ColorImageView, nullptr);
+			vmaDestroyImage(g_VmaAlloc, m_ColorImageAlloc.image, m_ColorImageAlloc.alloc);
+
 			m_DepthImageView = VK_NULL_HANDLE;
+			m_ColorImageView = VK_NULL_HANDLE;
 		
 			for (auto& imageview : m_ImageViews)
 			{
@@ -243,7 +294,7 @@ namespace Coust
 				vkDestroySwapchainKHR(g_Device, m_Swapchain, nullptr);
 				m_Swapchain = VK_NULL_HANDLE;
 			}
-        }
+		}
 
 		bool Swapchain::Recreate()
 		{
@@ -272,5 +323,5 @@ namespace Coust
 
 			return result;
 		}
-    }
+	}
 }

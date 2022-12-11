@@ -70,7 +70,7 @@ namespace Coust
         return { shaderc_shader_kind::shaderc_glsl_infer_from_source, Shader::Type::UNDEFINED };
 	}
 
-	Shader::Shader(const FilePath& path, const std::vector<const char*>& macroes)
+	Shader::Shader(const FilePath& path, const std::vector<const char*>& macroes, bool saveIncludedAndAsembly)
         : m_Path(path)
 	{
 	    m_Options.SetIncluder(std::make_unique<Includer>());
@@ -105,21 +105,22 @@ namespace Coust
             m_Options.AddMacroDefinition(name, nameSize, value, valueSize);
 	    }
 
+	    const auto kind = InferShaderKindFromName(path.GetName());
+        m_Type = kind.second;
         if (IsSpirV(path.GetName()))
-        {
-	    	const auto kind = InferShaderKindFromName(path.GetName());
-            m_Type = kind.second;
             m_ByteCode = FileStream::ReadWholeBinary<uint32_t>(path.Get());
-        }
-	    else
+        else if (saveIncludedAndAsembly)
 	    {
-	    	const auto kind = InferShaderKindFromName(path.GetName());
-            m_Type = kind.second;
 	    	const auto source = FileStream::ReadWholeText(path.Get());
             m_Preprocessed = GlslToPreprocessed(path.Get(), source, kind.first);
             m_Assembly = PreProcessedToAssembly(path.Get(), m_Preprocessed.c_str(), kind.first);
             m_ByteCode = AssemblyToByteCode(path.Get(), m_Assembly.c_str(), kind.first);
 	    }
+        else
+        {
+	    	const auto source = FileStream::ReadWholeText(path.Get());
+            m_ByteCode = GlslToByteCode(path.Get(), source, kind.first);
+        }
 	}
 
 	Shader::~Shader()

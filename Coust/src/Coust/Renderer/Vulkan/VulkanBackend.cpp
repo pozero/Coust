@@ -3,6 +3,7 @@
 #include "Coust/Renderer/Vulkan/VulkanBackend.h"
 
 #include "Coust/Renderer/Vulkan/VulkanUtils.h"
+#include "vulkan/vulkan_core.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -21,6 +22,7 @@ namespace Coust
 		VmaAllocator g_VmaAlloc								= VK_NULL_HANDLE;
 		uint32_t g_GraphicsQueueFamilyIndex					= 0;
 		uint32_t g_PresentQueueFamilyIndex					= 0;
+		VkSampleCountFlagBits g_MSAASampleCount				= VK_SAMPLE_COUNT_1_BIT;
 		const Swapchain* g_Swapchain						= nullptr;
 		bool g_AllVulkanGlobalVarSet						= false;
 
@@ -113,7 +115,6 @@ namespace Coust
 		bool Backend::CommitDrawCommands()
 		{
 			static bool initialized = false;
-			static uint32_t frameNumber = 0;
 			static VkRenderPass renderPass = VK_NULL_HANDLE;
 			static std::vector<VkFramebuffer> framebuffers(g_Swapchain->m_CurrentSwapchainImageCount, VK_NULL_HANDLE);
 			static VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -150,7 +151,7 @@ namespace Coust
 				Utils::CreatePipelineLayout(pipelineLayoutParam, &pipelineLayout);
 				PipelineManager::Param pipelineParam
 				{
-					.shaderFiles = {"Coust/shaders/triangle.vert", "Coust/shaders/triangle.frag"},
+					.shaderFiles = {"Coust/shaders/build/triangle.vert.spv", "Coust/shaders/build/triangle.frag.spv"},
 					.macroes = {{}, {}},
 					.useDepth = false,
 					.useBlending = false,
@@ -172,9 +173,14 @@ namespace Coust
 					};
 					VK_CHECK(vkBeginCommandBuffer(cmd, &beginInfo));
 
-					VkClearValue clearValue
+					VkClearValue clearValue[2]
 					{
-						.color = { { 0.2f, 0.2f, 0.2f, 1.0f } },
+						{
+							.color = { { 0.2f, 0.2f, 0.2f, 1.0f } },
+						},
+						{
+							.color = { { 0.2f, 0.2f, 0.2f, 1.0f } },
+						},
 					};
 					VkRect2D renderArea
 					{
@@ -187,8 +193,8 @@ namespace Coust
 						.renderPass = renderPass,
 						.framebuffer = framebuffers[swapchainImageIdx],
 						.renderArea = renderArea,
-						.clearValueCount = 1,
-						.pClearValues = &clearValue,
+						.clearValueCount = 2,
+						.pClearValues = clearValue,
 					};
 					vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -466,6 +472,26 @@ namespace Coust
 
 					VkPhysicalDeviceProperties physicalDeviceProperties;
 					vkGetPhysicalDeviceProperties(device, &physicalDeviceProperties);
+					// Get MSAA sample count
+					{
+						VkSampleCountFlags MSAACountFlags = physicalDeviceProperties.limits.framebufferColorSampleCounts & 
+							physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+						if (MSAACountFlags & VK_SAMPLE_COUNT_64_BIT)
+							m_MSAASampleCount = VK_SAMPLE_COUNT_64_BIT;
+						else if (MSAACountFlags & VK_SAMPLE_COUNT_32_BIT)
+							m_MSAASampleCount = VK_SAMPLE_COUNT_32_BIT;
+						else if (MSAACountFlags & VK_SAMPLE_COUNT_16_BIT)
+							m_MSAASampleCount = VK_SAMPLE_COUNT_16_BIT;
+						else if (MSAACountFlags & VK_SAMPLE_COUNT_8_BIT)
+							m_MSAASampleCount = VK_SAMPLE_COUNT_8_BIT;
+						else if (MSAACountFlags & VK_SAMPLE_COUNT_4_BIT)
+							m_MSAASampleCount = VK_SAMPLE_COUNT_4_BIT;
+						else if (MSAACountFlags & VK_SAMPLE_COUNT_2_BIT)
+							m_MSAASampleCount = VK_SAMPLE_COUNT_2_BIT;
+						
+						g_MSAASampleCount = m_MSAASampleCount;
+					}
+					// Get MSAA sample count
 					if (requiredExtensionSupported && requiredFeatureSupported && presentQueueFamilyIndex.has_value() && graphicsQueueFamilyIndex.has_value())
 					{
 						int score = 0;

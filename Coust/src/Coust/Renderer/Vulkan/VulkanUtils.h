@@ -53,6 +53,8 @@ namespace Coust
 {
 	namespace VK
 	{
+		constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_2;
+
 		extern VkDevice g_Device;
 		extern VkInstance g_Instance;
 		extern VkSurfaceKHR g_Surface;
@@ -62,6 +64,7 @@ namespace Coust
 		extern VkPhysicalDeviceProperties* g_pPhysicalDevProps;
 		extern uint32_t g_GraphicsQueueFamilyIndex;
 		extern uint32_t g_PresentQueueFamilyIndex;
+		extern VkSampleCountFlagBits g_MSAASampleCount;
 		extern const Swapchain* g_Swapchain;
 		extern bool g_AllVulkanGlobalVarSet;
 

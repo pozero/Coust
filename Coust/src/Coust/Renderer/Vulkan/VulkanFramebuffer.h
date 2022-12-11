@@ -14,8 +14,9 @@ namespace Coust
 				uint32_t count;
 				uint32_t width, height;
 				VkRenderPass renderPass;
-				const VkImageView* colorImageViews;
+				VkImageView colorImageView;
 				VkImageView depthImageView;
+                const VkImageView* resolveImageViews;
 			};
 
         public:

@@ -3,6 +3,7 @@
 #include <volk.h>
 
 #include "Coust/Renderer/Vulkan/VulkanStructs.h"
+#include "vulkan/vulkan_core.h"
 
 #include <vector>
 
@@ -32,7 +33,9 @@ namespace Coust
 
 			VkImageView GetDepthImageView() const { return m_DepthImageView; }
 
-			const std::vector<VkImageView>& GetColorImageViews() const { return m_ImageViews; }
+			VkImageView GetColorImageView() const { return m_ColorImageView; }
+
+			const std::vector<VkImageView>& GetResolveImageViews() const { return m_ImageViews; }
 
 		public:
 			VkExtent2D m_Extent{};
@@ -55,6 +58,8 @@ namespace Coust
 			ImageAlloc m_DepthImageAlloc{};
 			VkImageView m_DepthImageView = VK_NULL_HANDLE;
 
+			ImageAlloc m_ColorImageAlloc{};
+			VkImageView m_ColorImageView = VK_NULL_HANDLE;
 		};
     }
 }

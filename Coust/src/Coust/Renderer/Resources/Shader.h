@@ -30,7 +30,7 @@ namespace Coust
 		Shader(const Shader& other) = delete;
 		Shader& operator=(const Shader& other) = delete;
 
-		Shader(const FilePath& path, const std::vector<const char*>& macroes);
+		Shader(const FilePath& path, const std::vector<const char*>& macroes, bool saveIncludedAndAsembly = true);
 		~Shader();
 
 		const std::vector<uint32_t>& GetByteCode() const { return m_ByteCode; }

@@ -1,3 +1,4 @@
+#include "Coust/Renderer/Vulkan/VulkanUtils.h"
 #include "pch.h"
 
 #include "Coust/Renderer/Vulkan/VulkanFramebuffer.h"
@@ -26,13 +27,14 @@ namespace Coust
 				.width				= g_Swapchain->m_Extent.width,
 				.height				= g_Swapchain->m_Extent.height,
 				.renderPass			= renderPass,
-				.colorImageViews	= g_Swapchain->GetColorImageViews().data(),
+				.colorImageView		= g_Swapchain->GetColorImageView(),
 				.depthImageView		= useDepth ? g_Swapchain->GetDepthImageView() : nullptr,
+				.resolveImageViews 	= g_Swapchain->GetResolveImageViews().data(),
 			};
 
 			if (CreateFramebuffers(p, out_Framebuffers))
 			{
-				m_FramebuffersAttachedToSwapchain.emplace_back(out_Framebuffers, renderPass, useDepth);
+				m_FramebuffersAttachedToSwapchain.push_back({ out_Framebuffers, renderPass, useDepth });
 				return true;
 			}
 			else
@@ -48,7 +50,8 @@ namespace Coust
 				.width				= g_Swapchain->m_Extent.width,
 				.height				= g_Swapchain->m_Extent.height,
 				.renderPass			= VK_NULL_HANDLE,
-				.colorImageViews	= g_Swapchain->GetColorImageViews().data(),
+				.colorImageView 	= g_Swapchain->GetColorImageView(),
+				.resolveImageViews	= g_Swapchain->GetResolveImageViews().data(),
 			};
 			for (const auto& fb : m_FramebuffersAttachedToSwapchain)
 			{
@@ -67,13 +70,15 @@ namespace Coust
 
         bool FramebufferManager::CreateFramebuffers(const FramebufferManager::Param& params, VkFramebuffer* out_Framebuffers)
         {
-			VkImageView views[2]{};
+			VkImageView views[3]{};
 			uint32_t viewCount = 0;
 			
-			if (params.colorImageViews)
-				views[viewCount++] = params.colorImageViews[0];
+			if (params.colorImageView)
+				views[viewCount++] = params.colorImageView;
 			if (params.depthImageView)
 				views[viewCount++] = params.depthImageView;
+			if (params.resolveImageViews)
+				views[viewCount++] = params.resolveImageViews[0];
 			if (viewCount == 0)
 				return false;
 
@@ -93,8 +98,8 @@ namespace Coust
 			bool result = true;
 			for (uint32_t i = 0; i < params.count; ++i)
 			{
-				if (params.colorImageViews)
-					views[0] = params.colorImageViews[i];
+				if (params.colorImageView)
+					views[viewCount-1] = params.resolveImageViews[i];
 				result = VK_SUCCESS == vkCreateFramebuffer(g_Device, &framebufferparams, nullptr, out_Framebuffers + i);
 			}
 			return result;
