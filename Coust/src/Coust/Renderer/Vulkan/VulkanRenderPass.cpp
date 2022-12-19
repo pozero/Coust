@@ -4,6 +4,7 @@
 
 #include "Coust/Renderer/Vulkan/VulkanRenderPass.h"
 #include "vulkan/vulkan_core.h"
+#include <stdint.h>
 
 namespace Coust
 {
@@ -40,11 +41,10 @@ namespace Coust
 				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				.initialLayout = param.firstPass ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				.finalLayout = param.lastPass ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			};
 			VkAttachmentReference colorRef
 			{
-				.attachment = 0,
 				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			};
 
@@ -62,7 +62,6 @@ namespace Coust
 			};
 			VkAttachmentReference depthRef
 			{
-				.attachment = param.useColor ? 1u : 0u,
 				.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			};
 
@@ -71,7 +70,7 @@ namespace Coust
 				.flags = 0,
 				.format = param.colorFormat,
 				.samples = VK_SAMPLE_COUNT_1_BIT,
-				.loadOp = param.clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -80,7 +79,6 @@ namespace Coust
 			};
 			VkAttachmentReference resolveRef
 			{
-				.attachment = param.useColor && param.useDepth ? 2u : 1u,
 				.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			};
 
@@ -95,6 +93,26 @@ namespace Coust
 				.dependencyFlags = 0,
 			};
 
+			VkAttachmentDescription attachs[3];
+			if (param.useColor && param.useDepth)
+			{
+				attachs[0] = colorAttach;
+				attachs[1] = depthAttach;
+				attachs[2] = resolveAttach;
+
+				colorRef.attachment = 0;
+				depthRef.attachment = 1;
+				resolveRef.attachment = 2;
+			}
+			else if (param.useColor)
+			{
+				attachs[0] = colorAttach;
+				attachs[1] = resolveAttach;
+
+				colorRef.attachment = 0;
+				resolveRef.attachment = 1;
+			}
+
 			VkSubpassDescription subpassInfo
 			{
 				.flags = 0,
@@ -103,30 +121,18 @@ namespace Coust
 				.pInputAttachments = nullptr,
 				.colorAttachmentCount = param.useColor ? 1u : 0u,
 				.pColorAttachments = param.useColor ? &colorRef : nullptr,
-				.pResolveAttachments = param.useColor ? &resolveRef : nullptr,
+				.pResolveAttachments = param.lastPass ? &resolveRef : nullptr,
 				.pDepthStencilAttachment = param.useDepth ? &depthRef : nullptr,
 				.preserveAttachmentCount = 0,
 				.pPreserveAttachments = nullptr,
 			};
 
-			VkAttachmentDescription attachs[3];
-			if (param.useColor && param.useDepth)
-			{
-				attachs[0] = colorAttach;
-				attachs[1] = depthAttach;
-				attachs[2] = resolveAttach;
-			}
-			else if (param.useColor)
-			{
-				attachs[0] = colorAttach;
-				attachs[1] = resolveAttach;
-			}
 			VkRenderPassCreateInfo renderPassInfo
 			{
 				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
-				.attachmentCount = 2u * uint32_t(param.useColor) + uint32_t(param.useDepth),
+				.attachmentCount = uint32_t(param.useColor) + uint32_t(param.useDepth) + uint32_t(param.lastPass),
 				.pAttachments = attachs,
 				.subpassCount = 1,
 				.pSubpasses = &subpassInfo,

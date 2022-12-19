@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Coust/Renderer/Vulkan/VulkanUtils.h"
+#include "vulkan/vulkan_core.h"
 
 namespace Coust
 {
@@ -17,14 +18,16 @@ namespace Coust
 
             void AddDrawCmd(DrawCmd&& cmd);
 
-            bool Record(uint32_t frameIdx, uint32_t swapchainImageIdx);
+            bool RecordDrawCmd(uint32_t frameIdx, uint32_t swapchainImageIdx);
             VkCommandBuffer GetCommandBuffer(uint32_t frameIdx);
 
         private:
-            std::vector<VkCommandPool> m_CommandPools{};
-            std::vector<VkCommandBuffer> m_CommandBuffers{};
+            std::vector<VkCommandPool> m_DrawCommandPools{};
+            std::vector<VkCommandBuffer> m_DrawCommandBuffers{};
 
             std::vector<DrawCmd> m_DrawCommands{};
+
+            VkCommandPool m_UploadCommandPools = VK_NULL_HANDLE;
 
         };
 

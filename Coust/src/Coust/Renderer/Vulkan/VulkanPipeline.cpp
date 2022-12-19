@@ -1,8 +1,13 @@
+#include "Coust/Core/Logger.h"
 #include "Coust/Renderer/Vulkan/VulkanUtils.h"
+#include "Coust/Utils/FileSystem.h"
 #include "pch.h"
 
 #include "Coust/Renderer/Vulkan/VulkanPipeline.h"
 #include "Coust/Renderer/Resources/Shader.h"
+#include "vulkan/vulkan_core.h"
+#include <filesystem>
+#include <stdint.h>
 
 namespace Coust
 {
@@ -36,8 +41,27 @@ namespace Coust
             {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
                 .initialDataSize = 0,
-                .pInitialData = nullptr,
             };
+
+            std::vector<char> serilizedPipelineCache{};
+            if (FileSystem::GetCache("vulkan_pipeline_cache", serilizedPipelineCache))
+            {
+                bool validated = true;
+                const uint32_t* validationData = (const uint32_t*) serilizedPipelineCache.data();
+                validated = validationData[0] == g_pPhysicalDevProps->vendorID && 
+                            validationData[1] == g_pPhysicalDevProps->deviceID &&
+                            validationData[2] == g_pPhysicalDevProps->driverVersion;
+
+                const uint8_t* validationDataByte = (const uint8_t*) (validationData + 3);
+                validated = std::memcmp(validationDataByte, g_pPhysicalDevProps->pipelineCacheUUID, VK_UUID_SIZE * sizeof(uint8_t)) == 0;
+
+                if (validated)
+                {
+                    COUST_CORE_INFO("vulkan pipeline cache validated");
+                    info.initialDataSize = (uint32_t) (serilizedPipelineCache.size() - 3 * sizeof(uint32_t) - VK_UUID_SIZE * sizeof(uint8_t));
+                    info.pInitialData = validationDataByte + VK_UUID_SIZE;
+                }
+            }
 
             VK_CHECK(vkCreatePipelineCache(g_Device, &info, nullptr, &m_GraphicsCache));
             return true;
@@ -45,6 +69,21 @@ namespace Coust
 
         void PipelineManager::Cleanup()
         {
+            if (size_t cacheSize = 0; vkGetPipelineCacheData(g_Device, m_GraphicsCache, &cacheSize, nullptr) == VK_SUCCESS && cacheSize > 0)
+            {
+                std::vector<char> pipelineCacheBytes{};
+                pipelineCacheBytes.resize(3 * sizeof(uint32_t) + VK_UUID_SIZE * sizeof(uint8_t) + cacheSize);
+                uint32_t* header = (uint32_t*) pipelineCacheBytes.data();
+                header[0] = g_pPhysicalDevProps->vendorID; 
+                header[1] = g_pPhysicalDevProps->deviceID;
+                header[2] = g_pPhysicalDevProps->driverVersion;
+                std::memcpy(header + 3, g_pPhysicalDevProps->pipelineCacheUUID, VK_UUID_SIZE * sizeof(uint8_t));
+                if (vkGetPipelineCacheData(g_Device, m_GraphicsCache, &cacheSize, pipelineCacheBytes.data() + 3 * sizeof(uint32_t) + VK_UUID_SIZE * sizeof(uint8_t)) == VK_SUCCESS)
+                {
+                    FileSystem::AddCache("vulkan_pipeline_cache", pipelineCacheBytes, true);
+                }
+            }
+
             vkDestroyPipelineCache(g_Device, m_GraphicsCache, nullptr);
 
             for (VkPipelineLayout l : m_UsedLayout)
@@ -69,8 +108,7 @@ namespace Coust
             std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
             for (std::size_t i = 0; i < param.shaderFiles.size(); ++i)
             {
-                FilePath path{ param.shaderFiles[i] };
-                Shader shader{ path, param.macroes[i] };
+                Shader shader{ param.shaderFiles[i], param.macroes[i] };
 
                 VkShaderModule module;
                 {

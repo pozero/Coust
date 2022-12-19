@@ -2,6 +2,8 @@
 
 #include "Coust/Renderer/Vulkan/VulkanUtils.h"
 
+#include "Coust/Utils/FileSystem.h"
+
 #include <unordered_set>
 
 namespace Coust
@@ -16,7 +18,7 @@ namespace Coust
 
             struct Param 
             {
-                const std::vector<const char*> shaderFiles;
+                const std::vector<std::filesystem::path> shaderFiles;
                 const std::vector<std::vector<const char*>> macroes;
                 bool useDepth;
                 bool useBlending;

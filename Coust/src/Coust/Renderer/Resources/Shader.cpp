@@ -1,6 +1,8 @@
+#include "Coust/Utils/FileSystem.h"
 #include "pch.h"
 
 #include "Coust/Renderer/Resources/Shader.h"
+#include <filesystem>
 
 namespace Coust
 {
@@ -11,7 +13,7 @@ namespace Coust
 		{
 			if (*p == '.')
 				ext = p;
-		}
+	    }
 		if (ext)
 			return std::strcmp(++ext, "spv") == 0;
 		return false;
@@ -28,20 +30,10 @@ namespace Coust
         return true;
     }
 
-	inline std::pair<shaderc_shader_kind, Shader::Type> InferShaderKindFromName(const char* name)
+	inline std::pair<shaderc_shader_kind, Shader::Type> InferShaderKindFromExt(const char* ext)
 	{
-		const char* ext = nullptr;
-		for (const char* p = name; *p != '\0'; ++p)
-		{
-            if (*p == '.')
-            {
-				ext = p;
-                break;
-            }
-		}
         if (!ext)
             return { shaderc_shader_kind::shaderc_glsl_infer_from_source, Shader::Type::UNDEFINED };
-
 		++ext;
         if (BeginWith(ext, "frag"))
             return { shaderc_shader_kind::shaderc_glsl_default_fragment_shader, Shader::Type::FRAGMENT };
@@ -70,8 +62,8 @@ namespace Coust
         return { shaderc_shader_kind::shaderc_glsl_infer_from_source, Shader::Type::UNDEFINED };
 	}
 
-	Shader::Shader(const FilePath& path, const std::vector<const char*>& macroes, bool saveIncludedAndAsembly)
-        : m_Path(path)
+	Shader::Shader(const std::filesystem::path& path, const std::vector<const char*>& macroes)
+        : m_SourceFile(path.string()), m_Path(path) 
 	{
 	    m_Options.SetIncluder(std::make_unique<Includer>());
 	    m_Options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
@@ -105,64 +97,34 @@ namespace Coust
             m_Options.AddMacroDefinition(name, nameSize, value, valueSize);
 	    }
 
-	    const auto kind = InferShaderKindFromName(path.GetName());
+	    const auto kind = InferShaderKindFromExt(path.filename().extension().string().c_str());
         m_Type = kind.second;
-        if (IsSpirV(path.GetName()))
-            m_ByteCode = FileStream::ReadWholeBinary<uint32_t>(path.Get());
-        else if (saveIncludedAndAsembly)
+
+        if (!FileSystem::GetCache(path.string(), m_ByteCode))
 	    {
-	    	const auto source = FileStream::ReadWholeText(path.Get());
-            m_Preprocessed = GlslToPreprocessed(path.Get(), source, kind.first);
-            m_Assembly = PreProcessedToAssembly(path.Get(), m_Preprocessed.c_str(), kind.first);
-            m_ByteCode = AssemblyToByteCode(path.Get(), m_Assembly.c_str(), kind.first);
+            m_FlushToCache = true;
+            std::string source{};
+	    	FileSystem::ReadWholeText(path, source);
+            m_Preprocessed = GlslToPreprocessed(path.string().c_str(), source, kind.first);
+            m_Assembly = PreProcessedToAssembly(path.string().c_str(), m_Preprocessed.c_str(), kind.first);
+            m_ByteCode = AssemblyToByteCode(path.string().c_str(), m_Assembly.c_str(), kind.first);
 	    }
-        else
-        {
-	    	const auto source = FileStream::ReadWholeText(path.Get());
-            m_ByteCode = GlslToByteCode(path.Get(), source, kind.first);
-        }
 	}
 
 	Shader::~Shader()
 	{
+        if (m_FlushToCache)
+        {
+            FileSystem::AddCache(m_SourceFile, m_ByteCode, true);
+        }
 	}
-
-    void Shader::SaveFile()
-    {
-        FilePath saveDir{m_Path};
-        saveDir.GoBack().AddDirectory("build");
-        std::string sourceFileName{m_Path.GetName()};
-
-        if (m_Preprocessed.length() > 0)
-        {
-            std::string name = "Preprocessed" + sourceFileName;
-            saveDir.AddFile(name.c_str());
-            FileStream::WriteWholeText(saveDir.Get(), m_Preprocessed.c_str());
-            saveDir.GoBack();
-        }
-
-        if (m_Assembly.length() > 0)
-        {
-            std::string name = sourceFileName + ".asm";
-            saveDir.AddFile(name.c_str());
-            FileStream::WriteWholeText(saveDir.Get(), m_Assembly.c_str());
-            saveDir.GoBack();
-        }
-
-        if (m_ByteCode.size() > 0)
-        {
-            std::string name = sourceFileName + ".spv";
-            saveDir.AddFile(name.c_str());
-            FileStream::WriteWholeBinary(saveDir.Get(), m_ByteCode.size() * sizeof(uint32_t), (const char*)m_ByteCode.data());
-        }
-    }
 
 	std::string Shader::GlslToPreprocessed(const char* filePath, const std::string& source, shaderc_shader_kind kind)
 	{
         auto result = m_Compiler.PreprocessGlsl(source, kind, filePath, m_Options);
         if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
         {
-        	COUST_CORE_ERROR(result.GetErrorMessage().data());
+        	COUST_CORE_ERROR("GLSL Preprocessor: {}", result.GetErrorMessage().data());
             return std::string{};
         }
 
@@ -174,7 +136,7 @@ namespace Coust
         auto result = m_Compiler.CompileGlslToSpvAssembly(source, kind, filePath, m_Options);
         if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
         {
-        	COUST_CORE_ERROR(result.GetErrorMessage().data());
+        	COUST_CORE_ERROR("GLSL Compiler: {}", result.GetErrorMessage().data());
             return std::string{};
         }
 
@@ -186,7 +148,7 @@ namespace Coust
         auto result = m_Compiler.AssembleToSpv(source, m_Options);
         if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
         {
-        	COUST_CORE_ERROR(result.GetErrorMessage().data());
+        	COUST_CORE_ERROR("GLSL Assembler: {}", result.GetErrorMessage().data());
             return {};
         }
         return std::vector<uint32_t>{result.cbegin(), result.cend()};
@@ -206,16 +168,18 @@ namespace Coust
 	shaderc_include_result* Shader::Includer::GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth)
 	{
         IncludedFileInfo* info = new IncludedFileInfo{};
-        if (!FilePath::IsRelativePath(requested_source))
-            info->fullFilePath = std::string{requested_source};
+        std::filesystem::path includePath{ requested_source };
+        if (includePath.is_absolute())
+            info->fullFilePath = includePath.string();
         else
         {
-            FilePath f{requesting_source};
-            f.GoBack().AddFile(requested_source);
-            info->fullFilePath = std::string{f.Get()};
+            includePath = std::filesystem::path{ requesting_source };
+            includePath = includePath.parent_path();
+            includePath /= requested_source;
+            info->fullFilePath = includePath.string();
         }
         
-        info->fileContent = FileStream::ReadWholeText(info->fullFilePath.c_str());
+        FileSystem::ReadWholeText(info->fullFilePath.c_str(), info->fileContent);
         
         shaderc_include_result* result = new shaderc_include_result{
             .source_name = info->fullFilePath.c_str(),

@@ -60,4 +60,8 @@ namespace Coust
     };
 
     Application* CreateApplication();
+
+    bool AllSystemInit();
+
+    void AllSystemShut();
 }

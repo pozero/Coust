@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Coust/Utils/FilePath.h"
-#include "Coust/Utils/FileStream.h"
+#include "Coust/Utils/FileSystem.h"
 #include "Coust/Core/Logger.h"
 
+#include <filesystem>
 #include <shaderc/shaderc.hpp>
 
 #include <utility>
@@ -30,12 +30,10 @@ namespace Coust
 		Shader(const Shader& other) = delete;
 		Shader& operator=(const Shader& other) = delete;
 
-		Shader(const FilePath& path, const std::vector<const char*>& macroes, bool saveIncludedAndAsembly = true);
+		Shader(const std::filesystem::path& path, const std::vector<const char*>& macroes);
 		~Shader();
 
 		const std::vector<uint32_t>& GetByteCode() const { return m_ByteCode; }
-
-        void SaveFile();
 
 	private:
 		class Includer : public shaderc::CompileOptions::IncluderInterface
@@ -59,6 +57,9 @@ namespace Coust
 	public:
 		Type m_Type = Type::UNDEFINED;
 
+		std::string m_SourceFile;
+		bool m_FlushToCache = false;
+
 	private:
 	    shaderc::CompileOptions m_Options;
 	    shaderc::Compiler m_Compiler;
@@ -67,7 +68,7 @@ namespace Coust
         std::string m_Assembly{};
 		std::vector<uint32_t> m_ByteCode{};
 
-        FilePath m_Path{};
+        std::filesystem::path m_Path{};
 
 	private:
 		std::string GlslToPreprocessed(const char* filePath, const std::string& source, shaderc_shader_kind kind);

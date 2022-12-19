@@ -4,6 +4,7 @@
 
 #include "Coust/Event/ApplicationEvent.h"
 #include "Coust/Renderer/RenderBackend.h"
+#include "Coust/Core/Window.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -86,6 +87,43 @@ namespace Coust
             if (e.Handled)
                 break;
         }
+    }
+
+    bool AllSystemInit()
+    {
+        if (!Coust::Logger::Initialize())
+        {
+            std::cerr << "Logger Initialization Failed\n";
+            return false;
+        }
+
+        if (!Coust::FileSystem::Init())
+        {
+            COUST_CORE_ERROR("File System Initialization Failed");
+            return false;
+        }
+
+        if (!Coust::Window::Init())
+        {
+            COUST_CORE_ERROR("Window Initialization Failed");
+            return false;
+        }
+
+        if (!Coust::RenderBackend::Init())
+        {
+            COUST_CORE_ERROR("Vulkan Backend Initialization Failed");
+            return false;
+        }
+
+        return true;
+    }
+
+    void AllSystemShut()
+    {
+        RenderBackend::Shut();
+        Window::Shut();
+        FileSystem::Shut();
+        Logger::Shutdown();
     }
 
 }

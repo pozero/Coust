@@ -12,6 +12,7 @@
 
 #include <utility>
 #include <cctype>
+#include <cstring>
 #include <optional>
 
 #include <vector>
@@ -22,3 +23,4 @@
 
 #include "Coust/Event/Event.h"
 #include "Coust/Core/Logger.h"
+#include "Coust/Core/Application.h"

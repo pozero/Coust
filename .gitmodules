@@ -16,3 +16,6 @@
 [submodule "Coust/third_party/vma"]
 	path = Coust/third_party/vma
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "Coust/third_party/rapidjson"]
+	path = Coust/third_party/rapidjson
+	url = https://github.com/Tencent/rapidjson/

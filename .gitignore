@@ -4,6 +4,7 @@ build
 vsxmake2022/.vs
 .vscode
 .cache/
+coust_cache/
 
 # Files
 *.user

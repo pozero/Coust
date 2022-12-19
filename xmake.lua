@@ -58,7 +58,7 @@ target("Coust")
     add_files("Coust/src/Coust/Event/*.cpp")
     add_files("Coust/src/Coust/Renderer/*.cpp")
     add_files("Coust/src/Coust/Renderer/Vulkan/*.cpp")
-    add_files("Coust/src/Coust/Renderer/RenderLayer/*.cpp")
+    add_files("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.cpp")
     add_files("Coust/src/Coust/Renderer/Resources/*.cpp")
 
     add_headerfiles("Coust/src/*.h")
@@ -68,7 +68,7 @@ target("Coust")
     add_headerfiles("Coust/src/Coust/Event/*.h")
     add_headerfiles("Coust/src/Coust/Renderer/*.h")
     add_headerfiles("Coust/src/Coust/Renderer/Vulkan/*.h")
-    add_headerfiles("Coust/src/Coust/Renderer/RenderLayer/*.h")
+    add_headerfiles("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.h")
     add_headerfiles("Coust/src/Coust/Renderer/Resources/*.h")
     -- source file
 
@@ -85,6 +85,8 @@ target("Coust")
     end
 
     add_includedirs("Coust/third_party/spdlog/include")
+
+    add_includedirs("Coust/third_party/rapidjson/include")
 
     add_includedirs("Coust/third_party/glm")
 

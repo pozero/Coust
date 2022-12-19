@@ -151,7 +151,8 @@ namespace Coust
 				Utils::CreatePipelineLayout(pipelineLayoutParam, &pipelineLayout);
 				PipelineManager::Param pipelineParam
 				{
-					.shaderFiles = {"Coust/shaders/build/triangle.vert.spv", "Coust/shaders/build/triangle.frag.spv"},
+					// .shaderFiles = { "Coust/shaders/triangle.vert", "Coust/shaders/triangle.frag" },
+					.shaderFiles = { FileSystem::GetFullPathFrom({"Coust", "shaders", "triangle.vert"}), FileSystem::GetFullPathFrom({"Coust", "shaders", "triangle.frag"})}, 
 					.macroes = {{}, {}},
 					.useDepth = false,
 					.useBlending = false,
@@ -235,7 +236,7 @@ namespace Coust
 			uint32_t swapchainImageIdx = 0;
 			VK_CHECK(vkAcquireNextImageKHR(g_Device, g_Swapchain->GetHandle(), timeout, m_PresentSemaphore[m_FrameIndex], nullptr, &swapchainImageIdx));
 
-			if (!m_CommandBufferManager.Record(m_FrameIndex, swapchainImageIdx))
+			if (!m_CommandBufferManager.RecordDrawCmd(m_FrameIndex, swapchainImageIdx))
 			{
 				COUST_CORE_ERROR("Failed to record vulkan commands");
 				return false;
