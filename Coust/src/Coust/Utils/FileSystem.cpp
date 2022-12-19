@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdint.h>
 
+#undef max
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/writer.h"
