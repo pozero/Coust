@@ -15,21 +15,19 @@ namespace Coust
         };
 
     public:
-        [[nodiscard]] static bool Init();
-        static void Shut();
-        
-        static Window* s_Window;
+        static Window* CreateCoustWindow(const Config& config = Config{1200, 800, "Coust Engine"});
 
-    private:
-        Window(const Config& config = Config{1200, 800, "Coust Engine"});
-        
-        bool Initialize();
         void Shutdown();
 
         int GetWidth() const { return m_WindowProp.width; }
         int GetHeight() const { return m_WindowProp.height; }
 
         GLFWwindow* GetHandle() const { return m_WindowHandle; }
+
+    private:
+        Window(const Config& config);
+        
+        bool Initialize();
 
     private:
         Config m_WindowProp;

@@ -5,12 +5,10 @@
 
 namespace Coust
 {
+	class WindowClosedEvent;
 	class Logger
 	{
 	public:
-		Logger() = default;
-		~ Logger() = default;
-
 		[[nodiscard]] static bool Initialize();
 		static void Shutdown();
 
@@ -35,7 +33,7 @@ namespace Coust
 #define COUST_ERROR(...)				::Coust::Logger::GetClientLogger()->error(__VA_ARGS__)
 #define COUST_CRITICAL(...)				::Coust::Logger::GetClientLogger()->critical(__VA_ARGS__)
 
-#define COUST_CORE_ABORT()              ::Coust::Application::GetInstance()->Close()
+#define COUST_CORE_ABORT()              ::Coust::EventBus::Publish(WindowClosedEvent{})
 
 #define COUST_TODO(...)					COUST_CORE_ERROR("Code Unfinished:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__);
 

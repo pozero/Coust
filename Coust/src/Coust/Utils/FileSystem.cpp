@@ -1,6 +1,8 @@
+#include "Coust/Core/Logger.h"
 #include "pch.h"
 
 #include "Coust/Utils/FileSystem.h"
+#include "rapidjson/error/error.h"
 
 #include <filesystem>
 #include <fstream>
@@ -17,29 +19,7 @@ namespace Coust
 {
     // cache file always locate in `CURRENT_DIRECTORY\coust_cache\`
 
-    FileSystem* FileSystem::s_Instance = nullptr;
     std::filesystem::path FileSystem::s_CacheHeadersPath = GetFullPathFrom({"coust_cache", "cache_headers.json"});
-
-    bool FileSystem::Init()
-    {
-        if (s_Instance)
-        {
-            COUST_CORE_ERROR("File System already initialized");
-            return false;
-        }
-
-        s_Instance = new FileSystem{};
-        return s_Instance->Initialize();
-    }
-
-    void FileSystem::Shut()
-    {
-        if (s_Instance)
-        {
-            s_Instance->Shutdown();
-            s_Instance = nullptr;
-        }
-    }
 
     template
     bool FileSystem::GetCache<uint32_t>(const std::string& originName, std::vector<uint32_t>& out_buf);
@@ -47,14 +27,14 @@ namespace Coust
     template<>
     bool FileSystem::GetCache<char>(const std::string& originName, std::vector<char>& out_buf)
     {
-        return CacheStatus::AVAILABLE == s_Instance->getCache(originName, out_buf);
+        return CacheStatus::AVAILABLE == getCache(originName, out_buf);
     }
 
     template<typename T>
     bool FileSystem::GetCache(const std::string& originName, std::vector<T>& out_buf)
     {
         std::vector<char> tmp_buf{};
-        auto status = s_Instance->getCache(originName, tmp_buf);
+        auto status = getCache(originName, tmp_buf);
         if (status != CacheStatus::AVAILABLE)
             return false;
 
@@ -72,7 +52,7 @@ namespace Coust
     template<>
     void FileSystem::AddCache<char>(const std::string& originName, std::vector<char>& cacheBytes, bool needCRC32)
     {
-        return s_Instance->addCache(originName, cacheBytes, needCRC32);
+        return addCache(originName, cacheBytes, needCRC32);
     }
 
     template<typename T>
@@ -82,9 +62,21 @@ namespace Coust
         tmp_buf.resize(cacheBytes.size() * sizeof(T));
         std::memcpy(tmp_buf.data(), cacheBytes.data(), cacheBytes.size() * sizeof(T));
 
-        s_Instance->addCache(originName, tmp_buf, needCRC32);
+        addCache(originName, tmp_buf, needCRC32);
     }
 
+    FileSystem* FileSystem::CreateFileSystem()
+    {
+        FileSystem* filesystem = new FileSystem();
+        if (filesystem->Initialize())
+            return filesystem;
+        else
+        {
+            filesystem->Shutdown();
+            delete filesystem;
+            return nullptr;
+        }
+    }
 
     bool FileSystem::Initialize()
     {
@@ -106,27 +98,31 @@ namespace Coust
         {
             rapidjson::Document doc{};
             doc.Parse(headerJson.c_str());
-            for (auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter)
+            if (!doc.HasParseError())
             {
-                CacheHeader h
+                for (auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter)
                 {
-                    .originName = iter->name.GetString(),
-                    .cacheName = iter->value.FindMember("cache")->value.GetString(),
-                    .cacheSizeInByte = iter->value.FindMember("cache_size_in_byte")->value.GetUint(),
-                };
+                    CacheHeader h
+                    {
+                        .originName = iter->name.GetString(),
+                        .cacheName = iter->value.FindMember("cache")->value.GetString(),
+                        .cacheSizeInByte = iter->value.FindMember("cache_size_in_byte")->value.GetUint(),
+                        .isNew = false,
+                    };
 
-                if (auto m = iter->value.FindMember("size_in_byte"); !m->value.IsNull())
-                    h.originFileSizeInByte = m->value.GetUint();
-                if (auto m = iter->value.FindMember("last_modified"); !m->value.IsNull())
-                    h.originFileLastModifiedTime = m->value.GetString();
-                if (auto m = iter->value.FindMember("cache_crc32"); !m->value.IsNull())
-                    h.cacheCRC32 = m->value.GetUint();
+                    if (auto m = iter->value.FindMember("size_in_byte"); !m->value.IsNull())
+                        h.originFileSizeInByte = m->value.GetUint();
+                    if (auto m = iter->value.FindMember("last_modified"); !m->value.IsNull())
+                        h.originFileLastModifiedTime = m->value.GetString();
+                    if (auto m = iter->value.FindMember("cache_crc32"); !m->value.IsNull())
+                        h.cacheCRC32 = m->value.GetUint();
 
-                m_CacheHeaders.push_back(h);
+                    m_CacheHeaders.push_back(h);
+                }
+                return true;
             }
         }
-        else
-            COUST_CORE_WARN("Failed to read cache header {}, it may not exist or corrupted...", s_CacheHeadersPath.string());
+        COUST_CORE_WARN("Failed to read cache header {}, it may not exist or corrupted...", s_CacheHeadersPath.string());
         return true;
     }
 
@@ -135,17 +131,21 @@ namespace Coust
         // flush to cache files
         for (const auto& c : m_Caches)
         {
-            auto path = s_CacheHeadersPath.parent_path();
-            path /= c.cacheName;
+            std::thread worker{[&]() -> void {
+                auto path = s_CacheHeadersPath.parent_path();
+                path /= c.cacheName;
 
-            std::ofstream file{ path, std::ios::binary };
+                std::ofstream file{ path, std::ios::binary };
 
-            if (!file.is_open())
-                continue;
-            
-            file.write((const char*) &MAGIC_NUMBER, sizeof(uint32_t));
-            file.write(c.cache.data(), c.cache.size());
-            file.close();
+                if (!file.is_open())
+                    return;
+
+                file.write((const char*) &MAGIC_NUMBER, sizeof(uint32_t));
+                file.write(c.cache.data(), c.cache.size());
+                file.close();
+            }};
+
+            worker.detach();
         }
 
         // flush to cache header
@@ -193,7 +193,17 @@ namespace Coust
                 break;
         }
         if (header == m_CacheHeaders.cend())
+        {
+            COUST_CORE_TRACE("Cache of {} Not Found", originName);
             return CacheStatus::NO_FOUND;
+        }
+
+        // new cache header, not wrote to disk yet
+        if (header->isNew)
+        {
+            COUST_CORE_TRACE("Cache of {} Invalid", originName);
+            return CacheStatus::INVALID;
+        }
 
         // origin file size changed
         if (header->originFileSizeInByte.has_value())
@@ -202,6 +212,7 @@ namespace Coust
             if (originFileCurrentSize != header->originFileSizeInByte.value())
             {
                 m_CacheHeaders.erase(header);
+                COUST_CORE_TRACE("Cache of {} Out of Day", originName);
                 return CacheStatus::OUT_OF_DATE;
             }
         }
@@ -214,6 +225,7 @@ namespace Coust
             if (header->originFileLastModifiedTime.value() != ss.str())
             {
                 m_CacheHeaders.erase(header);
+                COUST_CORE_TRACE("Cache of {} Out of Day", originName);
                 return CacheStatus::OUT_OF_DATE;
             }
         }
@@ -224,6 +236,7 @@ namespace Coust
         {
             cache.close();
             m_CacheHeaders.erase(header);
+            COUST_CORE_TRACE("Cache of {} Invalid", originName);
             return CacheStatus::INVALID;
         }
 
@@ -232,6 +245,7 @@ namespace Coust
         {
             cache.close();
             m_CacheHeaders.erase(header);
+            COUST_CORE_TRACE("Cache of {} Invalid", originName);
             return CacheStatus::INVALID;
         }
 
@@ -241,7 +255,10 @@ namespace Coust
             uint32_t headGuard;
             cache.read((char*) &headGuard, sizeof(headGuard));
             if (headGuard != MAGIC_NUMBER)
+            {
+                COUST_CORE_TRACE("Cache of {} Invalid", originName);
                 return CacheStatus::INVALID;
+            }
         }
 
         out_buf.resize(header->cacheSizeInByte);
@@ -256,10 +273,12 @@ namespace Coust
             {
                 out_buf.clear();
                 m_CacheHeaders.erase(header);
+                COUST_CORE_TRACE("Cache of {} Invalid", originName);
                 return CacheStatus::INVALID;
             }
         }
 
+        COUST_CORE_TRACE("Cache of {} Available", originName);
         return CacheStatus::AVAILABLE;
     }
 
@@ -270,6 +289,7 @@ namespace Coust
 
         CacheHeader header;
         {
+            header.isNew = true;
             header.originName = originName;
             header.cacheSizeInByte = cacheBytes.size();
 
@@ -296,14 +316,17 @@ namespace Coust
             if (iter->originName == originName)
             {
                 m_CacheHeaders.erase(iter);
-                m_CacheHeaders.push_back(header);
-                m_Caches.push_back({cacheName, std::move(cacheBytes)});
-                return;
+                break;
             }
         }
 
         m_CacheHeaders.push_back(header);
         m_Caches.push_back({cacheName, std::move(cacheBytes)});
+    }
+
+    std::filesystem::path FileSystem::GetRootPath()
+    { 
+        return std::filesystem::path{ CURRENT_DIRECTORY }; 
     }
 
     std::filesystem::path FileSystem::GetFullPathFrom(const std::initializer_list<const char*>& entries)

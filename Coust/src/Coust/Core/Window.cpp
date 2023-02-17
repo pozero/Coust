@@ -10,27 +10,16 @@
 
 namespace Coust
 {
-    Window* Window::s_Window = nullptr;
-	GLFWwindow* g_WindowHandle;
-    
-    bool Window::Init()
+    Window* Window::CreateCoustWindow(const Config& config)
     {
-        if (s_Window)
+        Window* window = new Window(config);
+        if (window->Initialize())
+            return window;
+        else
         {
-            COUST_CORE_ERROR("Window instance already exists");
-            return false;
-        }
-
-        s_Window = new Window();
-        return s_Window->Initialize();
-    }
-
-    void Window::Shut()
-    {
-        if (s_Window)
-        {
-            s_Window->Shutdown();
-            s_Window = nullptr;
+            window->Shutdown();
+            delete window;
+            return nullptr;
         }
     }
 
@@ -64,7 +53,6 @@ namespace Coust
             COUST_CORE_ERROR("GLFW Window Creation Failed");
             return false;
         }
-        g_WindowHandle = m_WindowHandle;
 
         /* Set Window Event Callbacks */
         glfwSetKeyCallback(m_WindowHandle, 

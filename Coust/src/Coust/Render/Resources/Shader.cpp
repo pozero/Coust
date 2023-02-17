@@ -1,10 +1,10 @@
 #include "Coust/Utils/FileSystem.h"
 #include "pch.h"
 
-#include "Coust/Renderer/Resources/Shader.h"
+#include "Coust/Render/Resources/Shader.h"
 #include <filesystem>
 
-namespace Coust
+namespace Coust::Render
 {
 	inline bool IsSpirV(const char* name)
 	{
@@ -100,7 +100,7 @@ namespace Coust
 	    const auto kind = InferShaderKindFromExt(path.filename().extension().string().c_str());
         m_Type = kind.second;
 
-        if (!FileSystem::GetCache(path.string(), m_ByteCode))
+        if (!GlobalContext::Get().GetFileSystem().GetCache(path.string(), m_ByteCode))
 	    {
             m_FlushToCache = true;
             std::string source{};
@@ -115,7 +115,7 @@ namespace Coust
 	{
         if (m_FlushToCache)
         {
-            FileSystem::AddCache(m_SourceFile, m_ByteCode, true);
+            GlobalContext::Get().GetFileSystem().AddCache(m_SourceFile, m_ByteCode, true);
         }
 	}
 

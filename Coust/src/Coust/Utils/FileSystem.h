@@ -11,25 +11,18 @@ namespace Coust
 	class FileSystem
 	{
     public:
-        static bool Init();
-
-        static void Shut();
-
-        template<typename T>
-        static bool GetCache(const std::string& originName, std::vector<T>& out_buf);
-
-        template<typename T>
-        static void AddCache(const std::string& originName, std::vector<T>& cacheBytes, bool needCRC32);
-
-    private:
-        FileSystem() = default;
-        ~FileSystem() = default;
-
-        bool Initialize();
+        static FileSystem* CreateFileSystem();
 
         void Shutdown();
 
-        static FileSystem* s_Instance;
+        template<typename T>
+        bool GetCache(const std::string& originName, std::vector<T>& out_buf);
+
+        template<typename T>
+        void AddCache(const std::string& originName, std::vector<T>& cacheBytes, bool needCRC32);
+
+    private:
+        bool Initialize();
 
         static constexpr uint32_t MAGIC_NUMBER = 0x13572468;
         static std::filesystem::path s_CacheHeadersPath;
@@ -53,14 +46,13 @@ namespace Coust
     private:
         struct CacheHeader 
         {
-            std::string originName;
-
-            std::optional<size_t> originFileSizeInByte;
             std::optional<std::string> originFileLastModifiedTime;
-
+            std::string originName;
             std::string cacheName;
+            std::optional<size_t> originFileSizeInByte;
             size_t cacheSizeInByte;
             std::optional<uint32_t> cacheCRC32;
+            bool isNew = false;
         };
 
         struct CacheToWrite
@@ -73,7 +65,7 @@ namespace Coust
         std::vector<CacheToWrite> m_Caches;
 
     public:
-        static std::filesystem::path GetRootPath() { return std::filesystem::path{ CURRENT_DIRECTORY }; }
+        static std::filesystem::path GetRootPath();
 
         static std::filesystem::path GetFullPathFrom(const std::initializer_list<const char*>& entries);
 

@@ -54,13 +54,13 @@ xmake version 2.7.3+HEAD.b35ff3118
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=C:\VulkanSDK\1.3.231.1\Lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\bin;C:\Users\HP\AppData\Local\.xmake\packages\c\cmake\3.24.2\5430022e3acc47008f94857b498c53c6\bin;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=C:\VulkanSDK\1.3.231.1\Lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\bin;C:\Users\HP\AppData\Local\.xmake\packages\c\cmake\3.24.2\5430022e3acc47008f94857b498c53c6\bin;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;C:\VulkanSDK\1.3.231.1\Include;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\rapidjson\include;$(XmakeProjectDir)\Coust\third_party\glm;$(XmakeProjectDir)\Coust\third_party\volk;$(XmakeProjectDir)\Coust\third_party\vma\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>C:\VulkanSDK\1.3.231.1\Lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;d:\Dev\Coust\build\windows\x64\debug</XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;C:\VulkanSDK\1.3.231.1\Include;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\rapidjson\include;$(XmakeProjectDir)\Coust\third_party\glm;$(XmakeProjectDir)\Coust\third_party\volk;$(XmakeProjectDir)\Coust\third_party\vma\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>C:\VulkanSDK\1.3.231.1\Lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;$(XmakeProjectDir)\build\windows\x64\debug</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\debug\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -76,13 +76,13 @@ xmake version 2.7.3+HEAD.b35ff3118
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=C:\VulkanSDK\1.3.231.1\Lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\bin;C:\Users\HP\AppData\Local\.xmake\packages\c\cmake\3.24.2\5430022e3acc47008f94857b498c53c6\bin;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=C:\VulkanSDK\1.3.231.1\Lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\bin;C:\Users\HP\AppData\Local\.xmake\packages\c\cmake\3.24.2\5430022e3acc47008f94857b498c53c6\bin;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;C:\VulkanSDK\1.3.231.1\Include;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\rapidjson\include;$(XmakeProjectDir)\Coust\third_party\glm;$(XmakeProjectDir)\Coust\third_party\volk;$(XmakeProjectDir)\Coust\third_party\vma\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui;d:\Dev\Coust\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>C:\VulkanSDK\1.3.231.1\Lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\lib;d:\Dev\Coust\build\windows\x64\release</XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;C:\VulkanSDK\1.3.231.1\Include;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\rapidjson\include;$(XmakeProjectDir)\Coust\third_party\glm;$(XmakeProjectDir)\Coust\third_party\volk;$(XmakeProjectDir)\Coust\third_party\vma\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>C:\VulkanSDK\1.3.231.1\Lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7418f51b300b4f1d9539e175c770deed\lib;$(XmakeProjectDir)\build\windows\x64\release</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\release\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
   <PropertyGroup Label="XmakeConfig" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
     <XmakeBasename>Coust</XmakeBasename>
@@ -98,31 +98,31 @@ xmake version 2.7.3+HEAD.b35ff3118
     <XmakeCudaVersion><!-- nil --></XmakeCudaVersion>
     <XmakeWindowsSdkVersion><!-- nil --></XmakeWindowsSdkVersion>
     <XmakeMfcKind><!-- nil --></XmakeMfcKind>
-    <XmakeRunEnvs>PATH=C:\VulkanSDK\1.3.231.1\Lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\bin;C:\Users\HP\AppData\Local\.xmake\packages\c\cmake\3.24.2\5430022e3acc47008f94857b498c53c6\bin;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
+    <XmakeRunEnvs>PATH=C:\VulkanSDK\1.3.231.1\Lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\bin;C:\Users\HP\AppData\Local\.xmake\packages\c\cmake\3.24.2\5430022e3acc47008f94857b498c53c6\bin;$([System.Environment]::GetEnvironmentVariable('PATH'))</XmakeRunEnvs>
     <XmakeRunArgs><!-- nil --></XmakeRunArgs>
     <XmakeConfigFlags></XmakeConfigFlags>
-    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;C:\VulkanSDK\1.3.231.1\Include;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\rapidjson\include;$(XmakeProjectDir)\Coust\third_party\glm;$(XmakeProjectDir)\Coust\third_party\volk;$(XmakeProjectDir)\Coust\third_party\vma\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\include</XmakeIncludeDirs>
-    <XmakeLinkDirs>C:\VulkanSDK\1.3.231.1\Lib;d:\Dev\Coust\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;d:\Dev\Coust\build\windows\x64\releasedbg</XmakeLinkDirs>
+    <XmakeIncludeDirs>$(XmakeProjectDir)\Coust\src;C:\VulkanSDK\1.3.231.1\Include;$(XmakeProjectDir)\Coust\third_party\spdlog\include;$(XmakeProjectDir)\Coust\third_party\rapidjson\include;$(XmakeProjectDir)\Coust\third_party\glm;$(XmakeProjectDir)\Coust\third_party\volk;$(XmakeProjectDir)\Coust\third_party\vma\include;$(XmakeProjectDir)\Coust\third_party\glad\include;$(XmakeProjectDir)\Coust\third_party\imgui;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\include</XmakeIncludeDirs>
+    <XmakeLinkDirs>C:\VulkanSDK\1.3.231.1\Lib;$(XmakeProjectDir)\build\.packages\g\glfw\latest\7b37f6f8c2504cdc951af75ebeba2737\lib;$(XmakeProjectDir)\build\windows\x64\releasedbg</XmakeLinkDirs>
     <XmakeSourceDirs></XmakeSourceDirs>
-    <XmakePrecompiledHeader><!-- nil --></XmakePrecompiledHeader>
+    <XmakePrecompiledHeader>build\.gens\Coust\windows\x64\releasedbg\Coust\src\pch.h</XmakePrecompiledHeader>
   </PropertyGroup>
 
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-    <XmakeBuilDir>d:\Dev\Coust\build</XmakeBuilDir>
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>
     <XmakeTargetDir></XmakeTargetDir>
     <XmakeRunDir></XmakeRunDir>
   </PropertyGroup>
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-    <XmakeBuilDir>d:\Dev\Coust\build</XmakeBuilDir>
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>
     <XmakeTargetDir></XmakeTargetDir>
     <XmakeRunDir></XmakeRunDir>
   </PropertyGroup>
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
-    <XmakeBuilDir>d:\Dev\Coust\build</XmakeBuilDir>
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>
     <XmakeTargetDir></XmakeTargetDir>
@@ -134,6 +134,7 @@ xmake version 2.7.3+HEAD.b35ff3118
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Core\Application.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Core\EntryPoint.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Core\GlobalContext.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Core\Input.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Core\KeyCode.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Core\Layer.h" />
@@ -144,19 +145,17 @@ xmake version 2.7.3+HEAD.b35ff3118
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\KeyEvent.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderBackend.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Resources\Shader.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\RenderLayer\VulkanRenderLayerBase.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanBackend.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanCommandBuffer.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanDescriptorSet.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanFramebuffer.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanPipeline.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanRenderPass.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanStructs.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanSwapchain.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanUtils.h" />
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\CRC.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Driver.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Resources\Shader.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanCommandBuffer.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanContext.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDescriptorSet.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDriver.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanFramebuffer.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanPipeline.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanRenderPass.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanSwapchain.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanUtils.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileSystem.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Hash.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Timer.h" />
@@ -167,6 +166,9 @@ xmake version 2.7.3+HEAD.b35ff3118
   <ItemGroup>
 
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Core\Application.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Core\GlobalContext.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Core\Input.cpp">
@@ -184,43 +186,40 @@ xmake version 2.7.3+HEAD.b35ff3118
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Event\Event.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\RenderBackend.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Driver.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Resources\Shader.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Resources\Shader.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VmaBuild.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VmaBuild.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VolkBuild.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VolkBuild.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanBackend.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanCommandBuffer.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanCommandBuffer.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDescriptorSet.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanDescriptorSet.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDriver.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanFramebuffer.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanFramebuffer.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanPipeline.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanPipeline.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanRenderPass.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanRenderPass.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanSwapchain.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanSwapchain.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Renderer\Vulkan\VulkanUtils.cpp">
-      <CompileAs>CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\CRC.cpp">
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanUtils.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileSystem.cpp">

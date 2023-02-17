@@ -41,16 +41,6 @@ namespace Coust
             return true;
         }
 
-        static Application* GetInstance() 
-        { 
-            if (!s_Instance)
-                COUST_CORE_ERROR("Coust::Application Instance Not Instantiated Yet");
-            return s_Instance; 
-        }
-
-    private:
-        static Application* s_Instance;
-
     private:
         LayerStack m_LayerStack;
 
@@ -60,8 +50,4 @@ namespace Coust
     };
 
     Application* CreateApplication();
-
-    bool AllSystemInit();
-
-    void AllSystemShut();
 }

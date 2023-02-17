@@ -47,7 +47,7 @@ target("Coust")
     add_syslinks("user32", "gdi32", "shell32", "opengl32")
 
     add_includedirs("Coust/src")
-    -- set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
+    set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h
 
     add_defines("CURRENT_DIRECTORY=\"$(shell python ./Tool/GetCurrentDirectoryPath.py)\"")
 
@@ -56,20 +56,20 @@ target("Coust")
     add_files("Coust/src/Coust/Core/*.cpp")
     add_files("Coust/src/Coust/Utils/*.cpp")
     add_files("Coust/src/Coust/Event/*.cpp")
-    add_files("Coust/src/Coust/Renderer/*.cpp")
-    add_files("Coust/src/Coust/Renderer/Vulkan/*.cpp")
-    add_files("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.cpp")
-    add_files("Coust/src/Coust/Renderer/Resources/*.cpp")
+    add_files("Coust/src/Coust/Render/*.cpp")
+    add_files("Coust/src/Coust/Render/Vulkan/*.cpp")
+    -- add_files("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.cpp")
+    add_files("Coust/src/Coust/Render/Resources/*.cpp")
 
     add_headerfiles("Coust/src/*.h")
     add_headerfiles("Coust/src/Coust/*.h")
     add_headerfiles("Coust/src/Coust/Core/*.h")
     add_headerfiles("Coust/src/Coust/Utils/*.h")
     add_headerfiles("Coust/src/Coust/Event/*.h")
-    add_headerfiles("Coust/src/Coust/Renderer/*.h")
-    add_headerfiles("Coust/src/Coust/Renderer/Vulkan/*.h")
-    add_headerfiles("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.h")
-    add_headerfiles("Coust/src/Coust/Renderer/Resources/*.h")
+    add_headerfiles("Coust/src/Coust/Render/*.h")
+    add_headerfiles("Coust/src/Coust/Render/Vulkan/*.h")
+    -- add_headerfiles("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.h")
+    add_headerfiles("Coust/src/Coust/Render/Resources/*.h")
     -- source file
 
     -- third party 

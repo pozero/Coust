@@ -108,21 +108,21 @@ xmake version 2.7.3+HEAD.b35ff3118
   </PropertyGroup>
 
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-    <XmakeBuilDir>d:\Dev\Coust\build</XmakeBuilDir>
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>
     <XmakeTargetDir></XmakeTargetDir>
     <XmakeRunDir></XmakeRunDir>
   </PropertyGroup>
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-    <XmakeBuilDir>d:\Dev\Coust\build</XmakeBuilDir>
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>
     <XmakeTargetDir></XmakeTargetDir>
     <XmakeRunDir></XmakeRunDir>
   </PropertyGroup>
   <PropertyGroup Label="XmakePath" Condition="'$(Configuration)|$(Platform)'=='releasedbg|x64'">
-    <XmakeBuilDir>d:\Dev\Coust\build</XmakeBuilDir>
+    <XmakeBuilDir>$(XmakeProjectDir)\build</XmakeBuilDir>
     <XmakeConfigDir></XmakeConfigDir>
     <XmakeConfigFileDir></XmakeConfigFileDir>
     <XmakeTargetDir></XmakeTargetDir>

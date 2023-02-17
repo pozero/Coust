@@ -10,7 +10,7 @@
 #include <vector>
 
 
-namespace Coust
+namespace Coust::Render
 {
 	class Shader
 	{

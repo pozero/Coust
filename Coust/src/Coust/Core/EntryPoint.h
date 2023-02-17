@@ -7,16 +7,16 @@ int main(int argc, char* argv[])
 {
     do
     {
-        if (Coust::AllSystemInit())
+        Coust::GlobalContext context{};
+        if (context.Initialize())
         {
             auto app = Coust::CreateApplication();
             COUST_CORE_INFO("Welcome to Coust!");
             app->Run();
             delete app;
         }
+        context.Shutdown();
     } while (false);
-
-    Coust::AllSystemShut();
 
     return 0;
 }
