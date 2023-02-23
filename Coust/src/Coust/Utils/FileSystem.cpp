@@ -4,11 +4,6 @@
 #include "Coust/Utils/FileSystem.h"
 #include "rapidjson/error/error.h"
 
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-#include <stdint.h>
-
 #undef max
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
@@ -17,9 +12,10 @@
 
 namespace Coust 
 {
-    // cache file always locate in `CURRENT_DIRECTORY\coust_cache\`
+    // cache file always locate in `CURRENT_DIRECTORY\.coustcache\`
 
-    std::filesystem::path FileSystem::s_CacheHeadersPath = GetFullPathFrom({"coust_cache", "cache_headers.json"});
+    std::filesystem::path FileSystem::s_CachePath = GetFullPathFrom({ ".coustcache" });
+    std::string FileSystem::s_CacheHeaderFileName = "cache_headers.json";
 
     template
     bool FileSystem::GetCache<uint32_t>(const std::string& originName, std::vector<uint32_t>& out_buf);
@@ -80,21 +76,19 @@ namespace Coust
 
     bool FileSystem::Initialize()
     {
+        auto cacheHeadersPath = s_CachePath / s_CacheHeaderFileName;
+        if (!std::filesystem::exists(s_CachePath))
         {
-            auto cacheDir = s_CacheHeadersPath.parent_path();
-            if (!std::filesystem::exists(cacheDir))
-            {
-                std::filesystem::create_directory(cacheDir);
-            }
-            if (!std::filesystem::exists(s_CacheHeadersPath))
-            {
-                std::ofstream headers{s_CacheHeadersPath};
-                headers.close();
-                return true;
-            }
+            std::filesystem::create_directory(s_CachePath);
+        }
+        if (!std::filesystem::exists(cacheHeadersPath))
+        {
+            std::ofstream headers{cacheHeadersPath};
+            headers.close();
+            return true;
         }
         
-        if (std::string headerJson; ReadWholeText(s_CacheHeadersPath, headerJson))
+        if (std::string headerJson; ReadWholeText(cacheHeadersPath, headerJson))
         {
             rapidjson::Document doc{};
             doc.Parse(headerJson.c_str());
@@ -122,7 +116,7 @@ namespace Coust
                 return true;
             }
         }
-        COUST_CORE_WARN("Failed to read cache header {}, it may not exist or corrupted...", s_CacheHeadersPath.string());
+        COUST_CORE_WARN("Failed to read cache header {}, it may not exist or corrupted...", cacheHeadersPath.string());
         return true;
     }
 
@@ -131,21 +125,18 @@ namespace Coust
         // flush to cache files
         for (const auto& c : m_Caches)
         {
-            std::thread worker{[&]() -> void {
-                auto path = s_CacheHeadersPath.parent_path();
-                path /= c.cacheName;
+            // TODO: Task System
+            auto path = s_CachePath;
+            path /= c.cacheName;
 
-                std::ofstream file{ path, std::ios::binary };
+            std::ofstream file{ path, std::ios::binary };
 
-                if (!file.is_open())
-                    return;
+            if (!file.is_open())
+                return;
 
-                file.write((const char*) &MAGIC_NUMBER, sizeof(uint32_t));
-                file.write(c.cache.data(), c.cache.size());
-                file.close();
-            }};
-
-            worker.detach();
+            file.write((const char*) &MAGIC_NUMBER, sizeof(uint32_t));
+            file.write(c.cache.data(), c.cache.size());
+            file.close();
         }
 
         // flush to cache header
@@ -181,7 +172,7 @@ namespace Coust
         rapidjson::StringBuffer buf;
         rapidjson::Writer<rapidjson::StringBuffer> writer(buf);
         doc.Accept(writer);
-        WriteWholeText(s_CacheHeadersPath, buf.GetString());
+        WriteWholeText(s_CachePath / s_CacheHeaderFileName, buf.GetString());
     }
 
     FileSystem::CacheStatus FileSystem::getCache(const std::string& originName, std::vector<char>& out_buf)
@@ -201,8 +192,8 @@ namespace Coust
         // new cache header, not wrote to disk yet
         if (header->isNew)
         {
-            COUST_CORE_TRACE("Cache of {} Invalid", originName);
-            return CacheStatus::INVALID;
+            COUST_CORE_TRACE("Cache of {} Not Found", originName);
+            return CacheStatus::NO_FOUND;
         }
 
         // origin file size changed
@@ -212,7 +203,7 @@ namespace Coust
             if (originFileCurrentSize != header->originFileSizeInByte.value())
             {
                 m_CacheHeaders.erase(header);
-                COUST_CORE_TRACE("Cache of {} Out of Day", originName);
+                COUST_CORE_TRACE("Cache of {} Out of Date (Origin File Size Changed)", originName);
                 return CacheStatus::OUT_OF_DATE;
             }
         }
@@ -225,18 +216,18 @@ namespace Coust
             if (header->originFileLastModifiedTime.value() != ss.str())
             {
                 m_CacheHeaders.erase(header);
-                COUST_CORE_TRACE("Cache of {} Out of Day", originName);
+                COUST_CORE_TRACE("Cache of {} Out of Date (Origin File Modified)", originName);
                 return CacheStatus::OUT_OF_DATE;
             }
         }
 
-        std::ifstream cache{ GetFullPathFrom({"coust_cache", header->cacheName.c_str()}), std::ios::ate | std::ios::binary};
+        std::ifstream cache{ GetFullPathFrom({".coustcache", header->cacheName.c_str()}), std::ios::ate | std::ios::binary};
         // cache file doesn't exist or can't open
         if (!cache.is_open())
         {
             cache.close();
             m_CacheHeaders.erase(header);
-            COUST_CORE_TRACE("Cache of {} Invalid", originName);
+            COUST_CORE_TRACE("Cache of {} Invalid (Can't Read Cache)", originName);
             return CacheStatus::INVALID;
         }
 
@@ -245,7 +236,7 @@ namespace Coust
         {
             cache.close();
             m_CacheHeaders.erase(header);
-            COUST_CORE_TRACE("Cache of {} Invalid", originName);
+            COUST_CORE_TRACE("Cache of {} Invalid (Cache Size Varied)", originName);
             return CacheStatus::INVALID;
         }
 
@@ -256,7 +247,7 @@ namespace Coust
             cache.read((char*) &headGuard, sizeof(headGuard));
             if (headGuard != MAGIC_NUMBER)
             {
-                COUST_CORE_TRACE("Cache of {} Invalid", originName);
+                COUST_CORE_TRACE("Cache of {} Invalid (Cache Corrupted)", originName);
                 return CacheStatus::INVALID;
             }
         }
@@ -273,7 +264,7 @@ namespace Coust
             {
                 out_buf.clear();
                 m_CacheHeaders.erase(header);
-                COUST_CORE_TRACE("Cache of {} Invalid", originName);
+                COUST_CORE_TRACE("Cache of {} Invalid (CRC32 Hash Test Failed)", originName);
                 return CacheStatus::INVALID;
             }
         }

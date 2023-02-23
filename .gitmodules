@@ -19,3 +19,6 @@
 [submodule "Coust/third_party/rapidjson"]
 	path = Coust/third_party/rapidjson
 	url = https://github.com/Tencent/rapidjson/
+[submodule "Coust/third_party/stb"]
+	path = Coust/third_party/stb
+	url = https://github.com/nothings/stb

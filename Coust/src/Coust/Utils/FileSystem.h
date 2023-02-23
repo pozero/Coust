@@ -25,7 +25,8 @@ namespace Coust
         bool Initialize();
 
         static constexpr uint32_t MAGIC_NUMBER = 0x13572468;
-        static std::filesystem::path s_CacheHeadersPath;
+        static std::filesystem::path s_CachePath;
+        static std::string s_CacheHeaderFileName;
 
     public:
         enum class CacheStatus

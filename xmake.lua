@@ -75,6 +75,7 @@ target("Coust")
     -- third party 
     add_includedirs("$(env VK_SDK_PATH)/Include")
 
+        -- spirv compilation utility
     add_linkdirs("$(env VK_SDK_PATH)/Lib")
     if (is_mode("release")) then
         add_links("shaderc_combined")
@@ -91,6 +92,8 @@ target("Coust")
     add_includedirs("Coust/third_party/glm")
 
     add_includedirs("Coust/third_party/volk")
+
+    add_includedirs("Coust/third_party/stb")
 
     add_includedirs("Coust/third_party/vma/include")
 
@@ -123,39 +126,6 @@ target("Coustol")
     add_includedirs("Coust/third_party/glm")
     -- third party inlude
 target_end()
-
--- target("GLFW")
-    -- set_kind("static")
--- 
-    -- add_defines("_GLFW_WIN32")
-    -- add_defines("_CRT_SECURE_NO_WARNINGS")
--- 
-    -- add_headerfiles("Coust/third_party/GLFW/include/GLFW/glfw3.h")
-    -- add_headerfiles("Coust/third_party/GLFW/include/GLFW/glfw3native.h")
-	-- add_headerfiles("Coust/third_party/GLFW/src/glfw_config.h")
--- 
-	-- add_files("Coust/third_party/GLFW/src/context.c")
-	-- add_files("Coust/third_party/GLFW/src/init.c")
-	-- add_files("Coust/third_party/GLFW/src/null_init.c")
-	-- add_files("Coust/third_party/GLFW/src/null_monitor.c")
-	-- add_files("Coust/third_party/GLFW/src/null_window.c")
-	-- add_files("Coust/third_party/GLFW/src/null_joystick.c")
-	-- add_files("Coust/third_party/GLFW/src/input.c")
-	-- add_files("Coust/third_party/GLFW/src/monitor.c")
-	-- add_files("Coust/third_party/GLFW/src/vulkan.c")
-	-- add_files("Coust/third_party/GLFW/src/window.c")
-	-- add_files("Coust/third_party/GLFW/src/platform.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_init.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_module.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_joystick.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_monitor.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_time.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_thread.c")
-	-- add_files("Coust/third_party/GLFW/src/win32_window.c")
-	-- add_files("Coust/third_party/GLFW/src/wgl_context.c")
-	-- add_files("Coust/third_party/GLFW/src/egl_context.c")
-	-- add_files("Coust/third_party/GLFW/src/osmesa_context.c")
--- target_end()
 
 target("Glad")
     set_kind("static")

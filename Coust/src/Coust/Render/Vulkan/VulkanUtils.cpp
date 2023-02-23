@@ -55,7 +55,7 @@ namespace Coust::Render::VK::Utils
 		return true;
 	}
 
-	bool CreateBuffer(const Context& ctx, const Param_CreateBuffer& info, BufferAlloc& out_BufferAlloc)
+	bool CreateBuffer(const Context& ctx, const Param_CreateBuffer& info, BufferAlloc* out_BufferAlloc)
 	{
 		VkBufferCreateInfo bufInfo
 		{
@@ -67,7 +67,7 @@ namespace Coust::Render::VK::Utils
 		{
 			.usage = info.memUsage,
 		};
-		VK_CHECK(vmaCreateBuffer(ctx.m_VmaAlloc, &bufInfo, &allocInfo, &out_BufferAlloc.buffer, &out_BufferAlloc.alloc, nullptr));
+		VK_CHECK(vmaCreateBuffer(ctx.m_VmaAlloc, &bufInfo, &allocInfo, &out_BufferAlloc->buffer, &out_BufferAlloc->alloc, nullptr));
 
 		return true;
 	}

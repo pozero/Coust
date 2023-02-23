@@ -51,6 +51,7 @@ namespace Coust::Render::VK
 
 			if (validated)
 			{
+				COUST_CORE_INFO("Vulkan Pipeline Cache Validated");
 				info.initialDataSize = (uint32_t) (serilizedPipelineCache.size() - 3 * sizeof(uint32_t) - VK_UUID_SIZE * sizeof(uint8_t));
 				info.pInitialData = validationDataByte + VK_UUID_SIZE;
 			}

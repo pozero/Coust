@@ -158,7 +158,7 @@ namespace Coust::Render::VK
 		    VkBufferUsageFlags bufUsage; 
 		    VmaMemoryUsage memUsage;
 		};
-		bool CreateBuffer(const Context& ctx, const Param_CreateBuffer& param, BufferAlloc& out_BufferAlloc);
+		bool CreateBuffer(const Context& ctx, const Param_CreateBuffer& param, BufferAlloc* out_BufferAlloc);
 
 		// we don't use concurrent resource access
 		struct Param_CreateImage
