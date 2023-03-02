@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "GlobalContext.h"
+#include "Coust/Core/GlobalContext.h"
 
 namespace Coust
 {
@@ -13,6 +13,8 @@ namespace Coust
 			return false;
 		}
 		s_Instance = this;
+		
+		Random::Seed();
 
 		if (!Coust::Logger::Initialize())
 		{
@@ -45,7 +47,6 @@ namespace Coust
 	{
 		if (g_RenderDriver)
 		{
-			g_RenderDriver->Shutdown();
 			delete g_RenderDriver;
 		}
 

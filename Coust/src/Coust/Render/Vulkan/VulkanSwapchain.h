@@ -5,57 +5,62 @@
 #include "Coust/Render/Vulkan/VulkanContext.h"
 
 #include <vector>
+#include <memory>
 
 namespace Coust::Render::VK
 {
-	struct ImageAlloc;
-
-	class Swapchain
+	/**
+	 * @brief Simple wrapper class containing `VkSwapchainKHR` and its images `VkImage`.
+	 * 		  Responsible for creating or recreating swapchain.
+	 */
+	class Swapchain : public Resource<VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR>
 	{
 	public:
-		Swapchain() = default;
-		~Swapchain() = default;
-		Swapchain(const Swapchain&) = delete;
-		Swapchain& operator=(const Swapchain&) = delete;
-
-		bool Initialize(const Context &ctx);
-
-		void Cleanup(const Context &ctx);
-
-		bool Create(const Context &ctx);
-
-		bool Recreate(const Context &ctx);
-
-		VkSwapchainKHR GetHandle() const { return m_Swapchain; }
-
-		VkImageView GetDepthImageView() const { return m_DepthImageView; }
-
-		VkImageView GetColorImageView() const { return m_ColorImageView; }
-
-		const std::vector<VkImageView>& GetResolveImageViews() const { return m_ImageViews; }
+		using Base = Resource<VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR>;
 
 	public:
-		VkExtent2D m_Extent{};
-		VkFormat m_DepthFormat = VK_FORMAT_UNDEFINED;
-		uint32_t m_MinImageCount = 0;
-		VkSurfaceFormatKHR m_Format{};
-		VkPresentModeKHR m_PresentMode = VK_PRESENT_MODE_FIFO_KHR;
+		~Swapchain();
 
-		uint32_t m_CurrentSwapchainImageCount = 0;
-           // in case the number of swapchain image changes...
-           uint32_t m_OldSwapchainImageCount = 0;
+		// copy & move prohibited
+		Swapchain(const Swapchain&) = delete;
+		Swapchain& operator=(const Swapchain&) = delete;
+		Swapchain(Swapchain&&) = delete;
+		Swapchain& operator=(Swapchain&&) = delete;
+
+		bool Recreate(const Context &ctx);
+		
+		VkResult AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex);
+
+		bool IsValid() const { return m_IsValid; }
+
+		/**
+		 * @brief Get appropriate parameter and create swapchain using it.
+		 * @param ctx 
+		 */
+		Swapchain(const Context &ctx);
+	
+	private:
+		bool Create(const Context &ctx);
+
+	public:
+		// We pass Swapchain through `const Swapchain&` most of the time, 
+		// so declaring these properties as public members is just fine.
+
+		VkSurfaceFormatKHR Format{};
+
+		VkPresentModeKHR PresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+		uint32_t MinImageCount = 0;
+
+		VkExtent2D Extent{};
+
+		VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
+
+		uint32_t CurrentSwapchainImageCount = 0;
 
 	private:
-		bool m_Recreation = false;
+		bool m_IsValid = false;
 
-		VkSwapchainKHR m_Swapchain = VK_NULL_HANDLE;
 		std::vector<VkImage> m_Images{};
-		std::vector<VkImageView> m_ImageViews{};
-
-		ImageAlloc m_DepthImageAlloc{};
-		VkImageView m_DepthImageView = VK_NULL_HANDLE;
-
-		ImageAlloc m_ColorImageAlloc{};
-		VkImageView m_ColorImageView = VK_NULL_HANDLE;
 	};
 }

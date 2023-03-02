@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include "Coust/Event/ApplicationEvent.h"
+
 #include "Coust/Render/Vulkan/VulkanSwapchain.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "vulkan/vulkan_core.h"
@@ -8,15 +10,16 @@
 
 namespace Coust::Render::VK
 {
-	bool Swapchain::Initialize(const Context &ctx)
+	Swapchain::Swapchain(const Context &ctx)
+		: Resource(ctx, VK_NULL_HANDLE)
 	{
 		{
 			VkSurfaceFormatKHR bestSurfaceFormat{};
 			uint32_t surfaceFormatCount = 0;
 			std::vector<VkSurfaceFormatKHR> surfaceFormats{};
-			vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.m_PhysicalDevice, ctx.m_Surface, &surfaceFormatCount, nullptr);
+			vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceFormatCount, nullptr);
 			surfaceFormats.resize(surfaceFormatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.m_PhysicalDevice, ctx.m_Surface, &surfaceFormatCount, surfaceFormats.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceFormatCount, surfaceFormats.data());
 			bestSurfaceFormat = surfaceFormats[0];
 			for (const auto& surfaceFormat : surfaceFormats)
 			{
@@ -26,16 +29,16 @@ namespace Coust::Render::VK
 					break;
 				}
 			}
-			m_Format = bestSurfaceFormat;
+			Format = bestSurfaceFormat;
 		}
-	
+
 		{
 			VkPresentModeKHR bestSurfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
 			uint32_t surfacePresentModeCount = 0;
 			std::vector<VkPresentModeKHR> surfacePresentModes{};
-			vkGetPhysicalDeviceSurfacePresentModesKHR(ctx.m_PhysicalDevice, ctx.m_Surface, &surfacePresentModeCount, nullptr);
+			vkGetPhysicalDeviceSurfacePresentModesKHR(ctx.PhysicalDevice, ctx.Surface, &surfacePresentModeCount, nullptr);
 			surfacePresentModes.resize(surfacePresentModeCount);    // `surfacePresentModeCount` might be 0?
-			vkGetPhysicalDeviceSurfacePresentModesKHR(ctx.m_PhysicalDevice, ctx.m_Surface, &surfacePresentModeCount, surfacePresentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(ctx.PhysicalDevice, ctx.Surface, &surfacePresentModeCount, surfacePresentModes.data());
 			for (const auto& mode : surfacePresentModes)
 			{
 				if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
@@ -44,16 +47,16 @@ namespace Coust::Render::VK
 					break;
 				}
 			}
-			m_PresentMode = bestSurfacePresentMode;
+			PresentMode = bestSurfacePresentMode;
 		}
 	
 		{
 			VkSurfaceCapabilitiesKHR surfaceCapabilities{};
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.m_PhysicalDevice, ctx.m_Surface, &surfaceCapabilities);
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceCapabilities);
 			uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
 			if (surfaceCapabilities.maxImageCount != 0 && imageCount > surfaceCapabilities.maxImageCount)
 				imageCount = surfaceCapabilities.maxImageCount;
-			m_MinImageCount = imageCount;
+			MinImageCount = imageCount;
 		}
 
 		{
@@ -62,7 +65,7 @@ namespace Coust::Render::VK
 			for (uint32_t i = 0; i < ARRAYSIZE(candidates); ++i)
 			{
 				VkFormatProperties props{};
-				vkGetPhysicalDeviceFormatProperties(ctx.m_PhysicalDevice, candidates[i], &props);
+				vkGetPhysicalDeviceFormatProperties(ctx.PhysicalDevice, candidates[i], &props);
 				// select optimal tiling
 				if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 				{
@@ -71,15 +74,20 @@ namespace Coust::Render::VK
 					break;
 				}
 			}
-			if (bestDepthFormat == VK_FORMAT_UNDEFINED)
-			{
-				COUST_CORE_ERROR("Can't find appropriate depth image format for vulkan");
-				return false;
-			}
-			m_DepthFormat = bestDepthFormat;
-		}
 
-		return true;
+			COUST_CORE_ASSERT(bestDepthFormat != VK_FORMAT_UNDEFINED, "Can't find appropriate depth image format for vulkan");
+			DepthFormat = bestDepthFormat;
+		}
+		
+		m_IsValid = Create(ctx);
+		if (m_IsValid)
+			SetDedicatedDebugName(std::string{ "Swapchain" });
+	}
+
+	Swapchain::~Swapchain()
+	{
+		if (m_Handle)
+			vkDestroySwapchainKHR(m_Device, m_Handle, nullptr);
 	}
 
 	bool Swapchain::Create(const Context &ctx)
@@ -87,7 +95,7 @@ namespace Coust::Render::VK
 		VkSurfaceCapabilitiesKHR surfaceCapabilities{};
 		{
 			VkExtent2D bestSurfaceExtent{};
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.m_PhysicalDevice, ctx.m_Surface, &surfaceCapabilities);
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceCapabilities);
 			if (surfaceCapabilities.currentExtent.width == (uint32_t) -1)
 			{
 				int width, height;
@@ -99,17 +107,17 @@ namespace Coust::Render::VK
 			else
 				bestSurfaceExtent = surfaceCapabilities.currentExtent;
 
-			m_Extent = bestSurfaceExtent;
+			Extent = bestSurfaceExtent;
 		}
 
 		VkSwapchainCreateInfoKHR swapchainCreateInfo
 		{
 			.sType           	= VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-			.surface         	= ctx.m_Surface,
-			.minImageCount   	= m_MinImageCount,
-			.imageFormat     	= m_Format.format,
-			.imageColorSpace 	= m_Format.colorSpace,
-			.imageExtent     	= m_Extent,
+			.surface         	= ctx.Surface,
+			.minImageCount   	= MinImageCount,
+			.imageFormat     	= Format.format,
+			.imageColorSpace 	= Format.colorSpace,
+			.imageExtent     	= Extent,
 			.imageArrayLayers 	= 1,
 			// the image can be updated by command buffer
 			// TODO: May need to support screenshot?
@@ -118,17 +126,17 @@ namespace Coust::Render::VK
 			.preTransform       = surfaceCapabilities.currentTransform,
 			// TODO: We don't need alpha composition now
 			.compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-			.presentMode     	= m_PresentMode,
+			.presentMode     	= PresentMode,
 			.clipped            = VK_TRUE,
-			.oldSwapchain       = m_Swapchain,
+			.oldSwapchain       = m_Handle,
 		};
 	
 		uint32_t queueFamilyIndices[] = 
 		{
-			ctx.m_PresentQueueFamilyIndex,
-			ctx.m_GraphicsQueueFamilyIndex,
+			ctx.PresentQueueFamilyIndex,
+			ctx.GraphicsQueueFamilyIndex,
 		};
-		if (ctx.m_PresentQueueFamilyIndex != ctx.m_GraphicsQueueFamilyIndex) // graphics & present family is not the same
+		if (ctx.PresentQueueFamilyIndex != ctx.GraphicsQueueFamilyIndex) // graphics & present family is not the same
 		{
 			swapchainCreateInfo.imageSharingMode        = VK_SHARING_MODE_CONCURRENT;
 			swapchainCreateInfo.queueFamilyIndexCount   = 2;
@@ -137,159 +145,13 @@ namespace Coust::Render::VK
 		else
 			swapchainCreateInfo.imageSharingMode    = VK_SHARING_MODE_EXCLUSIVE;
 	
-		{
-			VK_CHECK(vkCreateSwapchainKHR(ctx.m_Device, &swapchainCreateInfo, nullptr, &m_Swapchain));
-		}
+		VK_CHECK(vkCreateSwapchainKHR(ctx.Device, &swapchainCreateInfo, nullptr, &m_Handle));
 	
-		{
-			vkGetSwapchainImagesKHR(ctx.m_Device, m_Swapchain, &m_CurrentSwapchainImageCount, nullptr);
-			m_Images.resize(m_CurrentSwapchainImageCount);
-			vkGetSwapchainImagesKHR(ctx.m_Device, m_Swapchain, &m_CurrentSwapchainImageCount, m_Images.data());
-		}
+		VK_CHECK(vkGetSwapchainImagesKHR(ctx.Device, m_Handle, &CurrentSwapchainImageCount, nullptr));
+		m_Images.resize(CurrentSwapchainImageCount);
+		VK_CHECK(vkGetSwapchainImagesKHR(ctx.Device, m_Handle, &CurrentSwapchainImageCount, m_Images.data()));
 	
-		{
-			m_ImageViews.resize(m_Images.size());
-			for (int i = 0; i < m_Images.size(); ++i)
-			{
-				VkImageViewCreateInfo imageViewInfo
-				{
-					.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-					.image              = m_Images[i],
-					.viewType           = VK_IMAGE_VIEW_TYPE_2D,
-					.format      		= m_Format.format,
-					.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
-											VK_COMPONENT_SWIZZLE_IDENTITY,
-											VK_COMPONENT_SWIZZLE_IDENTITY,
-											VK_COMPONENT_SWIZZLE_IDENTITY },
-					.subresourceRange	= {
-										  	.aspectMask 		= VK_IMAGE_ASPECT_COLOR_BIT,
-										  	.baseMipLevel 		= 0,
-										  	.levelCount 		= 1,
-										  	.baseArrayLayer 	= 0,
-										  	.layerCount 		= 1,
-										  },
-				};
-				vkCreateImageView(ctx.m_Device, &imageViewInfo, nullptr, &m_ImageViews[i]);
-			}
-		}
-
-		{	// Color Image
-			VkExtent3D extent 
-			{
-				.width = m_Extent.width,
-				.height = m_Extent.height,
-				.depth = 1,
-			};
-			VkImageCreateInfo imageInfo
-			{
-				.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-				.imageType		= VK_IMAGE_TYPE_2D,
-				.format			= m_Format.format,
-				.extent			= extent,
-				.mipLevels		= 1,
-				.arrayLayers	= 1,
-				.samples		= ctx.m_MSAASampleCount,
-				.tiling			= VK_IMAGE_TILING_OPTIMAL,
-				.usage			= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			};
-			VmaAllocationCreateInfo allocInfo 
-			{
-				.usage = VMA_MEMORY_USAGE_GPU_ONLY,
-				.requiredFlags = (VkMemoryPropertyFlags) VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			};
-			VK_CHECK(vmaCreateImage(ctx.m_VmaAlloc, &imageInfo, &allocInfo, &m_ColorImageAlloc.image, &m_ColorImageAlloc.alloc, nullptr));
-			VkImageViewCreateInfo imageViewInfo
-			{
-				.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				.image              = m_ColorImageAlloc.image,
-				.viewType           = VK_IMAGE_VIEW_TYPE_2D,
-				.format      		= m_Format.format,
-				.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
-										VK_COMPONENT_SWIZZLE_IDENTITY,
-										VK_COMPONENT_SWIZZLE_IDENTITY,
-										VK_COMPONENT_SWIZZLE_IDENTITY },
-				.subresourceRange	= {
-									  	.aspectMask 		= VK_IMAGE_ASPECT_COLOR_BIT,
-									  	.baseMipLevel 		= 0,
-									  	.levelCount 		= 1,
-									  	.baseArrayLayer 	= 0,
-									  	.layerCount 		= 1,
-									  },
-			};
-			VK_CHECK(vkCreateImageView(ctx.m_Device, &imageViewInfo, nullptr, &m_ColorImageView));
-		}
-	
-		{	// Depth Image (Buffer)
-			VkExtent3D extent 
-			{
-				.width = m_Extent.width,
-				.height = m_Extent.height,
-				.depth = 1,
-			};
-			VkImageCreateInfo imageInfo
-			{
-				.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-				.imageType		= VK_IMAGE_TYPE_2D,
-				.format			= m_DepthFormat,
-				.extent			= extent,
-				.mipLevels		= 1,
-				.arrayLayers	= 1,
-				.samples		= ctx.m_MSAASampleCount,
-				.tiling			= VK_IMAGE_TILING_OPTIMAL,
-				.usage			= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			};
-			VmaAllocationCreateInfo allocInfo 
-			{
-				.usage = VMA_MEMORY_USAGE_GPU_ONLY,
-				.requiredFlags = (VkMemoryPropertyFlags) VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			};
-			VK_CHECK(vmaCreateImage(ctx.m_VmaAlloc, &imageInfo, &allocInfo, &m_DepthImageAlloc.image, &m_DepthImageAlloc.alloc, nullptr));
-			VkImageViewCreateInfo imageViewInfo
-			{
-				.sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				.image              = m_DepthImageAlloc.image,
-				.viewType           = VK_IMAGE_VIEW_TYPE_2D,
-				.format      		= m_DepthFormat,
-				.components         = { VK_COMPONENT_SWIZZLE_IDENTITY,
-										VK_COMPONENT_SWIZZLE_IDENTITY,
-										VK_COMPONENT_SWIZZLE_IDENTITY,
-										VK_COMPONENT_SWIZZLE_IDENTITY },
-				.subresourceRange	= {
-									  	.aspectMask 		= VK_IMAGE_ASPECT_DEPTH_BIT,
-									  	.baseMipLevel 		= 0,
-									  	.levelCount 		= 1,
-									  	.baseArrayLayer 	= 0,
-									  	.layerCount 		= 1,
-									  },
-			};
-			VK_CHECK(vkCreateImageView(ctx.m_Device, &imageViewInfo, nullptr, &m_DepthImageView));
-		}
-
 		return true;
-	}
-
-	void Swapchain::Cleanup(const Context &ctx)
-	{
-		vkDestroyImageView(ctx.m_Device, m_DepthImageView, nullptr);  
-		vmaDestroyImage(ctx.m_VmaAlloc, m_DepthImageAlloc.image, m_DepthImageAlloc.alloc); 
-
-		vkDestroyImageView(ctx.m_Device, m_ColorImageView, nullptr);
-		vmaDestroyImage(ctx.m_VmaAlloc, m_ColorImageAlloc.image, m_ColorImageAlloc.alloc);
-
-		m_DepthImageView = VK_NULL_HANDLE;
-		m_ColorImageView = VK_NULL_HANDLE;
-	
-		for (auto& imageview : m_ImageViews)
-		{
-			vkDestroyImageView(ctx.m_Device, imageview, nullptr);
-		}
-		m_CurrentSwapchainImageCount = 0;
-	
-		if (!m_Recreation)
-		{
-			vkDestroySwapchainKHR(ctx.m_Device, m_Swapchain, nullptr);
-			m_Swapchain = VK_NULL_HANDLE;
-		}
 	}
 
 	bool Swapchain::Recreate(const Context &ctx)
@@ -301,22 +163,24 @@ namespace Coust::Render::VK
 			glfwGetFramebufferSize(GlobalContext::Get().GetWindow().GetHandle(), &width, &height);
 			glfwWaitEvents();
 		}
-		vkDeviceWaitIdle(ctx.m_Device);
+		vkDeviceWaitIdle(m_Device);
 
-		m_Recreation = true;
-		VkSwapchainKHR old = m_Swapchain;
-		m_OldSwapchainImageCount = m_CurrentSwapchainImageCount;
-
-		Cleanup(ctx);
-		bool result = Create(ctx);
-
-		m_Recreation = false;
-
-		if (result)
-			vkDestroySwapchainKHR(ctx.m_Device, old, nullptr);
+		VkSwapchainKHR old = m_Handle;
+		if (Create(ctx))
+		{
+			vkDestroySwapchainKHR(m_Device, old, nullptr);
+			return true;
+		}
 		else
-			m_Swapchain = old;
-
-		return result;
+		{
+			m_Handle = old;
+			m_IsValid = false;
+			return false;
+		}
+	}
+	
+	VkResult Swapchain::AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex)
+	{
+		return vkAcquireNextImageKHR(m_Device, m_Handle, timeOut, semaphoreToSignal, fenceToSignal, out_ImageIndex);
 	}
 }

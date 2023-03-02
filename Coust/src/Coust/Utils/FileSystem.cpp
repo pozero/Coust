@@ -304,6 +304,8 @@ namespace Coust
 
         for (auto iter = m_CacheHeaders.cbegin(); iter != m_CacheHeaders.cend(); iter++)
         {
+            // We always use the latest cache
+            // If older cache with same name exists, erase it
             if (iter->originName == originName)
             {
                 m_CacheHeaders.erase(iter);
@@ -353,7 +355,9 @@ namespace Coust
             return false;
     
         size_t fileSize = (size_t) file.tellg();
-        out_buf.resize(fileSize / sizeof(T) + (size_t) ((bool) fileSize % sizeof(T)));
+        // alignment
+        size_t blockCount = fileSize / sizeof(T) + (size_t) ((bool) (fileSize % sizeof(T)));
+        out_buf.resize(blockCount);
     
         file.seekg(0);
         file.read((char*)out_buf.data(), fileSize);

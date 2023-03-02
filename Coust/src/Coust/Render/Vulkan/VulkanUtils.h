@@ -1,11 +1,9 @@
 #pragma once
 
-#include <volk.h>
-#include "vk_mem_alloc.h"
-
 #include "Coust/Core/Logger.h"
-#include "Coust/Render/Vulkan/VulkanContext.h"
-#include "Coust/Render/Vulkan/VulkanSwapchain.h"
+#include "Coust/Event/ApplicationEvent.h"
+
+#include <volk.h>
 
 #include <vector>
 #include <optional>
@@ -16,7 +14,7 @@
 		VkResult err = func;																											\
 		if (err != VK_SUCCESS)																											\
 		{																																\
-			COUST_CORE_ERROR("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, VulkanReturnCodeToStr(err));	\
+			COUST_CORE_ERROR("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, ToString(err));	\
 			return false;																												\
 		}																																\
 	} while (false)
@@ -28,185 +26,147 @@
 		if (err != VK_SUCCESS)																											\
 		{																																\
 			status = false;																												\
-			COUST_CORE_WARN("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, VulkanReturnCodeToStr(err));	\
+			COUST_CORE_ERROR("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, ToString(err));	\
 		}																																\
 		else																															\
 			status = true;																												\
 	} while (false)
 
-#ifndef COUST_FULL_RELEASE
-	// DOT NOT USE BEFORE THE CREATION OF VkDevice
-	#define VK_DEBUG_NAME(name, type, handle, vkdevice)								\
-				VkDebugUtilsObjectNameInfoEXT info									\
-				{																	\
-					.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,	\
-					.objectType = type,												\
-					.objectHandle = (uint64_t) handle,								\
-					.pObjectName = name,											\
-				};																	\
-				vkSetDebugUtilsObjectNameEXT(vkdevice, &info)
-#else
-	#define VK_DEBUG_NAME(name, type, handle, vkdevice)
-#endif
-
 namespace Coust::Render::VK
 {
 	constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_2;
 
-	// extern VkDevice g_Device;
-	// extern VkInstance g_Instance;
-	// extern VkSurfaceKHR g_Surface;
-	// extern VmaAllocator g_VmaAlloc;
-	// extern VkQueue g_GraphicsQueue;
-	// extern VkPhysicalDevice g_PhysicalDevice;
-	// extern VkPhysicalDeviceProperties* g_pPhysicalDevProps;
-	// extern uint32_t g_GraphicsQueueFamilyIndex;
-	// extern uint32_t g_PresentQueueFamilyIndex;
-	// extern VkSampleCountFlagBits g_MSAASampleCount;
-	// extern const Swapchain* g_Swapchain;
-	// extern bool g_AllVulkanGlobalVarSet;
-
-	namespace Utils
+	inline VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData)
 	{
-#ifndef COUST_FULL_RELEASE
-		inline VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagsEXT messageType,
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData)
-		{
-			/* Redundant validation error message... */
+		/* Redundant validation error message */
 
-			// if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-			// 	COUST_CORE_INFO(pCallbackData->pMessage);
-			// else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-			// 	COUST_CORE_WARN(pCallbackData->pMessage);
-			// else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-			// 	COUST_CORE_ERROR(pCallbackData->pMessage);
+		// if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+		// 	COUST_CORE_INFO(pCallbackData->pMessage);
+		// else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+		// 	COUST_CORE_WARN(pCallbackData->pMessage);
+		// else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+		// 	COUST_CORE_ERROR(pCallbackData->pMessage);
 
-			/* Redundant validation error message... */
+		/* Redundant validation error message */
 
-			return VK_FALSE;
-		}
-
-		inline VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback
-		(
-			VkDebugReportFlagsEXT      flags,
-			VkDebugReportObjectTypeEXT objectType,
-			uint64_t                   object,
-			size_t                     location,
-			int32_t                    messageCode,
-			const char* pLayerPrefix,
-			const char* pMessage,
-			void* UserData
-		)
-		{
-			// https://github.com/zeux/niagara/blob/master/src/device.cpp   [ignoring performance warnings]
-			// This silences warnings like "For optimal performance image layout should be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL instead of GENERAL."
-			// if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-				// return VK_FALSE;
-
-			if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-				COUST_CORE_TRACE("{0}: {1}", pLayerPrefix, pMessage);
-			else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-				COUST_CORE_INFO("{0}: {1}", pLayerPrefix, pMessage);
-			else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
-				COUST_CORE_WARN("{0}: {1}", pLayerPrefix, pMessage);
-			else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-				COUST_CORE_WARN("{0}: {1}", pLayerPrefix, pMessage);
-			else if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
-				COUST_CORE_ERROR("{0}: {1}", pLayerPrefix, pMessage);
-
-			return VK_FALSE;
-		}
-
-		inline VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo()
-		{
-			return VkDebugUtilsMessengerCreateInfoEXT
-			{
-				.sType              = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-				.messageSeverity    =	VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-										VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-				.messageType        =	VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-				.pfnUserCallback    = DebugCallback,
-			};
-		}
-
-		inline VkDebugReportCallbackCreateInfoEXT DebugReportCallbackCreateInfo()
-		{
-			return VkDebugReportCallbackCreateInfoEXT
-			{
-				.sType =			VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-				.flags =			VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-									VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT,
-				.pfnCallback =		DebugReportCallback,
-			};
-		}
-#endif
-
-		bool CreatePrimaryCmdBuf(const Context& ctx, VkCommandPool pool, uint32_t count, VkCommandBuffer* out_Buf);
-
-		bool CreateSecondaryCmdBuf(const Context& ctx, VkCommandPool pool, uint32_t count, VkCommandBuffer* out_Buf);
-
-		bool CreateSemaphores(const Context& ctx, VkSemaphore* out_Semaphore);
-
-		bool CreateFence(const Context& ctx, bool signaled, VkFence* out_Fence);
-
-		struct Param_CreateBuffer
-		{
-		    VkDeviceSize allocSize; 
-		    VkBufferUsageFlags bufUsage; 
-		    VmaMemoryUsage memUsage;
-		};
-		bool CreateBuffer(const Context& ctx, const Param_CreateBuffer& param, BufferAlloc* out_BufferAlloc);
-
-		// we don't use concurrent resource access
-		struct Param_CreateImage
-		{
-			VkImageCreateFlags flags = 0u;
-			VkImageType type = VK_IMAGE_TYPE_2D;
-			VkFormat format;
-			uint32_t width, height;
-			uint32_t depth = 1u;
-			uint32_t mipLevels = 1;
-			uint32_t arrayLayers = 1;
-			VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
-			VkImageTiling tiling;
-			VkImageUsageFlags usage;
-			VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-               VmaMemoryUsage memUsage;
-		};
-		bool CreateImage(const Context& ctx, const Param_CreateImage& param, ImageAlloc* out_ImageAlloc);
-
-		struct Param_CreateImageView
-		{
-			const ImageAlloc& imageAlloc;
-			VkImageViewType type;
-			VkFormat format;
-			VkComponentSwizzle rSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
-			VkComponentSwizzle gSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
-			VkComponentSwizzle bSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
-			VkComponentSwizzle aSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
-			VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-			uint32_t baseMipLevel = 0, levelCount = 1;
-			uint32_t baseArrayLayer = 0, layerCount = 1;
-		};
-		bool CreateImageView(const Context& ctx, const Param_CreateImageView& param, VkImageView* out_ImageView);
-
-		struct Param_CreatePipelineLayout
-		{
-			uint32_t descriptorSetCount;
-			const VkDescriptorSetLayout* pDescriptorSets;
-			uint32_t pushConstantRangeCount = 0;
-			const VkPushConstantRange* pPushConstantRanges = nullptr;
-		};
-		bool CreatePipelineLayout(const Context& ctx, const Param_CreatePipelineLayout& param, VkPipelineLayout* out_PipelineLayout);
-
+		return VK_FALSE;
 	}
 
-	inline const char* VulkanReturnCodeToStr(int code)
+	inline VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback
+	(
+		VkDebugReportFlagsEXT      flags,
+		VkDebugReportObjectTypeEXT objectType,
+		uint64_t                   object,
+		size_t                     location,
+		int32_t                    messageCode,
+		const char* pLayerPrefix,
+		const char* pMessage,
+		void* UserData
+	)
 	{
-		switch (code)
+		// https://github.com/zeux/niagara/blob/master/src/device.cpp   [ignoring performance warnings]
+		// This silences warnings like "For optimal performance image layout should be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL instead of GENERAL."
+		// if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+			// return VK_FALSE;
+
+		if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+			COUST_CORE_TRACE("{0}: {1}", pLayerPrefix, pMessage);
+		else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+			COUST_CORE_INFO("{0}: {1}", pLayerPrefix, pMessage);
+		else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+			COUST_CORE_WARN("{0}: {1}", pLayerPrefix, pMessage);
+		else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+			COUST_CORE_WARN("{0}: {1}", pLayerPrefix, pMessage);
+		else if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+			COUST_CORE_ERROR("{0}: {1}", pLayerPrefix, pMessage);
+
+		return VK_FALSE;
+	}
+
+	inline VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo()
+	{
+		return VkDebugUtilsMessengerCreateInfoEXT
+		{
+			.sType              = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+			.messageSeverity    =	VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+									VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+			.messageType        =	VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+			.pfnUserCallback    = DebugCallback,
+		};
+	}
+
+	inline VkDebugReportCallbackCreateInfoEXT DebugReportCallbackCreateInfo()
+	{
+		return VkDebugReportCallbackCreateInfoEXT
+		{
+			.sType =			VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+			.flags =			VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+								VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT,
+			.pfnCallback =		DebugReportCallback,
+		};
+	}
+
+		// struct Param_CreateBuffer
+		// {
+		//     VkDeviceSize allocSize; 
+		//     VkBufferUsageFlags bufUsage; 
+		//     VmaMemoryUsage memUsage;
+		// };
+
+		// struct Param_CreateImage
+		// {
+		// 	VkImageCreateFlags flags = 0u;
+		// 	VkImageType type = VK_IMAGE_TYPE_2D;
+		// 	VkFormat format;
+		// 	uint32_t width, height;
+		// 	uint32_t depth = 1u;
+		// 	uint32_t mipLevels = 1;
+		// 	uint32_t arrayLayers = 1;
+		// 	VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+		// 	VkImageTiling tiling;
+		// 	VkImageUsageFlags usage;
+		// 	VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        //  VmaMemoryUsage memUsage;
+		// };
+
+		// struct Param_CreateImageView
+		// {
+		// 	const ImageAlloc& imageAlloc;
+		// 	VkImageViewType type;
+		// 	VkFormat format;
+		// 	VkComponentSwizzle rSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+		// 	VkComponentSwizzle gSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+		// 	VkComponentSwizzle bSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+		// 	VkComponentSwizzle aSwizzle = VK_COMPONENT_SWIZZLE_IDENTITY;
+		// 	VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		// 	uint32_t baseMipLevel = 0, levelCount = 1;
+		// 	uint32_t baseArrayLayer = 0, layerCount = 1;
+		// };
+
+		// struct Param_CreatePipelineLayout
+		// {
+		// 	uint32_t descriptorSetCount;
+		// 	const VkDescriptorSetLayout* pDescriptorSets;
+		// 	uint32_t pushConstantRangeCount = 0;
+		// 	const VkPushConstantRange* pPushConstantRanges = nullptr;
+		// };
+
+	template <typename T>
+    inline uint32_t ToU32(T value)
+        requires std::is_arithmetic<T>::value
+    {
+        COUST_CORE_ASSERT(static_cast<uintmax_t>(value) <= static_cast<uintmax_t>(std::numeric_limits<uint32_t>::max()), 
+						  "ToU32() failed, value is too big to be converted to uint32_t");
+        return static_cast<uint32_t>(value);
+    }
+
+	inline const char* ToString(VkResult result)
+	{
+		switch (result)
 		{
 		case			0:		return "VK_SUCCESS";
 		case			1:		return "VK_NOT_READY";
@@ -256,4 +216,139 @@ namespace Coust::Render::VK
 		default:				return "Undefined vulkan error code";
 		}
 	}
+	
+	inline const char* ToString(VkObjectType objType)
+	{
+		switch (objType)
+		{
+			case VK_OBJECT_TYPE_UNKNOWN: 							return "UNKNOWN";
+			case VK_OBJECT_TYPE_INSTANCE: 							return "INSTANCE";
+			case VK_OBJECT_TYPE_PHYSICAL_DEVICE: 					return "PHYSICAL_DEVICE";
+			case VK_OBJECT_TYPE_DEVICE: 							return "DEVICE";
+			case VK_OBJECT_TYPE_QUEUE: 								return "QUEUE";
+			case VK_OBJECT_TYPE_SEMAPHORE: 							return "SEMAPHORE";
+			case VK_OBJECT_TYPE_COMMAND_BUFFER: 					return "COMMAND_BUFFER";
+			case VK_OBJECT_TYPE_FENCE: 								return "FENCE";
+			case VK_OBJECT_TYPE_DEVICE_MEMORY: 						return "DEVICE_MEMORY";
+			case VK_OBJECT_TYPE_BUFFER: 							return "BUFFER";
+			case VK_OBJECT_TYPE_IMAGE: 								return "IMAGE";
+			case VK_OBJECT_TYPE_EVENT: 								return "EVENT";
+			case VK_OBJECT_TYPE_QUERY_POOL: 						return "QUERY_POOL";
+			case VK_OBJECT_TYPE_BUFFER_VIEW: 						return "BUFFER_VIEW";
+			case VK_OBJECT_TYPE_IMAGE_VIEW: 						return "IMAGE_VIEW";
+			case VK_OBJECT_TYPE_SHADER_MODULE: 						return "SHADER_MODULE";
+			case VK_OBJECT_TYPE_PIPELINE_CACHE: 					return "PIPELINE_CACHE";
+			case VK_OBJECT_TYPE_PIPELINE_LAYOUT: 					return "PIPELINE_LAYOUT";
+			case VK_OBJECT_TYPE_RENDER_PASS: 						return "RENDER_PASS";
+			case VK_OBJECT_TYPE_PIPELINE: 							return "PIPELINE";
+			case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT: 				return "DESCRIPTOR_SET_LAYOUT";
+			case VK_OBJECT_TYPE_SAMPLER: 							return "SAMPLER";
+			case VK_OBJECT_TYPE_DESCRIPTOR_POOL: 					return "DESCRIPTOR_POOL";
+			case VK_OBJECT_TYPE_DESCRIPTOR_SET: 					return "DESCRIPTOR_SET";
+			case VK_OBJECT_TYPE_FRAMEBUFFER: 						return "FRAMEBUFFER";
+			case VK_OBJECT_TYPE_COMMAND_POOL: 						return "COMMAND_POOL";
+			case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION: 			return "SAMPLER_YCBCR_CONVERSION";
+			case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE: 		return "DESCRIPTOR_UPDATE_TEMPLATE";
+			case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT: 					return "PRIVATE_DATA_SLOT";
+			case VK_OBJECT_TYPE_SURFACE_KHR: 						return "SURFACE_KHR";
+			case VK_OBJECT_TYPE_SWAPCHAIN_KHR: 						return "SWAPCHAIN_KHR";
+			case VK_OBJECT_TYPE_DISPLAY_KHR: 						return "DISPLAY_KHR";
+			case VK_OBJECT_TYPE_DISPLAY_MODE_KHR: 					return "DISPLAY_MODE_KHR";
+			case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT: 			return "DEBUG_REPORT_CALLBACK_EXT";
+			case VK_OBJECT_TYPE_VIDEO_SESSION_KHR: 					return "VIDEO_SESSION_KHR";
+			case VK_OBJECT_TYPE_VIDEO_SESSION_PARAMETERS_KHR: 		return "VIDEO_SESSION_PARAMETERS_KHR";
+			case VK_OBJECT_TYPE_CU_MODULE_NVX: 						return "CU_MODULE_NVX";
+			case VK_OBJECT_TYPE_CU_FUNCTION_NVX: 					return "CU_FUNCTION_NVX";
+			case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT: 			return "DEBUG_UTILS_MESSENGER_EXT";
+			case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR: 		return "ACCELERATION_STRUCTURE_KHR";
+			case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT: 				return "VALIDATION_CACHE_EXT";
+			case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV: 			return "ACCELERATION_STRUCTURE_NV";
+			case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL: 	return "PERFORMANCE_CONFIGURATION_INTEL";
+			case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR: 			return "DEFERRED_OPERATION_KHR";
+			case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV: 		return "INDIRECT_COMMANDS_LAYOUT_NV";
+			case VK_OBJECT_TYPE_BUFFER_COLLECTION_FUCHSIA: 			return "BUFFER_COLLECTION_FUCHSIA";
+			case VK_OBJECT_TYPE_MICROMAP_EXT: 						return "MICROMAP_EXT";
+			case VK_OBJECT_TYPE_OPTICAL_FLOW_SESSION_NV: 			return "OPTICAL_FLOW_SESSION_NV";
+			default: return "Unknown Vulkan Object Type";
+		}
+	}
+	
+    inline const char* ToString(VkAccessFlagBits flag)
+    {
+        switch (flag) 
+        {
+            case VK_ACCESS_INDIRECT_COMMAND_READ_BIT:                       return "VK_ACCESS_INDIRECT_COMMAND_READ_BIT";
+            case VK_ACCESS_INDEX_READ_BIT:                                  return "VK_ACCESS_INDEX_READ_BIT";
+            case VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT:                       return "VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT";
+            case VK_ACCESS_UNIFORM_READ_BIT:                                return "VK_ACCESS_UNIFORM_READ_BIT";
+            case VK_ACCESS_INPUT_ATTACHMENT_READ_BIT:                       return "VK_ACCESS_INPUT_ATTACHMENT_READ_BIT";
+            case VK_ACCESS_SHADER_READ_BIT:                                 return "VK_ACCESS_SHADER_READ_BIT";
+            case VK_ACCESS_SHADER_WRITE_BIT:                                return "VK_ACCESS_SHADER_WRITE_BIT";
+            case VK_ACCESS_COLOR_ATTACHMENT_READ_BIT:                       return "VK_ACCESS_COLOR_ATTACHMENT_READ_BIT";
+            case VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT:                      return "VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT";
+            case VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT:               return "VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT";
+            case VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT:              return "VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT";
+            case VK_ACCESS_TRANSFER_READ_BIT:                               return "VK_ACCESS_TRANSFER_READ_BIT";
+            case VK_ACCESS_TRANSFER_WRITE_BIT:                              return "VK_ACCESS_TRANSFER_WRITE_BIT";
+            case VK_ACCESS_HOST_READ_BIT:                                   return "VK_ACCESS_HOST_READ_BIT";
+            case VK_ACCESS_HOST_WRITE_BIT:                                  return "VK_ACCESS_HOST_WRITE_BIT";
+            case VK_ACCESS_MEMORY_READ_BIT:                                 return "VK_ACCESS_MEMORY_READ_BIT";
+            case VK_ACCESS_MEMORY_WRITE_BIT:                                return "VK_ACCESS_MEMORY_WRITE_BIT";
+            case VK_ACCESS_NONE:                                            return "VK_ACCESS_NONE";
+            case VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT:                return "VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT";
+            case VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT:         return "VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT";
+            case VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT:        return "VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT";
+            case VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT:              return "VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT";
+            case VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT:       return "VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT";
+            case VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR:             return "VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR";
+            case VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR:            return "VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR";
+            case VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT:               return "VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT";
+            case VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR:   return "VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR";
+            case VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV:                  return "VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV";
+            case VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV:                 return "VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV";
+            default:                                                        return "Unknown access flag bit";
+        }
+    }
+    
+    inline const char* ToString(VkShaderStageFlagBits flag)
+    {
+        switch (flag)
+        {
+            case VK_SHADER_STAGE_VERTEX_BIT:                    return "VK_SHADER_STAGE_VERTEX_BIT";
+            case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:      return "VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT";
+            case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:   return "VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT";
+            case VK_SHADER_STAGE_GEOMETRY_BIT:                  return "VK_SHADER_STAGE_GEOMETRY_BIT";
+            case VK_SHADER_STAGE_FRAGMENT_BIT:                  return "VK_SHADER_STAGE_FRAGMENT_BIT";
+            case VK_SHADER_STAGE_COMPUTE_BIT:                   return "VK_SHADER_STAGE_COMPUTE_BIT";
+            case VK_SHADER_STAGE_ALL_GRAPHICS:                  return "VK_SHADER_STAGE_ALL_GRAPHICS";
+            case VK_SHADER_STAGE_RAYGEN_BIT_KHR:                return "VK_SHADER_STAGE_RAYGEN_BIT_KHR";
+            case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:               return "VK_SHADER_STAGE_ANY_HIT_BIT_KHR";
+            case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:           return "VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR";
+            case VK_SHADER_STAGE_MISS_BIT_KHR:                  return "VK_SHADER_STAGE_MISS_BIT_KHR";
+            case VK_SHADER_STAGE_INTERSECTION_BIT_KHR:          return "VK_SHADER_STAGE_INTERSECTION_BIT_KHR";
+            case VK_SHADER_STAGE_CALLABLE_BIT_KHR:              return "VK_SHADER_STAGE_CALLABLE_BIT_KHR";
+            case VK_SHADER_STAGE_TASK_BIT_EXT:                  return "VK_SHADER_STAGE_TASK_BIT_EXT";
+            case VK_SHADER_STAGE_MESH_BIT_EXT:                  return "VK_SHADER_STAGE_MESH_BIT_EXT";
+            case VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI:    return "VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI";
+            case VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI:    return "VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI";
+            default:                                            return "Unknown stage flag bit";
+        }
+    }
+	
+    template <typename Flag, typename FlagBit>
+    inline std::string ToString(Flag flags)
+        requires std::is_arithmetic<Flag>::value && std::is_enum<FlagBit>::value
+    {
+        std::string res{};
+        for (FlagBit bit = (FlagBit) 1u; uintmax_t(bit) > 0u; bit = FlagBit(uintmax_t(bit) << 1))
+        {
+            if (bit & flags)
+            {
+                if (!res.empty())
+                    res.append(" | ");
+                res.append(ToString(bit));
+            }
+        }
+        return res;
+    }
 }

@@ -13,16 +13,17 @@ namespace Coust::Render
     class Driver 
     {
     public:
-        virtual void Shutdown() = 0;
-
-        virtual bool RecreateSwapchainAndFramebuffers() = 0;
-
-        virtual bool FlushCommand() = 0;
-
-    private:
-        virtual bool Initialize() = 0;
+        virtual ~Driver() {}
         
-    public:
+        virtual void InitializationTest() {};
+
+        virtual void LoopTest() {};
+
         static Driver* CreateDriver(API api);
+        
+        bool IsInitialized() const { return m_IsInitialized; }
+    
+    protected:
+        bool m_IsInitialized = true;
     };
 }

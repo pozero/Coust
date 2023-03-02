@@ -45,7 +45,7 @@ namespace Coust
         glfwSetErrorCallback(GLFWErrorCallback);
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         m_WindowHandle = glfwCreateWindow(m_WindowProp.width, m_WindowProp.height, m_WindowProp.name, nullptr, nullptr);
         if (!m_WindowHandle)

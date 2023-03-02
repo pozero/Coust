@@ -4,6 +4,7 @@
 #include "Coust/Utils/FileSystem.h"
 #include "Coust/Core/Window.h"
 #include "Coust/Render/Driver.h"
+#include "Coust/Utils/Random.h"
 
 namespace Coust
 {

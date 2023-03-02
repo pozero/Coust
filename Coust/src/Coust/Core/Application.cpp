@@ -18,6 +18,8 @@ namespace Coust
             this->OnEvent(e);
         });
 
+        GlobalContext::Get().GetRenderDriver().InitializationTest();
+
         m_Timer.Reset();
     }
 
@@ -46,7 +48,7 @@ namespace Coust
 
             glfwPollEvents();
 
-            GlobalContext::Get().GetRenderDriver().FlushCommand();
+            GlobalContext::Get().GetRenderDriver().LoopTest();
         }
     }
 
@@ -57,14 +59,6 @@ namespace Coust
             [this](WindowClosedEvent&) 
             {
                 return this->Close();
-            }
-        );
-
-        // Handle Window Resize (Vulkan Only)
-        EventBus::Dispatch<WindowResizedEvent>(e,
-            [](WindowResizedEvent&)
-            {
-                return GlobalContext::Get().GetRenderDriver().RecreateSwapchainAndFramebuffers();
             }
         );
 

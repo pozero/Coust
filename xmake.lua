@@ -58,8 +58,6 @@ target("Coust")
     add_files("Coust/src/Coust/Event/*.cpp")
     add_files("Coust/src/Coust/Render/*.cpp")
     add_files("Coust/src/Coust/Render/Vulkan/*.cpp")
-    -- add_files("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.cpp")
-    add_files("Coust/src/Coust/Render/Resources/*.cpp")
 
     add_headerfiles("Coust/src/*.h")
     add_headerfiles("Coust/src/Coust/*.h")
@@ -68,8 +66,6 @@ target("Coust")
     add_headerfiles("Coust/src/Coust/Event/*.h")
     add_headerfiles("Coust/src/Coust/Render/*.h")
     add_headerfiles("Coust/src/Coust/Render/Vulkan/*.h")
-    -- add_headerfiles("Coust/src/Coust/Renderer/Vulkan/RenderLayer/*.h")
-    add_headerfiles("Coust/src/Coust/Render/Resources/*.h")
     -- source file
 
     -- third party 
@@ -80,9 +76,13 @@ target("Coust")
     if (is_mode("release")) then
         add_links("shaderc_combined")
         add_links("shaderc")
+        add_links("spirv-cross-core")
+        add_links("spirv-cross-glsl")
     else
         add_links("shaderc_combinedd")
         add_links("shadercd")
+        add_links("spirv-cross-cored")
+        add_links("spirv-cross-glsld")
     end
 
     add_includedirs("Coust/third_party/spdlog/include")

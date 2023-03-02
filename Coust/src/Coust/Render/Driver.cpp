@@ -13,9 +13,8 @@ namespace Coust::Render
 		{
 		case API::VULKAN:
 			driver = new VK::Driver();
-			if (!driver->Initialize())
+			if (!driver->IsInitialized())
 			{
-				driver->Shutdown();
 				delete driver;
 				driver = nullptr;
 			}
