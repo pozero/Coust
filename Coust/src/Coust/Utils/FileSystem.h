@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <functional>
+
+#include "Coust/Utils/Hash.h"
 
 namespace Coust
 {
@@ -12,14 +15,42 @@ namespace Coust
 	{
     public:
         static FileSystem* CreateFileSystem();
+        
+        static size_t GetCacheTag(const std::string& originName, std::optional<size_t> extraHash)
+        {
+            Hash::HashFn<std::string> hasher;
+            size_t cacheTag = hasher(originName);
+            // if extra hash is provided, combine it
+            if (extraHash.has_value())
+                Hash::Combine(cacheTag, extraHash);
+            return cacheTag;
+        }
 
         void Shutdown();
 
+        /**
+         * @brief Get cache
+         * 
+         * @tparam T 
+         * @param originName    File path for a file, or user-defined name for other kinds of cache
+         * @param extraHash     Optional. If different version of the same origin exists, the caller should provide extra hash to distinguish them
+         * @param out_buf       Output
+         * @return
+         */
         template<typename T>
-        bool GetCache(const std::string& originName, std::vector<T>& out_buf);
+        bool GetCache(const std::string& originName, std::optional<size_t> extraHash, std::vector<T>& out_buf);
 
+        /**
+         * @brief Add cache
+         * 
+         * @tparam T 
+         * @param originName    File path for a file, or user-defined name for other kinds of cache
+         * @param extraHash     Optional. If different version of the same origin exists, the caller should provide extra hash to distinguish them
+         * @param cacheBytes    Data to be cached
+         * @param needCRC32     If needs further validation
+         */
         template<typename T>
-        void AddCache(const std::string& originName, std::vector<T>& cacheBytes, bool needCRC32);
+        void AddCache(const std::string& originName, std::optional<size_t> extraHash, std::vector<T>& cacheBytes, bool needCRC32);
 
     private:
         bool Initialize();
@@ -39,17 +70,20 @@ namespace Coust
 
     private:
         // find originName in `m_CacheHeaders`, implicitly delete all invalid & out of date cache entries
-        CacheStatus getCache(const std::string& originName, std::vector<char>& out_buf);
+        CacheStatus GetCache_Impl(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& out_buf);
 
         // cachebytes will be *MOVED* into `m_Caches`
-        void addCache(const std::string& originName, std::vector<char>& cacheContents, bool needCRC32);
+        void AddCache_Impl(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& cacheContents, bool needCRC32);
 
     private:
+        /**
+         * @brief struct that contains every meta information we need about this cache
+         */
         struct CacheHeader 
         {
             std::optional<std::string> originFileLastModifiedTime;
             std::string originName;
-            std::string cacheName;
+            size_t cacheTag;    // comes from combine(hash(originName), extraTag), also used as cache file name
             std::optional<size_t> originFileSizeInByte;
             size_t cacheSizeInByte;
             std::optional<uint32_t> cacheCRC32;
@@ -58,7 +92,7 @@ namespace Coust
 
         struct CacheToWrite
         {
-            std::string cacheName;
+            size_t cacheTag;    // comes from combine(hash(originName), extraTag), also used as cache file name
             std::vector<char> cache;
         };
 

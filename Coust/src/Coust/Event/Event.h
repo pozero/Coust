@@ -1,6 +1,10 @@
 #pragma once
 
-#include "pch.h"
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <functional>
 
 namespace Coust
 {

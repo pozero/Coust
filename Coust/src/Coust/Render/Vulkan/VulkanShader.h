@@ -109,7 +109,7 @@ namespace Coust::Render::VK
                                     std::vector<ShaderResource>& out_ShaderResource);
     
     /**
-     * @brief Helper class to manage source file path & shader macro.
+     * @brief Helper class to manage source file path , shader macro and dynamic buffer size declaration (for reflection)
      *        Won't load source code until asked to
      */
     class ShaderSource 
@@ -136,10 +136,16 @@ namespace Coust::Render::VK
         
         const std::unordered_map<std::string, size_t>& GetDesiredDynamicBufferSize() const { return m_DesiredDynamicBufferSize; }
         
-        void AddMacro(std::string&& name, std::string&& value) { m_Macros[name] = value; }
+        void AddMacro(const std::string& name, const std::string& value) { m_Macros[name] = value; }
+        
+        void DeleteMacroByName(const std::string& name)
+        {
+            const auto& iter = m_Macros.find(name);
+            m_Macros.erase(iter);
+        }
         
         void SetDynamicBufferSize(const std::string& name, size_t size) { m_DesiredDynamicBufferSize[name] = size; }
-    
+        
     private:
         std::filesystem::path m_SourceFilePath;
         
@@ -157,8 +163,8 @@ namespace Coust::Render::VK
     class ShaderByteCode 
     {
     public:
-        ShaderByteCode(const std::string& sourceFilePath, std::vector<uint32_t>&& byteCode, bool shouldBeFlushed)
-        	: SourceFilePath(sourceFilePath), ByteCode(byteCode), ShouldBeFlushed(shouldBeFlushed)
+        ShaderByteCode(const std::string& sourcePath, std::vector<uint32_t>&& byteCode, bool shouldBeFlushed)
+        	: SourcePath(sourcePath), ByteCode(byteCode), ShouldBeFlushed(shouldBeFlushed)
         {}
         
         /**
@@ -175,7 +181,8 @@ namespace Coust::Render::VK
         
         // Only `ShaderModule` possesses this class as its private member, so there is no need to declare them as private member.
     public:
-        std::string SourceFilePath;
+        std::string SourcePath;
+        std::optional<size_t> ExtraHash;
 
         std::vector<uint32_t> ByteCode;
         
@@ -184,9 +191,8 @@ namespace Coust::Render::VK
     
     /**
      * @brief Wrapper class that contains source glsl code (maybe) and spir-v byte code.
-     *        Note: shaderc assumes the entry point name is always "main", so this class doesn't support change entry point name.
-     *        Note: If it can get cached byte code **and `ShaderSource` doesn't contain any macro**, then only the byte code will be loaded.
-     *              Always compile from source code if any macro found in `ShaderSource`
+     *        Note: shaderc always assumes the entry point for glsl is "main", see: https://github.com/google/shaderc/blob/main/libshaderc_util/include/libshaderc_util/compiler.h#L358
+     *              however, user-defined entry point can still be done with macro
      */
     class ShaderModule : public Resource<VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE>
     {
@@ -225,6 +231,9 @@ namespace Coust::Render::VK
         bool IsValid() const { return m_ByteCode.ByteCode.size() > 0 && 
                                       m_Resources.size() > 0 && 
                                       m_Handle != VK_NULL_HANDLE; }
+        
+        // get disassembled glsl code, this might be useful to check the including and optimization state.
+        std::string GetDisassembledSPIRV();
         
     private:
         /**

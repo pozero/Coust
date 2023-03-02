@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Coust/Core/Window.h"
 #include "Coust/Render/Vulkan/VulkanDriver.h"
 
 #include <GLFW/glfw3.h>
@@ -341,15 +342,31 @@ namespace Coust::Render::VK
 	void Driver::InitializationTest()
 	{
 		ShaderSource source { FileSystem::GetFullPathFrom({ "Coust", "shaders", "mesh.vert.glsl" }) };
-		ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
-		if (ShaderModule::Base::CheckValidation(module))
+		source.AddMacro("main0", "main");
 		{
-			COUST_CORE_INFO("Module Created Successfully");
-			const auto& resources = module.GetResource();
-			for (const auto& res : resources)
-			{
-				COUST_CORE_INFO("\n{}", ToString(res));
-			}
+			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
+			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
+		}
+
+		source.DeleteMacroByName("main0");
+		source.AddMacro("main1", "main");
+		{
+			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
+			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
+		}
+
+		source.DeleteMacroByName("main1");
+		source.AddMacro("main2", "main");
+		{
+			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
+			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
+		}
+
+		source.DeleteMacroByName("main2");
+		source.AddMacro("main3", "main");
+		{
+			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
+			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
 		}
 	}
 }

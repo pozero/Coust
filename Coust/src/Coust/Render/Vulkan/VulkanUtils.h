@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Coust/Core/Logger.h"
-#include "Coust/Event/ApplicationEvent.h"
 
 #include <volk.h>
 

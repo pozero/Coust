@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Coust/Core/Logger.h"
-#include "Coust/Utils/FileSystem.h"
-#include "Coust/Core/Window.h"
-#include "Coust/Render/Driver.h"
-#include "Coust/Utils/Random.h"
-
 namespace Coust
 {
+	class FileSystem;
+	class Window;
+	namespace Render 
+	{
+		class Driver;
+	}
+
 	class GlobalContext
 	{
 	public:

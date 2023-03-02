@@ -3,9 +3,10 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#include "Coust/Event/ApplicationEvent.h"
+
 namespace Coust
 {
-	class WindowClosedEvent;
 	class Logger
 	{
 	public:

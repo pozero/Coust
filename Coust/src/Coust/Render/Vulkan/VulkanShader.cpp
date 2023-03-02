@@ -1,21 +1,12 @@
 #include "pch.h"
 
+#include <optional>
+
 #include "Coust/Render/Vulkan/VulkanShader.h"
+#include "Coust/Utils/Hash.h"
 
 namespace Coust::Render::VK 
 {
-	// Note: shaderc assumes the name of entry point is "main"
-    inline ShaderByteCode GlslToByteCode(const shaderc::Compiler& compiler, const shaderc::CompileOptions options, const char* filePath, const std::string& source, shaderc_shader_kind kind)
-    {
-        auto result = compiler.CompileGlslToSpv(source, kind, filePath, options);
-        if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
-        {
-        	COUST_CORE_ERROR(result.GetErrorMessage().data());
-            return ShaderByteCode{};
-        }
-        return ShaderByteCode{std::string{filePath}, std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
-    }
-
 	class Includer : public shaderc::CompileOptions::IncluderInterface
 	{
 	public:
@@ -67,7 +58,7 @@ namespace Coust::Render::VK
 	{
 		if (!ByteCode.empty())
 		{
-			GlobalContext::Get().GetFileSystem().AddCache(SourceFilePath, ByteCode, true);
+			GlobalContext::Get().GetFileSystem().AddCache(SourcePath, ExtraHash, ByteCode, true);
 		}
 	}
 	
@@ -617,7 +608,7 @@ namespace Coust::Render::VK
             bool succeeded = false;
             VK_REPORT(vkCreateShaderModule(ctx.Device, &ci, nullptr, &m_Handle), succeeded);
             if (succeeded)
-                SetDefaultDebugName(scopeName, nullptr);
+                SetDefaultDebugName(scopeName, ToString(stage));
             else
                 m_Handle = VK_NULL_HANDLE;
         }
@@ -651,9 +642,20 @@ namespace Coust::Render::VK
 
     void ShaderModule::Construct(const Context& ctx)
     {
-        // if source doesn't have any macro and we can get the cached byte code, use the byte code
-        if (std::vector<uint32_t> byteCode{}; m_Source.GetMacros().empty() && GlobalContext::Get().GetFileSystem().GetCache(m_Source.GetPath().string(), byteCode))
-            m_ByteCode = ShaderByteCode{m_Source.GetPath().string(), std::move(byteCode), false};
+        std::optional<size_t> extraHash{};
+        if (m_Source.GetMacros().size() > 0)
+        {
+            extraHash = 0;
+            for (const auto& p : m_Source.GetMacros())
+            {
+                Hash::Combine(extraHash.value(), p.first);
+                Hash::Combine(extraHash.value(), p.second);
+            }
+        }
+
+        // if we can get the cached byte code, use the byte code
+        if (std::vector<uint32_t> byteCode{}; GlobalContext::Get().GetFileSystem().GetCache(m_Source.GetPath().string(), extraHash, byteCode))
+            m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::move(byteCode), false };
         // else compile from source
         else
         {
@@ -669,11 +671,25 @@ namespace Coust::Render::VK
                 options.AddMacroDefinition(macro.first, macro.second);
             }
 
-            m_ByteCode = GlslToByteCode(compiler, options, m_Source.GetPath().string().c_str(), m_Source.GetCode(), GetShaderKind(m_Stage));
+            auto result = compiler.CompileGlslToSpv(m_Source.GetCode(), GetShaderKind(m_Stage), m_Source.GetPath().string().c_str(), options);
+            if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
+            {
+            	COUST_CORE_ERROR(result.GetErrorMessage().data());
+            }
+            else
+                m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
         }
+        
+        m_ByteCode.ExtraHash = extraHash;
         
         if (!SPIRVReflectShaderResource(m_ByteCode.ByteCode, m_Stage, m_Source.GetDesiredDynamicBufferSize(), m_Resources))
             COUST_CORE_ERROR("Can't reflect SPIR-V");
+    }
+    
+    std::string ShaderModule::GetDisassembledSPIRV()
+    {
+        std::unique_ptr<spirv_cross::CompilerGLSL> compiler = std::make_unique<spirv_cross::CompilerGLSL>(m_ByteCode.ByteCode);
+        return compiler->compile();
     }
 
 }

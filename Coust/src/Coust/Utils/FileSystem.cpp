@@ -2,9 +2,10 @@
 #include "pch.h"
 
 #include "Coust/Utils/FileSystem.h"
-#include "rapidjson/error/error.h"
+#include "Coust/Utils/Hash.h"
 
 #undef max
+#include "rapidjson/error/error.h"
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/writer.h"
@@ -18,19 +19,19 @@ namespace Coust
     std::string FileSystem::s_CacheHeaderFileName = "cache_headers.json";
 
     template
-    bool FileSystem::GetCache<uint32_t>(const std::string& originName, std::vector<uint32_t>& out_buf);
+    bool FileSystem::GetCache<uint32_t>(const std::string& originName, std::optional<size_t> extraHash, std::vector<uint32_t>& out_buf);
 
     template<>
-    bool FileSystem::GetCache<char>(const std::string& originName, std::vector<char>& out_buf)
+    bool FileSystem::GetCache<char>(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& out_buf)
     {
-        return CacheStatus::AVAILABLE == getCache(originName, out_buf);
+        return CacheStatus::AVAILABLE == GetCache_Impl(originName, extraHash, out_buf);
     }
 
     template<typename T>
-    bool FileSystem::GetCache(const std::string& originName, std::vector<T>& out_buf)
+    bool FileSystem::GetCache(const std::string& originName, std::optional<size_t> extraHash, std::vector<T>& out_buf)
     {
         std::vector<char> tmp_buf{};
-        auto status = getCache(originName, tmp_buf);
+        auto status = GetCache_Impl(originName, extraHash, tmp_buf);
         if (status != CacheStatus::AVAILABLE)
             return false;
 
@@ -43,22 +44,22 @@ namespace Coust
     }
 
     template
-    void FileSystem::AddCache<uint32_t>(const std::string& originName, std::vector<uint32_t>& cacheBytes, bool needCRC32);
+    void FileSystem::AddCache<uint32_t>(const std::string& originName, std::optional<size_t> extraHash, std::vector<uint32_t>& cacheBytes, bool needCRC32);
 
     template<>
-    void FileSystem::AddCache<char>(const std::string& originName, std::vector<char>& cacheBytes, bool needCRC32)
+    void FileSystem::AddCache<char>(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& cacheBytes, bool needCRC32)
     {
-        return addCache(originName, cacheBytes, needCRC32);
+        return AddCache_Impl(originName, extraHash, cacheBytes, needCRC32);
     }
 
     template<typename T>
-    void FileSystem::AddCache(const std::string& originName, std::vector<T>& cacheBytes, bool needCRC32)
+    void FileSystem::AddCache(const std::string& originName, std::optional<size_t> extraHash, std::vector<T>& cacheBytes, bool needCRC32)
     {
         std::vector<char> tmp_buf{};
         tmp_buf.resize(cacheBytes.size() * sizeof(T));
         std::memcpy(tmp_buf.data(), cacheBytes.data(), cacheBytes.size() * sizeof(T));
 
-        addCache(originName, tmp_buf, needCRC32);
+        AddCache_Impl(originName, extraHash, tmp_buf, needCRC32);
     }
 
     FileSystem* FileSystem::CreateFileSystem()
@@ -99,13 +100,13 @@ namespace Coust
                     CacheHeader h
                     {
                         .originName = iter->name.GetString(),
-                        .cacheName = iter->value.FindMember("cache")->value.GetString(),
-                        .cacheSizeInByte = iter->value.FindMember("cache_size_in_byte")->value.GetUint(),
+                        .cacheTag = iter->value.FindMember("cache_tag")->value.GetUint64(),
+                        .cacheSizeInByte = iter->value.FindMember("cache_size_in_byte")->value.GetUint64(),
                         .isNew = false,
                     };
 
                     if (auto m = iter->value.FindMember("size_in_byte"); !m->value.IsNull())
-                        h.originFileSizeInByte = m->value.GetUint();
+                        h.originFileSizeInByte = m->value.GetUint64();
                     if (auto m = iter->value.FindMember("last_modified"); !m->value.IsNull())
                         h.originFileLastModifiedTime = m->value.GetString();
                     if (auto m = iter->value.FindMember("cache_crc32"); !m->value.IsNull())
@@ -127,7 +128,7 @@ namespace Coust
         {
             // TODO: Task System
             auto path = s_CachePath;
-            path /= c.cacheName;
+            path /= std::to_string(c.cacheTag);
 
             std::ofstream file{ path, std::ios::binary };
 
@@ -144,7 +145,7 @@ namespace Coust
         doc.SetObject();
         for (const auto& h : m_CacheHeaders)
         {
-            rapidjson::Value cacheName(h.cacheName.c_str(), (rapidjson::SizeType) h.cacheName.length());
+            rapidjson::Value cacheTag(h.cacheTag);
             rapidjson::Value cacheSizeInByte(h.cacheSizeInByte);
 
             rapidjson::Value originFileSizeInByte{};
@@ -159,7 +160,7 @@ namespace Coust
                 cacheCRC32.SetUint(h.cacheCRC32.value());
 
             rapidjson::Value cacheEntry(rapidjson::kObjectType);
-            cacheEntry.AddMember("cache", cacheName, doc.GetAllocator());
+            cacheEntry.AddMember("cache_tag", cacheTag, doc.GetAllocator());
             cacheEntry.AddMember("cache_size_in_byte", cacheSizeInByte, doc.GetAllocator());
             cacheEntry.AddMember("size_in_byte", originFileSizeInByte, doc.GetAllocator());
             cacheEntry.AddMember("last_modified", originFileLastModifiedTime, doc.GetAllocator());
@@ -175,12 +176,14 @@ namespace Coust
         WriteWholeText(s_CachePath / s_CacheHeaderFileName, buf.GetString());
     }
 
-    FileSystem::CacheStatus FileSystem::getCache(const std::string& originName, std::vector<char>& out_buf)
+    FileSystem::CacheStatus FileSystem::GetCache_Impl(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& out_buf)
     {
+        size_t cacheTag = GetCacheTag(originName, extraHash);
+
         auto header = m_CacheHeaders.cbegin();
         for (; header != m_CacheHeaders.cend(); header++)
         {
-            if (header->originName == originName)
+            if (cacheTag == header->cacheTag)
                 break;
         }
         if (header == m_CacheHeaders.cend())
@@ -221,7 +224,7 @@ namespace Coust
             }
         }
 
-        std::ifstream cache{ GetFullPathFrom({".coustcache", header->cacheName.c_str()}), std::ios::ate | std::ios::binary};
+        std::ifstream cache{ GetFullPathFrom({".coustcache", std::to_string(header->cacheTag).c_str()}), std::ios::ate | std::ios::binary};
         // cache file doesn't exist or can't open
         if (!cache.is_open())
         {
@@ -247,6 +250,7 @@ namespace Coust
             cache.read((char*) &headGuard, sizeof(headGuard));
             if (headGuard != MAGIC_NUMBER)
             {
+                cache.close();
                 COUST_CORE_TRACE("Cache of {} Invalid (Cache Corrupted)", originName);
                 return CacheStatus::INVALID;
             }
@@ -262,6 +266,7 @@ namespace Coust
             uint32_t currentCacheCRC32 = CRC32FromBuf(out_buf.data(), out_buf.size());
             if (currentCacheCRC32 != header->cacheCRC32.value())
             {
+                cache.close();
                 out_buf.clear();
                 m_CacheHeaders.erase(header);
                 COUST_CORE_TRACE("Cache of {} Invalid (CRC32 Hash Test Failed)", originName);
@@ -273,10 +278,9 @@ namespace Coust
         return CacheStatus::AVAILABLE;
     }
 
-    void FileSystem::addCache(const std::string& originName, std::vector<char>& cacheBytes, bool needCRC32)
+    void FileSystem::AddCache_Impl(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& cacheBytes, bool needCRC32)
     {
-        std::string cacheName = originName;
-        std::replace(cacheName.begin(), cacheName.end(), '\\', '_');
+        size_t cacheTag = GetCacheTag(originName, extraHash);
 
         CacheHeader header;
         {
@@ -284,8 +288,9 @@ namespace Coust
             header.originName = originName;
             header.cacheSizeInByte = cacheBytes.size();
 
-            header.cacheName = cacheName;
+            header.cacheTag = cacheTag;
 
+            // if it's a file, add its last write time and size as validation
             if (std::filesystem::exists(originName))
             {
                 std::stringstream ss{};
@@ -306,7 +311,7 @@ namespace Coust
         {
             // We always use the latest cache
             // If older cache with same name exists, erase it
-            if (iter->originName == originName)
+            if (iter->cacheTag == cacheTag)
             {
                 m_CacheHeaders.erase(iter);
                 break;
@@ -314,7 +319,7 @@ namespace Coust
         }
 
         m_CacheHeaders.push_back(header);
-        m_Caches.push_back({cacheName, std::move(cacheBytes)});
+        m_Caches.push_back({cacheTag, std::move(cacheBytes)});
     }
 
     std::filesystem::path FileSystem::GetRootPath()

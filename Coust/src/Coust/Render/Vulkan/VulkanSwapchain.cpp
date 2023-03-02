@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Coust/Event/ApplicationEvent.h"
+#include "Coust/Core/Window.h"
 
 #include "Coust/Render/Vulkan/VulkanSwapchain.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"

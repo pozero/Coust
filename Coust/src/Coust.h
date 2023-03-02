@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Coust/Core/GlobalContext.h"
 #include "Coust/Core/Window.h"
 #include "Coust/Core/Application.h"
 #include "Coust/Core/Logger.h"

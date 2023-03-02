@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "Coust/Core/GlobalContext.h"
 
+#include "Coust/Core/Logger.h"
+#include "Coust/Utils/FileSystem.h"
+#include "Coust/Core/Window.h"
+#include "Coust/Render/Driver.h"
+#include "Coust/Utils/Random.h"
+
 namespace Coust
 {
 	GlobalContext* GlobalContext::s_Instance = nullptr;

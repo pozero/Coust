@@ -7,6 +7,7 @@ namespace Coust
 {
     namespace Hash
     {
+
         inline uint32_t murmur3(const uint32_t* key, std::size_t numBytes, uint32_t seed) noexcept
         {
             uint32_t h = seed;
@@ -39,7 +40,7 @@ namespace Coust
         template <typename T>
         concept StdHashable = requires (T a)
         {
-            { std::hash<T>(a) } -> std::convertible_to<size_t>;
+            { std::hash<T>{}(a) } -> std::convertible_to<size_t>;
         };
 
         /**
@@ -95,5 +96,16 @@ namespace Coust
             }
             
         };
+
+        template <typename T>
+        inline void Combine(size_t& seed, const T& value)
+            requires StdHashable<T> || Murmur3Hashable<T>
+        {
+            HashFn<T> h;
+            size_t hash = h(value);
+            // From glm
+            hash += 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		    seed ^= hash;
+        }
     }
 }

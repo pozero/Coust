@@ -31,7 +31,7 @@ layout(binding = 2) readonly buffer Vertices
 
 layout(location = 0) out vec4 color;
 
-void main()
+void main0()
 {
 	uint drawId = drawCommands[gl_DrawIDARB].drawId;
 	MeshDraw meshDraw = draws[drawId];
@@ -43,4 +43,22 @@ void main()
 	gl_Position = globals.projection * vec4(rotateQuat(position, meshDraw.orientation) * meshDraw.scale + meshDraw.position, 1);
 
 	color = vec4(normal * 0.5 + vec3(0.5), 1.0);
+}
+
+void main1()
+{
+	gl_Position = vec4(1);
+	color = vec4(1);
+}
+
+void main2()
+{
+	gl_Position = vec4(2);
+	color = vec4(2);
+}
+
+void main3()
+{
+	gl_Position = vec4(3);
+	color = vec4(3);
 }
