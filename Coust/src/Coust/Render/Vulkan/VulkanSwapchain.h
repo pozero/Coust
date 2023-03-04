@@ -1,11 +1,8 @@
 #pragma once
 
-#include <volk.h>
-
 #include "Coust/Render/Vulkan/VulkanContext.h"
 
 #include <vector>
-#include <memory>
 
 namespace Coust::Render::VK
 {

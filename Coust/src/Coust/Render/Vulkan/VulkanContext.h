@@ -72,8 +72,8 @@ namespace Coust::Render::VK
 		 * @param ctx 
 		 * @param handle 
 		 */
-        Resource(const Context& ctx, VkHandle handle)
-            : m_Device(ctx.Device), m_Handle(handle)
+        Resource(VkDevice device, VkHandle handle)
+            : m_Device(device), m_Handle(handle)
 		{
 		}
 		
@@ -88,7 +88,9 @@ namespace Coust::Render::VK
 			: m_Device(other.m_Device), m_Handle(other.m_Handle), m_DebugName(other.m_DebugName)
 		{
 			m_DebugName += '*';
+#ifndef COUST_FULL_RELEASE
 			RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
+#endif
 
 			other.m_Handle = VK_NULL_HANDLE;
 		}
@@ -101,14 +103,19 @@ namespace Coust::Render::VK
 			m_Handle = other.m_Handle;
 			m_DebugName = other.m_DebugName;
 			m_DebugName += '*';
-			RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
+#ifndef COUST_FULL_RELEASE
+			return RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
+#endif
 			
 			other.m_Handle = VK_NULL_HANDLE;
+			return *this;
 		}
 		
 		// copy operation prohibited
         Resource(const Resource& other) = delete;
 		Resource& operator=(const Resource& other) = delete;
+		
+		VkDevice GetDevice() const { return m_Device; }
         
         VkHandle GetHandle() const { return m_Handle; }
 
@@ -120,11 +127,11 @@ namespace Coust::Render::VK
 		 * @param name 
 		 * @return
 		 */
-		bool SetDedicatedDebugName(const std::string& name)
+		bool SetDedicatedDebugName(const char* dedicatedName)
 		{
-			m_DebugName = name;
+			m_DebugName = dedicatedName;
 #ifndef COUST_FULL_RELEASE
-			return RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
+			return RegisterDebugName(m_Device, ObjectType, m_Handle, dedicatedName);
 #else
 			return true;
 #endif
@@ -184,13 +191,61 @@ namespace Coust::Render::VK
 		static bool CheckValidation(T& resource)
 			requires IsVulkanResource<T, VkHandle, ObjectType>
 		{
-			return resource.m_Hanlde != VK_NULL_HANDLE;
+			return resource.m_Handle != VK_NULL_HANDLE;
+		}
+
+		/**
+		 * @brief Resource construction helper
+		 * 
+		 * @tparam T 				Resource type
+		 * @tparam A 				Constructor parameter
+		 * @param out_Resource 		Output.
+		 * @param args 				Constructor parameter
+		 * @return 					true if it created a valid resource, false otherwise
+		 */
+		template<typename T, typename ...A>
+		static bool Create(std::unique_ptr<T>& out_Resource, const A... args)
+			requires IsVulkanResource<T, VkHandle, ObjectType>
+		{
+			T* ptr = nullptr;
+			bool result =  Create(ptr, args...);
+			out_Resource = std::unique_ptr<T>{ptr};
+			return result;
+		}
+	
+		/**
+		 * @brief Resource construction helper
+		 * 
+		 * @tparam T 				Resource type
+		 * @tparam A 				Constructor parameter
+		 * @param out_Resource 		Output.
+		 * @param args 				Constructor parameter
+		 * @return 					true if it created a valid resource, false otherwise
+		 */
+		template<typename T, typename ...A>
+		static bool Create(T*& out_Resource, const A... args)
+			requires IsVulkanResource<T, VkHandle, ObjectType>
+		{
+			T* pResource = new T(args...);
+			if (CheckValidation(*pResource))
+			{
+				out_Resource = pResource;
+				return true;
+			}
+			else  
+			{
+				delete pResource;
+				return false;
+			}
 		}
 
     private:
 
         bool RegisterDebugName(const VkDevice device, VkObjectType type, VkHandle handle, const char* name)
         {
+			// In case we move from an empty resource
+			if (m_Handle == VK_NULL_HANDLE)
+				return false;
 			// See https://github.com/KhronosGroup/Vulkan-Docs/issues/368 .
 			// Dispatchable and non-dispatchable handle types are **NOT** necessarily binary-compatible!
 			// Non-dispatchable handles might be only 32-bit long. This is because, on 32-bit machines, they might be a typedef to a 32-bit pointer.
@@ -227,5 +282,4 @@ namespace Coust::Render::VK
         VkHandle m_Handle = VK_NULL_HANDLE;
         std::string m_DebugName{};
     };
-	
 }

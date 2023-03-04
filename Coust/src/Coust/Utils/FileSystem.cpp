@@ -19,19 +19,19 @@ namespace Coust
     std::string FileSystem::s_CacheHeaderFileName = "cache_headers.json";
 
     template
-    bool FileSystem::GetCache<uint32_t>(const std::string& originName, std::optional<size_t> extraHash, std::vector<uint32_t>& out_buf);
+    bool FileSystem::GetCache<uint32_t>(const std::string& originName, size_t hash, std::vector<uint32_t>& out_buf);
 
     template<>
-    bool FileSystem::GetCache<char>(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& out_buf)
+    bool FileSystem::GetCache<char>(const std::string& originName, size_t hash, std::vector<char>& out_buf)
     {
-        return CacheStatus::AVAILABLE == GetCache_Impl(originName, extraHash, out_buf);
+        return CacheStatus::AVAILABLE == GetCache_Impl(originName, hash, out_buf);
     }
 
     template<typename T>
-    bool FileSystem::GetCache(const std::string& originName, std::optional<size_t> extraHash, std::vector<T>& out_buf)
+    bool FileSystem::GetCache(const std::string& originName, size_t hash, std::vector<T>& out_buf)
     {
         std::vector<char> tmp_buf{};
-        auto status = GetCache_Impl(originName, extraHash, tmp_buf);
+        auto status = GetCache_Impl(originName, hash, tmp_buf);
         if (status != CacheStatus::AVAILABLE)
             return false;
 
@@ -44,22 +44,22 @@ namespace Coust
     }
 
     template
-    void FileSystem::AddCache<uint32_t>(const std::string& originName, std::optional<size_t> extraHash, std::vector<uint32_t>& cacheBytes, bool needCRC32);
+    void FileSystem::AddCache<uint32_t>(const std::string& originName, size_t hash, std::vector<uint32_t>& cacheBytes, bool needCRC32);
 
     template<>
-    void FileSystem::AddCache<char>(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& cacheBytes, bool needCRC32)
+    void FileSystem::AddCache<char>(const std::string& originName, size_t hash, std::vector<char>& cacheBytes, bool needCRC32)
     {
-        return AddCache_Impl(originName, extraHash, cacheBytes, needCRC32);
+        return AddCache_Impl(originName, hash, cacheBytes, needCRC32);
     }
 
     template<typename T>
-    void FileSystem::AddCache(const std::string& originName, std::optional<size_t> extraHash, std::vector<T>& cacheBytes, bool needCRC32)
+    void FileSystem::AddCache(const std::string& originName, size_t hash, std::vector<T>& cacheBytes, bool needCRC32)
     {
         std::vector<char> tmp_buf{};
         tmp_buf.resize(cacheBytes.size() * sizeof(T));
         std::memcpy(tmp_buf.data(), cacheBytes.data(), cacheBytes.size() * sizeof(T));
 
-        AddCache_Impl(originName, extraHash, tmp_buf, needCRC32);
+        AddCache_Impl(originName, hash, tmp_buf, needCRC32);
     }
 
     FileSystem* FileSystem::CreateFileSystem()
@@ -99,10 +99,10 @@ namespace Coust
                 {
                     CacheHeader h
                     {
-                        .originName = iter->name.GetString(),
-                        .cacheTag = iter->value.FindMember("cache_tag")->value.GetUint64(),
-                        .cacheSizeInByte = iter->value.FindMember("cache_size_in_byte")->value.GetUint64(),
                         .isNew = false,
+                        .cacheTag = iter->value.FindMember("cache_tag")->value.GetUint64(),
+                        .originName = iter->name.GetString(),
+                        .cacheSizeInByte = iter->value.FindMember("cache_size_in_byte")->value.GetUint64(),
                     };
 
                     if (auto m = iter->value.FindMember("size_in_byte"); !m->value.IsNull())
@@ -176,9 +176,9 @@ namespace Coust
         WriteWholeText(s_CachePath / s_CacheHeaderFileName, buf.GetString());
     }
 
-    FileSystem::CacheStatus FileSystem::GetCache_Impl(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& out_buf)
+    FileSystem::CacheStatus FileSystem::GetCache_Impl(const std::string& originName, size_t hash, std::vector<char>& out_buf)
     {
-        size_t cacheTag = GetCacheTag(originName, extraHash);
+        size_t cacheTag = hash;
 
         auto header = m_CacheHeaders.cbegin();
         for (; header != m_CacheHeaders.cend(); header++)
@@ -278,9 +278,9 @@ namespace Coust
         return CacheStatus::AVAILABLE;
     }
 
-    void FileSystem::AddCache_Impl(const std::string& originName, std::optional<size_t> extraHash, std::vector<char>& cacheBytes, bool needCRC32)
+    void FileSystem::AddCache_Impl(const std::string& originName, size_t hash, std::vector<char>& cacheBytes, bool needCRC32)
     {
-        size_t cacheTag = GetCacheTag(originName, extraHash);
+        size_t cacheTag = hash;
 
         CacheHeader header;
         {

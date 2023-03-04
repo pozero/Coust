@@ -2,6 +2,8 @@
 
 #include "Coust/Render/Vulkan/VulkanPipeline.h"
 #include "Coust/Render/Vulkan/VulkanShader.h"
+#include "Coust/Render/Vulkan/VulkanRenderPass.h"
+#include "Coust/Render/Vulkan/VulkanUtils.h"
 
 #include <stdint.h>
 

@@ -5,14 +5,13 @@
 
 #include "Coust/Render/Vulkan/VulkanSwapchain.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
-#include "vulkan/vulkan_core.h"
 
 #include <GLFW/glfw3.h>
 
 namespace Coust::Render::VK
 {
 	Swapchain::Swapchain(const Context &ctx)
-		: Resource(ctx, VK_NULL_HANDLE)
+		: Base(ctx.Device, VK_NULL_HANDLE)
 	{
 		{
 			VkSurfaceFormatKHR bestSurfaceFormat{};
@@ -82,7 +81,7 @@ namespace Coust::Render::VK
 		
 		m_IsValid = Create(ctx);
 		if (m_IsValid)
-			SetDedicatedDebugName(std::string{ "Swapchain" });
+			SetDedicatedDebugName("Swapchain");
 	}
 
 	Swapchain::~Swapchain()

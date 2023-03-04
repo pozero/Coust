@@ -313,26 +313,61 @@ namespace Coust::Render::VK
     {
         switch (flag)
         {
-            case VK_SHADER_STAGE_VERTEX_BIT:                    return "VK_SHADER_STAGE_VERTEX_BIT";
-            case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:      return "VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT";
-            case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:   return "VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT";
-            case VK_SHADER_STAGE_GEOMETRY_BIT:                  return "VK_SHADER_STAGE_GEOMETRY_BIT";
-            case VK_SHADER_STAGE_FRAGMENT_BIT:                  return "VK_SHADER_STAGE_FRAGMENT_BIT";
-            case VK_SHADER_STAGE_COMPUTE_BIT:                   return "VK_SHADER_STAGE_COMPUTE_BIT";
-            case VK_SHADER_STAGE_ALL_GRAPHICS:                  return "VK_SHADER_STAGE_ALL_GRAPHICS";
-            case VK_SHADER_STAGE_RAYGEN_BIT_KHR:                return "VK_SHADER_STAGE_RAYGEN_BIT_KHR";
-            case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:               return "VK_SHADER_STAGE_ANY_HIT_BIT_KHR";
-            case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:           return "VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR";
-            case VK_SHADER_STAGE_MISS_BIT_KHR:                  return "VK_SHADER_STAGE_MISS_BIT_KHR";
-            case VK_SHADER_STAGE_INTERSECTION_BIT_KHR:          return "VK_SHADER_STAGE_INTERSECTION_BIT_KHR";
-            case VK_SHADER_STAGE_CALLABLE_BIT_KHR:              return "VK_SHADER_STAGE_CALLABLE_BIT_KHR";
-            case VK_SHADER_STAGE_TASK_BIT_EXT:                  return "VK_SHADER_STAGE_TASK_BIT_EXT";
-            case VK_SHADER_STAGE_MESH_BIT_EXT:                  return "VK_SHADER_STAGE_MESH_BIT_EXT";
-            case VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI:    return "VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI";
-            case VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI:    return "VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI";
-            default:                                            return "Unknown stage flag bit";
+            case VK_SHADER_STAGE_VERTEX_BIT:                    return "VERTEX";
+            case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:      return "TESSELLATION_CONTROL";
+            case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:   return "TESSELLATION_EVALUATION";
+            case VK_SHADER_STAGE_GEOMETRY_BIT:                  return "GEOMETRY";
+            case VK_SHADER_STAGE_FRAGMENT_BIT:                  return "FRAGMENT";
+            case VK_SHADER_STAGE_COMPUTE_BIT:                   return "COMPUTE";
+            case VK_SHADER_STAGE_ALL_GRAPHICS:                  return "ALL_GRAPHICS";
+            case VK_SHADER_STAGE_RAYGEN_BIT_KHR:                return "RAYGEN_KHR";
+            case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:               return "ANY_HIT_KHR";
+            case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:           return "CLOSEST_HIT_KHR";
+            case VK_SHADER_STAGE_MISS_BIT_KHR:                  return "MISS_KHR";
+            case VK_SHADER_STAGE_INTERSECTION_BIT_KHR:          return "INTERSECTION_KHR";
+            case VK_SHADER_STAGE_CALLABLE_BIT_KHR:              return "CALLABLE_KHR";
+            case VK_SHADER_STAGE_TASK_BIT_EXT:                  return "TAS_EXT";
+            case VK_SHADER_STAGE_MESH_BIT_EXT:                  return "MESH_EXT";
+            case VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI:    return "SUBPASS_SHADING_HUAWEI";
+            case VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI:    return "CLUSTER_CULLIN_HUAWEI";
+            default:                                            return "Unknown shader stage flag bit";
         }
     }
+	
+	inline const char* ToString(VkCommandBufferLevel level)
+	{
+		switch (level)
+		{
+			case VK_COMMAND_BUFFER_LEVEL_PRIMARY:		return "PRIMARY";
+			case VK_COMMAND_BUFFER_LEVEL_SECONDARY:		return "SECONDARY";
+			default: 									return "Unknow command buffer level";
+		}
+	}
+	
+	inline const char* ToString(VkDescriptorType type)
+	{
+		switch (type) 
+		{
+			case VK_DESCRIPTOR_TYPE_SAMPLER: 						return "DESCRIPTOR_TYPE_SAMPLER";
+			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: 		return "DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER";
+			case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: 					return "DESCRIPTOR_TYPE_SAMPLED_IMAGE";
+			case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: 					return "DESCRIPTOR_TYPE_STORAGE_IMAGE";
+			case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: 			return "DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER";
+			case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: 			return "DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER";
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: 				return "DESCRIPTOR_TYPE_UNIFORM_BUFFER";
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: 				return "DESCRIPTOR_TYPE_STORAGE_BUFFER";
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: 		return "DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC";
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: 		return "DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC";
+			case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: 				return "DESCRIPTOR_TYPE_INPUT_ATTACHMENT";
+			case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK: 			return "DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK";
+			case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: 	return "DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR";
+			case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV: 		return "DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV";
+			case VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM: 		return "DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM";
+			case VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM: 		return "DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM";
+			case VK_DESCRIPTOR_TYPE_MUTABLE_EXT: 					return "DESCRIPTOR_TYPE_MUTABLE_EXT";
+			default:												return "Unknown descriptor type";
+		}
+	}
 	
     template <typename Flag, typename FlagBit>
     inline std::string ToString(Flag flags)

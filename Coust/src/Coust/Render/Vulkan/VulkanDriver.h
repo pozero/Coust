@@ -1,13 +1,7 @@
 #pragma once
 
-#include <functional>
-
-#include "Coust/Render/Vulkan/VulkanUtils.h"
-
 #include "Coust/Render/Driver.h"
-
 #include "Coust/Render/Vulkan/VulkanContext.h"
-#include "Coust/Render/Vulkan/VulkanShader.h"
 
 namespace Coust::Render::VK
 {

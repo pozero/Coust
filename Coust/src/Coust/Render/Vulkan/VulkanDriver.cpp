@@ -2,6 +2,11 @@
 
 #include "Coust/Core/Window.h"
 #include "Coust/Render/Vulkan/VulkanDriver.h"
+#include "Coust/Render/Vulkan/VulkanShader.h"
+#include "Coust/Render/Vulkan/VulkanUtils.h"
+#include "Coust/Render/Vulkan/VulkanDescriptor.h"
+
+#include "Coust/Utils/FileSystem.h"
 
 #include <GLFW/glfw3.h>
 
@@ -343,30 +348,46 @@ namespace Coust::Render::VK
 	{
 		ShaderSource source { FileSystem::GetFullPathFrom({ "Coust", "shaders", "mesh.vert.glsl" }) };
 		source.AddMacro("main0", "main");
+		
+		std::vector<std::unique_ptr<ShaderModule>> modules{};
+		modules.resize(1);
+		std::unique_ptr<DescriptorSetLayout> setLayout{};
 		{
-			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
-			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
-		}
+			ShaderModule::ConstructParm1 moduleParam
+			{
+            	.ctx = m_Context,
+            	.stage = VK_SHADER_STAGE_VERTEX_BIT,
+            	.source = source,
+				.dedicatedName = "TestShaderModule",
+			};
+			if (ShaderModule::Base::Create(modules[0], moduleParam))
+			{
+				for (const auto& res : modules[0]->GetResource())
+				{
+					COUST_CORE_INFO(ToString(res));
+				}
 
-		source.DeleteMacroByName("main0");
-		source.AddMacro("main1", "main");
-		{
-			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
-			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
-		}
-
-		source.DeleteMacroByName("main1");
-		source.AddMacro("main2", "main");
-		{
-			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
-			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
-		}
-
-		source.DeleteMacroByName("main2");
-		source.AddMacro("main3", "main");
-		{
-			ShaderModule module{ m_Context, VK_SHADER_STAGE_VERTEX_BIT, std::move(source), std::string{"TestModule"} };
-			COUST_CORE_INFO("\n{}", module.GetDisassembledSPIRV());
+				DescriptorSetLayout::ConstructParam1 layoutParam
+				{
+        			.ctx = m_Context,
+        			.set = 0,
+        			.shaderModules = modules,
+        			.shaderResources = modules[0]->GetResource(),
+        			.name = "TestDescriptorSetLayout",
+				};
+				if (DescriptorSetLayout::Base::Create(setLayout, layoutParam))
+				{
+					const auto& bindings = setLayout->GetBindings();
+					for (const auto& b : bindings)
+					{
+						COUST_CORE_INFO("binding: {} type: {} count: {} stage: {}", 
+							b.binding, 
+							ToString(b.descriptorType), 
+							b.descriptorCount, 
+							ToString<VkShaderStageFlags, VkShaderStageFlagBits>(b.stageFlags));
+					}
+				}
+			}
 		}
 	}
 }

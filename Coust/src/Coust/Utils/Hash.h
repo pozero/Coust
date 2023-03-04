@@ -42,9 +42,18 @@ namespace Coust
         {
             { std::hash<T>{}(a) } -> std::convertible_to<size_t>;
         };
+        
+        template <typename T>
+        concept ImplementedGetHash = requires (const T& a)
+        {
+            { a.GetHash() } -> std::convertible_to<size_t>;
+        };
 
         /**
-         * @brief General hash function, it uses std::hash* if implemented. Otherwise it uses murmur3 hash function.
+         * @brief General hash function struct, the hash can come from (has priority):
+         *          1. std::hash<T>{}() implemented by the class or standrad library
+         *          2. GetHash() implemented by the class (usually return a stored hash value)
+         *          3. Murmur3 hash function if the class happens to be a plain old data type and meets the alignment (4 bytes) requirement
          * @tparam T 
          */
         template<typename T>
@@ -54,6 +63,12 @@ namespace Coust
                 requires StdHashable<T>
             {
                 return std::hash<T>{}(key);
+            }
+            
+            size_t operator()(const T& key) const noexcept
+                requires ImplementedGetHash<T>
+            {
+                return key.GetHash();
             }
 
             size_t operator()(const T& key) const noexcept
@@ -99,7 +114,7 @@ namespace Coust
 
         template <typename T>
         inline void Combine(size_t& seed, const T& value)
-            requires StdHashable<T> || Murmur3Hashable<T>
+            requires StdHashable<T> || ImplementedGetHash<T> || Murmur3Hashable<T>
         {
             HashFn<T> h;
             size_t hash = h(value);

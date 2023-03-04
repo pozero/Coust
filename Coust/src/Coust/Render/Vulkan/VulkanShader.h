@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Coust/Render/Vulkan/VulkanContext.h"
-#include "Coust/Render/Vulkan/VulkanUtils.h"
-#include "Coust/Utils/FileSystem.h"
 
 #include <queue>
 #include <unordered_map>
+#include <filesystem>
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
 
@@ -18,16 +17,17 @@ namespace Coust::Render::VK
     
     enum class ShaderResourceType
     {
-        Input,              // stage_inputs
-        InputAttachment,    // subpass_inputs
-        Output,             // stage_outputs
-        Image,              // separate_images
-        Sampler,            // separate_samplers
-        ImageAndSampler,    // sampled_images
-        ImageStorage,       // storage_images
-        UniformBuffer,      // uniform_buffers
-        StorageBuffer,      // storage_buffers
-        PushConstant,       // push_constant_buffers
+        Input,                      // stage_inputs
+        InputAttachment,            // subpass_inputs
+        Output,                     // stage_outputs
+        Image,                      // separate_images
+        Sampler,                    // separate_samplers
+        ImageAndSampler,            // sampled_images
+        ImageStorage,               // storage_images
+        UniformBuffer,              // uniform_buffers
+        StorageBuffer,              // storage_buffers
+        PushConstant,               // push_constant_buffers
+        SpecializationConstant,     // `get_specialization_constants()`
         All,
     };
 
@@ -49,6 +49,13 @@ namespace Coust::Render::VK
         All,
     };
     
+    enum class ShaderResourceUpdateMode
+    {
+        Static,
+        Dynamic,
+        // TODO: Add support to VK_EXT_descriptor_indexing
+    };
+    
     /**
      * @brief Struct that contains information about members of shader resources, can be used as validation information
      * 
@@ -67,19 +74,20 @@ namespace Coust::Render::VK
         ShaderResourceMember* pMembers = nullptr;
     };
     
+    
     /**
      * @brief Struct that contains information about shader resources, reserved for descriptor & pipeline creation
-     * 
      */
     struct ShaderResource
     {
         // Fields used by all types of shader resource
         std::string Name;
-        VkAccessFlags Access = 0;
-        VkShaderStageFlagBits Stage = VK_SHADER_STAGE_ALL;
+        VkShaderStageFlags Stage = 0;
         ShaderResourceType Type = ShaderResourceType::All;
         
         // Fields of decoration
+        ShaderResourceUpdateMode UpdateMode;
+        VkAccessFlags Access = 0;
         ShaderResourceMember* pMembers = nullptr;
         ShaderResourceBaseType BaseType = ShaderResourceBaseType::All;
         uint32_t Set;
@@ -91,6 +99,7 @@ namespace Coust::Render::VK
         uint32_t ArraySize;
         uint32_t Offset;
         uint32_t Size;
+        uint32_t ConstantId;
     };
     
     /**
@@ -125,12 +134,7 @@ namespace Coust::Render::VK
         
         const std::filesystem::path& GetPath() const { return m_SourceFilePath; }
 
-        const std::string& GetCode()
-        {
-            if (m_SourceCode.empty())
-                FileSystem::ReadWholeText(m_SourceFilePath, m_SourceCode);
-            return m_SourceCode;
-        }
+        const std::string& GetCode();
         
         const std::unordered_map<std::string, std::string>& GetMacros() const { return m_Macros; }
         
@@ -146,13 +150,17 @@ namespace Coust::Render::VK
         
         void SetDynamicBufferSize(const std::string& name, size_t size) { m_DesiredDynamicBufferSize[name] = size; }
         
+        size_t GetHash() const;
+        
     private:
         std::filesystem::path m_SourceFilePath;
         
         std::string m_SourceCode;
         
+        // macro name -> macro value
         std::unordered_map<std::string, std::string> m_Macros;
         
+        // dynamic buffer name -> desired dynamic buffer size
         std::unordered_map<std::string, size_t> m_DesiredDynamicBufferSize;
     };
     
@@ -162,31 +170,36 @@ namespace Coust::Render::VK
      */
     class ShaderByteCode 
     {
-    public:
+    private:
+        friend class ShaderModule;
+
         ShaderByteCode(const std::string& sourcePath, std::vector<uint32_t>&& byteCode, bool shouldBeFlushed)
         	: SourcePath(sourcePath), ByteCode(byteCode), ShouldBeFlushed(shouldBeFlushed)
         {}
         
+    public:
         /**
          * @brief Flush the byte code with its name to FileSystem if needs to
          */
         ~ShaderByteCode();
 
         ShaderByteCode() = default;
+        ShaderByteCode(ShaderByteCode&&) = default;
         ShaderByteCode& operator=(ShaderByteCode&&) = default;
 
-        ShaderByteCode(ShaderByteCode&&) = delete;
         ShaderByteCode(const ShaderByteCode&) = delete;
         ShaderByteCode& operator=(const ShaderByteCode&) = delete;
         
         // Only `ShaderModule` possesses this class as its private member, so there is no need to declare them as private member.
     public:
+        size_t CacheTag;
         std::string SourcePath;
-        std::optional<size_t> ExtraHash;
 
         std::vector<uint32_t> ByteCode;
         
         bool ShouldBeFlushed;
+        
+    
     };
     
     /**
@@ -200,6 +213,13 @@ namespace Coust::Render::VK
         using Base = Resource<VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE>;
         
     public:
+        struct ConstructParm0
+        {
+            const Context&              ctx;
+            VkShaderStageFlagBits       stage;
+            const ShaderSource&         source;
+            const char*                 scopeName;
+        };
         /**
          * @brief Constructor with default debug name
          * 
@@ -208,8 +228,15 @@ namespace Coust::Render::VK
          * @param source
          * @param scopeName 
          */
-        ShaderModule(const Context& ctx, VkShaderStageFlagBits stage, ShaderSource&& source, const char* scopeName);
+        ShaderModule(ConstructParm0 param);
 
+        struct ConstructParm1
+        {
+            const Context&              ctx;
+            VkShaderStageFlagBits       stage;
+            const ShaderSource&         source;
+            const char*                 dedicatedName;
+        };
         /**
          * @brief Constructor with dedicated debug name
          * 
@@ -218,9 +245,16 @@ namespace Coust::Render::VK
          * @param source 
          * @param debugName 
          */
-        ShaderModule(const Context& ctx, VkShaderStageFlagBits stage, ShaderSource&& source, const std::string& debugName);
+        ShaderModule(ConstructParm1 param);
         
         ~ShaderModule();
+        
+        ShaderModule(ShaderModule&& other) = default;
+        ShaderModule& operator=(ShaderModule&& other) = default;
+        
+        ShaderModule() = delete;
+        ShaderModule(const ShaderModule&) = delete;
+        ShaderModule& operator=(const ShaderModule& other) = delete;
         
         VkShaderStageFlagBits GetStage() const { return m_Stage; }
 
@@ -232,8 +266,12 @@ namespace Coust::Render::VK
                                       m_Resources.size() > 0 && 
                                       m_Handle != VK_NULL_HANDLE; }
         
-        // get disassembled glsl code, this might be useful to check the including and optimization state.
+        // get disassembled glsl code, this might be useful if we want to check the including and optimization state.
         std::string GetDisassembledSPIRV();
+        
+        void SetShaderResourceUpdateMode(const std::string& resoureceName, ShaderResourceUpdateMode mode);
+        
+        size_t GetHash() const { return m_Hash; }
         
     private:
         /**
@@ -250,6 +288,8 @@ namespace Coust::Render::VK
         ShaderByteCode m_ByteCode;
         
         std::vector<ShaderResource> m_Resources;
+        
+        size_t m_Hash;
     };
 
     
@@ -257,17 +297,18 @@ namespace Coust::Render::VK
     {
         switch (type) 
         {
-            case ShaderResourceType::Input:             return "Input";              
-            case ShaderResourceType::InputAttachment:   return "InputAttachment";    
-            case ShaderResourceType::Output:            return "Output";             
-            case ShaderResourceType::Image:             return "Image";              
-            case ShaderResourceType::Sampler:           return "Sampler";            
-            case ShaderResourceType::ImageAndSampler:   return "ImageAndSampler";    
-            case ShaderResourceType::ImageStorage:      return "ImageStorage";       
-            case ShaderResourceType::UniformBuffer:     return "UniformBuffer";      
-            case ShaderResourceType::StorageBuffer:     return "StorageBuffer";      
-            case ShaderResourceType::PushConstant:      return "PushConstant";       
-            default:                                    return "All";
+            case ShaderResourceType::Input:                         return "Input";              
+            case ShaderResourceType::InputAttachment:               return "InputAttachment";    
+            case ShaderResourceType::Output:                        return "Output";             
+            case ShaderResourceType::Image:                         return "Image";              
+            case ShaderResourceType::Sampler:                       return "Sampler";            
+            case ShaderResourceType::ImageAndSampler:               return "ImageAndSampler";    
+            case ShaderResourceType::ImageStorage:                  return "ImageStorage";       
+            case ShaderResourceType::UniformBuffer:                 return "UniformBuffer";      
+            case ShaderResourceType::StorageBuffer:                 return "StorageBuffer";      
+            case ShaderResourceType::PushConstant:                  return "PushConstant";       
+            case ShaderResourceType::SpecializationConstant:        return "SpecializationConstant";       
+            default:                                                return "All";
         }
     }
     
@@ -345,8 +386,7 @@ namespace Coust::Render::VK
         
         ss << ToString(res.Type) << ' '
             << res.Name << indent
-            << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access) << indent
-            << "Stage: " << ToString(res.Stage);
+            << "Stage: " << ToString<VkShaderStageFlags, VkShaderStageFlagBits>(res.Stage);
     
         switch (res.Type)
         {
@@ -360,6 +400,7 @@ namespace Coust::Render::VK
                 break;
             case ShaderResourceType::InputAttachment:
                 ss << indent << "ArraySize: " << res.ArraySize
+                   << indent << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access)
                    << indent << "InputAttachmentIndex: " << res.InputAttachmentIndex
                    << indent << "Set: " << res.Set
                    << indent << "Binding: " << res.Binding << '\n';
@@ -369,12 +410,14 @@ namespace Coust::Render::VK
             case ShaderResourceType::ImageAndSampler:
             case ShaderResourceType::ImageStorage:
                 ss << indent << "ArraySize: " << res.ArraySize
+                   << indent << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access)
                    << indent << "Set: " << res.Set
                    << indent << "Binding: " << res.Binding << '\n';
                 break;
             case ShaderResourceType::UniformBuffer:
             case ShaderResourceType::StorageBuffer:
                 ss << indent << "Size: " << res.Size
+                   << indent << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access)
                    << indent << "Array Size: " << res.ArraySize
                    << indent << "Set: " << res.Set
                    << indent << "Binding: " << res.Binding
@@ -385,6 +428,10 @@ namespace Coust::Render::VK
                    << indent << "Size: " << res.Offset
                    << indent << "Members: " << '\n' << ToString(res.pMembers);
                 break;
+            case ShaderResourceType::SpecializationConstant:
+                ss << indent << "Constant ID: " << res.ConstantId
+                   << indent << "BaseType: " << ToString(res.BaseType)
+                   << indent << "Size: " << res.Size << '\n';
             default:
                 break;
         }

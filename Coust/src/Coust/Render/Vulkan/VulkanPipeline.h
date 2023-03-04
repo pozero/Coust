@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Coust/Render/Vulkan/VulkanUtils.h"
-#include "Coust/Render/Vulkan/VulkanRenderPass.h"
+#include "Coust/Render/Vulkan/VulkanContext.h"
 
 #include <vector>
 #include <unordered_set>
@@ -9,6 +8,8 @@
 
 namespace Coust::Render::VK
 {
+	class RenderPass;
+
 	class PipelineState;
 	class PipelineLayout;
 	
