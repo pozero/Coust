@@ -1,8 +1,10 @@
 #pragma once
 
-#include "pch.h"
-
-#include "Coust/Logger.h"
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <functional>
 
 namespace Coust
 {
@@ -53,7 +55,11 @@ namespace Coust
                         if (categoryName[categoryIndex] == category)
                             break;
                     }
-                    COUST_CORE_ASSERT(categoryIndex < 8 * sizeof(mask), "Too Much Event Category Defined");
+                    if (categoryIndex >= 8 * sizeof(mask))
+                    {
+                        std::cerr << "Too Much Event Category Defined\n";
+                        return;
+                    }
                     eventCategory |= 1 << categoryIndex;
                 }
 
@@ -119,6 +125,11 @@ namespace Coust
         friend class Application;
     public:
         static void Publish(Event& e)
+        {
+            mainCallback(e);
+        }
+
+        static void Publish(Event&& e)
         {
             mainCallback(e);
         }

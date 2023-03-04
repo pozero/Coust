@@ -36,15 +36,13 @@ namespace Coust
         void OnUpdate(const TimeStep& ts) override
         {
             m_DeltaTime = ts.ToMiliSecond();
-            if (Input::IsKeyDown(KeyCode::A))
-                COUST_INFO("Key A Is Pressed");
         }
 
         void OnUIRender() override
         {
-            ImGui::Begin("Delta Time");
-            ImGui::Text("MiliSecond Per Frame: %f", m_DeltaTime);
-            ImGui::End();
+            // ImGui::Begin("Delta Time");
+            // ImGui::Text("MiliSecond Per Frame: %f", m_DeltaTime);
+            // ImGui::End();
         }
 
     private:

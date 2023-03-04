@@ -10,3 +10,15 @@
 [submodule "Coust/third_party/glm"]
 	path = Coust/third_party/glm
 	url = https://github.com/g-truc/glm
+[submodule "Coust/third_party/volk"]
+	path = Coust/third_party/volk
+	url = https://github.com/zeux/volk
+[submodule "Coust/third_party/vma"]
+	path = Coust/third_party/vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "Coust/third_party/rapidjson"]
+	path = Coust/third_party/rapidjson
+	url = https://github.com/Tencent/rapidjson/
+[submodule "Coust/third_party/stb"]
+	path = Coust/third_party/stb
+	url = https://github.com/nothings/stb

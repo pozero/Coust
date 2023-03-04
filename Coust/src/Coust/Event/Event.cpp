@@ -1,12 +1,12 @@
 #include "pch.h"
 
-#include "Event.h"
+#include "Coust/Event/Event.h"
 
-#include "ApplicationEvent.h"
-#include "KeyEvent.h"
-#include "MouseEvent.h"
+#include "Coust/Event/ApplicationEvent.h"
+#include "Coust/Event/KeyEvent.h"
+#include "Coust/Event/MouseEvent.h"
 
-#include "Coust/Application.h"
+#include "Coust/Core/Application.h"
 
 namespace Coust
 {
