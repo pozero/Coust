@@ -16,25 +16,27 @@ namespace Coust::Render::VK
 		using Base = Resource<VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR>;
 
 	public:
+		/**
+		 * @brief Get appropriate parameter and create swapchain using it.
+		 * @param ctx 
+		 */
+		Swapchain(const Context &ctx);
+
 		~Swapchain();
 
+		Swapchain() = delete;
+
 		// copy & move prohibited
-		Swapchain(const Swapchain&) = delete;
-		Swapchain& operator=(const Swapchain&) = delete;
 		Swapchain(Swapchain&&) = delete;
+		Swapchain(const Swapchain&) = delete;
 		Swapchain& operator=(Swapchain&&) = delete;
+		Swapchain& operator=(const Swapchain&) = delete;
 
 		bool Recreate(const Context &ctx);
 		
 		VkResult AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex);
 
 		bool IsValid() const { return m_IsValid; }
-
-		/**
-		 * @brief Get appropriate parameter and create swapchain using it.
-		 * @param ctx 
-		 */
-		Swapchain(const Context &ctx);
 	
 	private:
 		bool Create(const Context &ctx);

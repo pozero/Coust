@@ -80,8 +80,6 @@ namespace Coust::Render::VK
         Resource() = default;
 		~Resource() = default;
 		
-		// move operation allowed
-		
 		// Since we can't attain current scope name when object gets moved, 
 		// we use '*' to denote it's moved from elsewhere
 		Resource(Resource&& other)
@@ -91,28 +89,11 @@ namespace Coust::Render::VK
 #ifndef COUST_FULL_RELEASE
 			RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
 #endif
+			other.m_Handle = VK_NULL_HANDLE;
+		}
 
-			other.m_Handle = VK_NULL_HANDLE;
-		}
-		
-		// Since we can't attain current scope name when object gets moved, 
-		// we use '*' to denote it's moved from elsewhere
-		Resource& operator=(Resource&& other)
-		{
-			m_Device = other.m_Device;
-			m_Handle = other.m_Handle;
-			m_DebugName = other.m_DebugName;
-			m_DebugName += '*';
-#ifndef COUST_FULL_RELEASE
-			return RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
-#endif
-			
-			other.m_Handle = VK_NULL_HANDLE;
-			return *this;
-		}
-		
-		// copy operation prohibited
         Resource(const Resource& other) = delete;
+		Resource& operator=(Resource&& other) = delete;
 		Resource& operator=(const Resource& other) = delete;
 		
 		VkDevice GetDevice() const { return m_Device; }
@@ -146,7 +127,6 @@ namespace Coust::Render::VK
 		 */
 		bool SetDefaultDebugName(const char* scopeName, const char* categoryName)
 		{
-            std::string randomName = GenRandomName();
             std::string typeName{ ToString(ObjectType) };
             typeName += ' ';
 			if (categoryName)
@@ -154,7 +134,7 @@ namespace Coust::Render::VK
 				typeName += categoryName;
 				typeName += ' ';
 			}
-            m_DebugName = typeName + randomName + scopeName;
+            m_DebugName = typeName + scopeName;
 #ifndef COUST_FULL_RELEASE
 			return RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
 #else
@@ -212,6 +192,25 @@ namespace Coust::Render::VK
 			out_Resource = std::unique_ptr<T>{ptr};
 			return result;
 		}
+
+		/**
+		 * @brief Resource construction helper
+		 * 
+		 * @tparam T 				Resource type
+		 * @tparam A 				Constructor parameter
+		 * @param out_Resource 		Output.
+		 * @param args 				Constructor parameter
+		 * @return 					true if it created a valid resource, false otherwise
+		 */
+		template<typename T, typename ...A>
+		static bool Create(std::shared_ptr<T>& out_Resource, const A... args)
+			requires IsVulkanResource<T, VkHandle, ObjectType>
+		{
+			T* ptr = nullptr;
+			bool result =  Create(ptr, args...);
+			out_Resource = std::shared_ptr<T>{ptr};
+			return result;
+		}
 	
 		/**
 		 * @brief Resource construction helper
@@ -264,22 +263,36 @@ namespace Coust::Render::VK
         
 		// For handles to which we didn't give a name (most of them), 
 		// we use random name in lowercase to distinguish between them.
-        std::string GenRandomName()
-        {
-            const char* CharSet = "abcdefghijklmnopqrstuvwxyz";
-            int nameLength = Random::UInteger(4, 5);
-            std::string name{};
-            for (int i = 0; i < nameLength; ++i)
-            {
-                name = name + *Random::Pick(CharSet, std::strlen(CharSet));
-            }
-			name += ' ';
-            return name;
-        }
+        // std::string GenRandomName()
+        // {
+        //     const char* CharSet = "abcdefghijklmnopqrstuvwxyz";
+        //     int nameLength = Random::UInteger(4, 5);
+        //     std::string name{};
+        //     for (int i = 0; i < nameLength; ++i)
+        //     {
+        //         name = name + *Random::Pick(CharSet, std::strlen(CharSet));
+        //     }
+		// 	name += ' ';
+        //     return name;
+        // }
     
     protected:
 		VkDevice m_Device = VK_NULL_HANDLE;
         VkHandle m_Handle = VK_NULL_HANDLE;
         std::string m_DebugName{};
     };
+	
+	class Hashable 
+	{
+	public:
+		Hashable(size_t originValue) : m_Hash(originValue) {}
+		
+		// To remind there's something to be initialized
+		Hashable() = delete;
+
+		size_t GetHash() const { return m_Hash; }
+		
+	protected: 
+		size_t m_Hash;
+	};
 }

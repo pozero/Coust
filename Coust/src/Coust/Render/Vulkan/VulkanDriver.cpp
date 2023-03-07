@@ -5,6 +5,7 @@
 #include "Coust/Render/Vulkan/VulkanShader.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "Coust/Render/Vulkan/VulkanDescriptor.h"
+#include "Coust/Render/Vulkan/VulkanMemory.h"
 
 #include "Coust/Utils/FileSystem.h"
 
@@ -327,8 +328,8 @@ namespace Coust::Render::VK
 			{
 				VmaVulkanFunctions functions
 				{
-					.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-					.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+    				.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+    				.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
 				};
 				VmaAllocatorCreateInfo vmaAllocInfo 
 				{
@@ -346,48 +347,46 @@ namespace Coust::Render::VK
 
 	void Driver::InitializationTest()
 	{
-		ShaderSource source { FileSystem::GetFullPathFrom({ "Coust", "shaders", "mesh.vert.glsl" }) };
-		source.AddMacro("main0", "main");
-		
-		std::vector<std::unique_ptr<ShaderModule>> modules{};
-		modules.resize(1);
-		std::unique_ptr<DescriptorSetLayout> setLayout{};
+		Image::ConstructParam p
 		{
-			ShaderModule::ConstructParm1 moduleParam
+            .ctx = m_Context,
+			.extent = 
 			{
-            	.ctx = m_Context,
-            	.stage = VK_SHADER_STAGE_VERTEX_BIT,
-            	.source = source,
-				.dedicatedName = "TestShaderModule",
-			};
-			if (ShaderModule::Base::Create(modules[0], moduleParam))
-			{
-				for (const auto& res : modules[0]->GetResource())
-				{
-					COUST_CORE_INFO(ToString(res));
-				}
+				.width = 1200,
+				.height = 800,
+				.depth = 1,
+			},
+            .format = VK_FORMAT_R8G8B8A8_SNORM,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .flags = 0,
+            .mipLevels = 5,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .relatedQueues = nullptr,
+            .dedicatedName = "Test",
+		};
+		Image* i = nullptr;
+		COUST_CORE_INFO(Image::Base::Create(i, p));
 
-				DescriptorSetLayout::ConstructParam1 layoutParam
-				{
-        			.ctx = m_Context,
-        			.set = 0,
-        			.shaderModules = modules,
-        			.shaderResources = modules[0]->GetResource(),
-        			.name = "TestDescriptorSetLayout",
-				};
-				if (DescriptorSetLayout::Base::Create(setLayout, layoutParam))
-				{
-					const auto& bindings = setLayout->GetBindings();
-					for (const auto& b : bindings)
-					{
-						COUST_CORE_INFO("binding: {} type: {} count: {} stage: {}", 
-							b.binding, 
-							ToString(b.descriptorType), 
-							b.descriptorCount, 
-							ToString<VkShaderStageFlags, VkShaderStageFlagBits>(b.stageFlags));
-					}
-				}
-			}
-		}
+		ImageView::ConstructParam p1
+		{
+            .ctx = m_Context,
+            .image = *i,
+            .type = VK_IMAGE_VIEW_TYPE_2D,
+            .format  = VK_FORMAT_UNDEFINED,
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = VK_REMAINING_MIP_LEVELS,
+            .baseArrayLayer = 0,
+            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+            .dedicatedName  = "Test",
+		};
+		ImageView* iv = nullptr;
+		COUST_CORE_INFO(ImageView::Base::Create(iv, p1));
+
+		delete i;
+		delete iv;
 	}
 }

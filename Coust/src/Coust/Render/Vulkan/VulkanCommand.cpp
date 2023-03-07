@@ -7,33 +7,27 @@
 
 namespace Coust::Render::VK
 {
-    CommandBuffer::CommandBuffer(CommandBuffer::ConstructParam0 param)
+    CommandBuffer::CommandBuffer(CommandBuffer::ConstructParam param)
         : Base(param.commandPool.GetDevice(), VK_NULL_HANDLE), m_Level(param.level), m_CommandPoolCreatedFrom(&param.commandPool)
     {
-        Construct(param.commandPool, param.level);
-        if (m_State == State::Initial)
+        if (Construct(param.commandPool, param.level))
         {
-            SetDefaultDebugName(param.scopeName, ToString(m_Level));
+            if (param.dedicatedName)
+                SetDedicatedDebugName(param.dedicatedName);
+            else if (param.scopeName)
+                SetDefaultDebugName(param.scopeName, ToString(m_Level));
+            else
+                COUST_CORE_WARN("Command buffer created without a debug name");
         }
     }
 
-    CommandBuffer::CommandBuffer(CommandBuffer::ConstructParam1 param)
-        : Base(param.commandPool.GetDevice(), VK_NULL_HANDLE), m_Level(param.level), m_CommandPoolCreatedFrom(&param.commandPool)
-    {
-        Construct(param.commandPool, param.level);
-        if (m_State == State::Initial)
-        {
-            SetDedicatedDebugName(param.dedicatedName);
-        }
-    }
-    
-    CommandBuffer::CommandBuffer(CommandBuffer&& other)
+    CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
         : Base(std::forward<Base>(other)), m_Level(other.m_Level), m_CommandPoolCreatedFrom(other.m_CommandPoolCreatedFrom)
     {
         other.m_State = State::Invalid;
     }
 
-    void CommandBuffer::Construct(const CommandPool& commandPool, VkCommandBufferLevel level)
+    bool CommandBuffer::Construct(const CommandPool& commandPool, VkCommandBufferLevel level)
     {
         VkCommandBufferAllocateInfo ai 
         {
@@ -42,9 +36,8 @@ namespace Coust::Render::VK
             .level                  = level,
             .commandBufferCount     = 1,
         };
-        bool succeeded = false;
-        VK_REPORT(vkAllocateCommandBuffers(m_Device, &ai, &m_Handle), succeeded);
-        if (succeeded)
-            m_State = State::Initial;
+        VK_CHECK(vkAllocateCommandBuffers(m_Device, &ai, &m_Handle));
+        m_State = State::Initial;
+        return true;
     }
 }

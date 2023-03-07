@@ -34,7 +34,7 @@ namespace Coust
         auto status = GetCache_Impl(originName, hash, tmp_buf);
         if (status != CacheStatus::AVAILABLE)
             return false;
-
+        
         size_t fullVarCount = tmp_buf.size() / sizeof(T);
         size_t remainByteCount = tmp_buf.size() % sizeof(T);
         out_buf.resize(fullVarCount + (size_t) ((bool) remainByteCount));
@@ -188,14 +188,14 @@ namespace Coust
         }
         if (header == m_CacheHeaders.cend())
         {
-            COUST_CORE_TRACE("Cache of {} Not Found", originName);
+            COUST_CORE_TRACE("Cache of {} Not Found (doesn't exist)", originName);
             return CacheStatus::NO_FOUND;
         }
 
         // new cache header, not wrote to disk yet
         if (header->isNew)
         {
-            COUST_CORE_TRACE("Cache of {} Not Found", originName);
+            COUST_CORE_TRACE("Cache of {} Not Found (not flushed to disk yet)", originName);
             return CacheStatus::NO_FOUND;
         }
 

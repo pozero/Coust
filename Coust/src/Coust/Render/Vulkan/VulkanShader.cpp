@@ -675,8 +675,8 @@ namespace Coust::Render::VK
         }
     }
 
-    ShaderModule::ShaderModule(ShaderModule::ConstructParm0 param)
-        : Base(param.ctx.Device, VK_NULL_HANDLE), m_Stage(param.stage), m_Source(param.source)
+    ShaderModule::ShaderModule(ShaderModule::ConstructParm param)
+        : Base(param.ctx.Device, VK_NULL_HANDLE), Hashable(0), m_Stage(param.stage), m_Source(param.source)
     {
         Construct(param.ctx);
         if (GetByteCode().size() > 0 && GetResource().size() > 0)
@@ -690,28 +690,14 @@ namespace Coust::Render::VK
             bool succeeded = false;
             VK_REPORT(vkCreateShaderModule(param.ctx.Device, &ci, nullptr, &m_Handle), succeeded);
             if (succeeded)
-                SetDefaultDebugName(param.scopeName, ToString(param.stage));
-            else
-                m_Handle = VK_NULL_HANDLE;
-        }
-    }
-
-    ShaderModule::ShaderModule(ShaderModule::ConstructParm1 param)
-        : Base(param.ctx.Device, VK_NULL_HANDLE), m_Stage(param.stage), m_Source(param.source)
-    {
-        Construct(param.ctx);
-        if (GetByteCode().size() > 0 && GetResource().size() > 0)
-        {
-            VkShaderModuleCreateInfo ci
             {
-                .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                .codeSize = GetByteCode().size() * sizeof(uint32_t),
-                .pCode = GetByteCode().data(),
-            };
-            bool succeeded = false;
-            VK_REPORT(vkCreateShaderModule(param.ctx.Device, &ci, nullptr, &m_Handle), succeeded);
-            if (succeeded)
-                SetDedicatedDebugName(param.dedicatedName);
+                if (param.dedicatedName)
+                    SetDedicatedDebugName(param.dedicatedName);
+                else if (param.scopeName)
+                    SetDefaultDebugName(param.scopeName, ToString(param.stage));
+                else
+                    COUST_CORE_WARN("Shader module created without a debug name");
+            }
             else
                 m_Handle = VK_NULL_HANDLE;
         }
@@ -757,9 +743,8 @@ namespace Coust::Render::VK
                 m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
         }
         
-        m_Hash = Hash::HashFn<std::string>{}(
-            std::string{ reinterpret_cast<const char*>(m_ByteCode.ByteCode.data()), 
-                         reinterpret_cast<const char*>(m_ByteCode.ByteCode.data() + m_ByteCode.ByteCode.size()) });
+        // Shader module would use the same hash value as its source
+        m_Hash = cacheTag;
         m_ByteCode.CacheTag = cacheTag;
         
         if (!SPIRVReflectShaderResource(m_ByteCode.ByteCode, m_Stage, m_Source.GetDesiredDynamicBufferSize(), m_Resources))

@@ -174,7 +174,7 @@ namespace Coust::Render::VK
         friend class ShaderModule;
 
         ShaderByteCode(const std::string& sourcePath, std::vector<uint32_t>&& byteCode, bool shouldBeFlushed)
-        	: SourcePath(sourcePath), ByteCode(byteCode), ShouldBeFlushed(shouldBeFlushed)
+        	: CacheTag(0), SourcePath(sourcePath), ByteCode(byteCode), ShouldBeFlushed(shouldBeFlushed)
         {}
         
     public:
@@ -198,8 +198,6 @@ namespace Coust::Render::VK
         std::vector<uint32_t> ByteCode;
         
         bool ShouldBeFlushed;
-        
-    
     };
     
     /**
@@ -207,18 +205,20 @@ namespace Coust::Render::VK
      *        Note: shaderc always assumes the entry point for glsl is "main", see: https://github.com/google/shaderc/blob/main/libshaderc_util/include/libshaderc_util/compiler.h#L358
      *              however, user-defined entry point can still be done with macro
      */
-    class ShaderModule : public Resource<VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE>
+    class ShaderModule : public Resource<VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE>,
+                         public Hashable
     {
     public:
         using Base = Resource<VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE>;
         
     public:
-        struct ConstructParm0
+        struct ConstructParm
         {
             const Context&              ctx;
             VkShaderStageFlagBits       stage;
             const ShaderSource&         source;
-            const char*                 scopeName;
+            const char*                 scopeName = nullptr;
+            const char*                 dedicatedName = nullptr;
         };
         /**
          * @brief Constructor with default debug name
@@ -227,33 +227,17 @@ namespace Coust::Render::VK
          * @param stage 
          * @param source
          * @param scopeName 
+         * @param dedicatedName 
          */
-        ShaderModule(ConstructParm0 param);
-
-        struct ConstructParm1
-        {
-            const Context&              ctx;
-            VkShaderStageFlagBits       stage;
-            const ShaderSource&         source;
-            const char*                 dedicatedName;
-        };
-        /**
-         * @brief Constructor with dedicated debug name
-         * 
-         * @param ctx 
-         * @param stage 
-         * @param source 
-         * @param debugName 
-         */
-        ShaderModule(ConstructParm1 param);
+        ShaderModule(ConstructParm param);
         
         ~ShaderModule();
         
-        ShaderModule(ShaderModule&& other) = default;
-        ShaderModule& operator=(ShaderModule&& other) = default;
         
         ShaderModule() = delete;
         ShaderModule(const ShaderModule&) = delete;
+        ShaderModule(ShaderModule&& other) = delete;
+        ShaderModule& operator=(ShaderModule&& other) = delete;
         ShaderModule& operator=(const ShaderModule& other) = delete;
         
         VkShaderStageFlagBits GetStage() const { return m_Stage; }
@@ -271,8 +255,6 @@ namespace Coust::Render::VK
         
         void SetShaderResourceUpdateMode(const std::string& resoureceName, ShaderResourceUpdateMode mode);
         
-        size_t GetHash() const { return m_Hash; }
-        
     private:
         /**
          * @brief Actual constructor, compilation & reflection happens here
@@ -288,8 +270,6 @@ namespace Coust::Render::VK
         ShaderByteCode m_ByteCode;
         
         std::vector<ShaderResource> m_Resources;
-        
-        size_t m_Hash;
     };
 
     

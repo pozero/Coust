@@ -37,41 +37,28 @@ namespace Coust::Render::VK
         };
         
     public:
-        struct ConstructParam0
+        struct ConstructParam
         {
             const CommandPool&      commandPool;
             VkCommandBufferLevel    level;
-            const char*             scopeName;
+            const char*             dedicatedName = nullptr;
+            const char*             scopeName = nullptr;
         };
         /**
          * @brief Constructor with default debug name
          *
-         * @param commandPool   Command pool to allocate from
-         * @param level         Command buffer level
-         * @param scopeName     Scope name, provided by caller
+         * @param commandPool           Command pool to allocate from
+         * @param level                 Command buffer level
+         * @param dedicatedName         Dedicated debug name, if it presents then use it
+         * @param scopeName             Scope name, provided by caller
          */
-        CommandBuffer(ConstructParam0 param);
-        
-        struct ConstructParam1
-        {
-            const CommandPool&      commandPool;
-            VkCommandBufferLevel    level;
-            const char*             dedicatedName;
-        };
-        /**
-         * @brief Constructor with dedicated debug name
-         *
-         * @param commandPool       Command pool to allocate from
-         * @param level             Command buffer level
-         * @param dedicatedName     Dedicated name
-         */
-        CommandBuffer(ConstructParam1 param);
+        CommandBuffer(ConstructParam param);
 
-        CommandBuffer(CommandBuffer&& other);
-        
         // Command buffers are always attached to command pools. 
         // And we always reset the whole command pool instead of freeing or resetting command buffer individually.
         ~CommandBuffer() = default;
+
+        CommandBuffer(CommandBuffer&& other) noexcept;
         
         CommandBuffer() = delete;
         CommandBuffer(const CommandBuffer&) = delete;
@@ -89,10 +76,11 @@ namespace Coust::Render::VK
         /**
          * @brief Actual constructor, all construction happen here
          * 
-         * @param commandPool
+         * @param commandPool 
          * @param level 
+         * @return false if construction failed
          */
-        void Construct(const CommandPool& commandPool, VkCommandBufferLevel level);
+        bool Construct(const CommandPool& commandPool, VkCommandBufferLevel level);
         
     private:
         State m_State = State::Invalid;
