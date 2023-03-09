@@ -60,12 +60,12 @@ namespace Coust::Render::VK
         };
         
     public:
-        struct ContructParam
+        struct ConstructParam
         {
             const Context&                      ctx;
             VkDeviceSize                        size;
             VkBufferUsageFlags                  bufferFlags;
-            Usage                       usage;
+            Usage                               usage;
             const std::vector<uint32_t>*        relatedQueue = nullptr;
             const char*                         scopeName = nullptr;
             const char*                         dedicatedName = nullptr;
@@ -81,7 +81,7 @@ namespace Coust::Render::VK
          * @param scopeName
          * @param dedicatedName
          */
-        Buffer(ContructParam param);
+        Buffer(ConstructParam param);
 
         ~Buffer();
 
@@ -130,13 +130,13 @@ namespace Coust::Render::VK
         // TODO: All kinds of memory usage the code provides now don't support random access, comment it for now
         // const uint8_t* GetMappedData() const { return m_MappedData; }
 
-		VkDeviceSize GetSize() const { return m_Size; }
+		VkDeviceSize GetSize() const;
 		
-		VmaAllocation GetAllocation() const { return m_Allocation; }
+		VmaAllocation GetAllocation() const;
 
-        Domain GetMemoryDomain() const { return m_Domain; }
+        Domain GetMemoryDomain() const;
         
-        bool IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
+        bool IsValid() const;
         
     private:
         /**
@@ -191,25 +191,25 @@ namespace Coust::Render::VK
         Image& operator=(Image&&) = delete;
         Image& operator=(const Image&) = delete;
 
-        VkExtent3D GetExtent() const { return m_Extent; }
+        VkExtent3D GetExtent() const;
 
-        VkFormat GetFormat() const { return m_Format; }
+        VkFormat GetFormat() const;
 
-        VkImageUsageFlags GetUsage() const { return m_ImageUsage; }
+        VkImageUsageFlags GetUsage() const;
 
-        VkImageType GetType() const { return m_Type; }
+        VkImageType GetType() const;
 
-        VkSampleCountFlagBits GetSampleCount() const { return m_SampleCount; }
+        VkSampleCountFlagBits GetSampleCount() const;
 
-        VkImageTiling GetTiling() const { return m_Tiling; }
+        VkImageTiling GetTiling() const;
 
-        VkImageSubresource GetSubResource() const { return m_SubResource; }
+        VkImageSubresource GetSubResource() const;
 
-        VmaAllocation GetAllocation() const { return m_Allocation; }
+        VmaAllocation GetAllocation() const;
 
-        const std::unordered_set<ImageView*> GetAttachedView() const { return m_ViewsAttached; }
+        const std::unordered_set<ImageView*> GetAttachedView() const;
 
-        bool IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
+        bool IsValid() const;
 
     private:
         friend class ImageView;
@@ -218,12 +218,12 @@ namespace Coust::Render::VK
          * @brief Get called when the attached view is destroyed or moved
          * @param view 
         */
-        void EraseView(ImageView* view) { m_ViewsAttached.erase((ImageView*) this); }
+        void EraseView(ImageView* view);
 
         /**
          * @brief Get called when the attached view is constructed or moved
         */
-        void AddView(ImageView* view) { m_ViewsAttached.emplace(view); }
+        void AddView(ImageView* view);
 
     private:
         bool Construct(VkImageCreateFlags              flags,
@@ -279,7 +279,7 @@ namespace Coust::Render::VK
         };
         ImageView(ConstructParam param);
 
-        ImageView(ImageView&& other);
+        ImageView(ImageView&& other) noexcept;
 
         ~ImageView();
 
@@ -288,13 +288,13 @@ namespace Coust::Render::VK
         ImageView operator=(ImageView&&) = delete;
         ImageView& operator=(const ImageView&) = delete;
 
-        VkFormat GetFormat() const { return m_Format; }
+        VkFormat GetFormat() const;
 
-        VkImageSubresourceRange GetSubresourceRange() const { return m_SubresourceRange; }
+        VkImageSubresourceRange GetSubresourceRange() const;
 
-        const Image* GetImage() const { return m_Image; }
+        const Image* GetImage() const;
 
-        bool IsValid() const { return m_IsValid; }
+        bool IsValid() const;
 
     private:
         friend class Image;
@@ -302,18 +302,14 @@ namespace Coust::Render::VK
         /**
          * @brief Get called when the image it attched to is destroyed
          */
-        void InValidate() 
-        { 
-            m_IsValid = false;  
-            m_Image = nullptr;
-        }
+        void InValidate();
 
         /**
          * @brief Get called when the image it attched to is moved
          * 
          * @param image 
          */
-        void SetImage(Image& image) { m_Image = &image; }
+        void SetImage(Image& image);
 
     private:
         /**

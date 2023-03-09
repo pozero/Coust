@@ -224,6 +224,9 @@ xmake version 2.7.6+master.882cb4e03
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanSwapchain.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanUtils.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileSystem.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>

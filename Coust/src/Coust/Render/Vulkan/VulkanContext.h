@@ -184,7 +184,7 @@ namespace Coust::Render::VK
 		 * @return 					true if it created a valid resource, false otherwise
 		 */
 		template<typename T, typename ...A>
-		static bool Create(std::unique_ptr<T>& out_Resource, const A... args)
+		static bool Create(std::unique_ptr<T>& out_Resource, const A&... args)
 			requires IsVulkanResource<T, VkHandle, ObjectType>
 		{
 			T* ptr = nullptr;
@@ -203,7 +203,7 @@ namespace Coust::Render::VK
 		 * @return 					true if it created a valid resource, false otherwise
 		 */
 		template<typename T, typename ...A>
-		static bool Create(std::shared_ptr<T>& out_Resource, const A... args)
+		static bool Create(std::shared_ptr<T>& out_Resource, const A&... args)
 			requires IsVulkanResource<T, VkHandle, ObjectType>
 		{
 			T* ptr = nullptr;
@@ -222,7 +222,7 @@ namespace Coust::Render::VK
 		 * @return 					true if it created a valid resource, false otherwise
 		 */
 		template<typename T, typename ...A>
-		static bool Create(T*& out_Resource, const A... args)
+		static bool Create(T*& out_Resource, const A&... args)
 			requires IsVulkanResource<T, VkHandle, ObjectType>
 		{
 			T* pResource = new T(args...);

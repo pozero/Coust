@@ -74,7 +74,6 @@ namespace Coust::Render::VK
         ShaderResourceMember* pMembers = nullptr;
     };
     
-    
     /**
      * @brief Struct that contains information about shader resources, reserved for descriptor & pipeline creation
      */
@@ -132,25 +131,21 @@ namespace Coust::Render::VK
         
         ShaderSource() = delete;
         
-        const std::filesystem::path& GetPath() const { return m_SourceFilePath; }
+        size_t GetHash() const;
 
         const std::string& GetCode();
+
+        const std::filesystem::path& GetPath() const;
         
-        const std::unordered_map<std::string, std::string>& GetMacros() const { return m_Macros; }
+        const std::unordered_map<std::string, std::string>& GetMacros() const;
         
-        const std::unordered_map<std::string, size_t>& GetDesiredDynamicBufferSize() const { return m_DesiredDynamicBufferSize; }
+        const std::unordered_map<std::string, size_t>& GetDesiredDynamicBufferSize() const;
         
-        void AddMacro(const std::string& name, const std::string& value) { m_Macros[name] = value; }
+        void AddMacro(const std::string& name, const std::string& value);
         
-        void DeleteMacroByName(const std::string& name)
-        {
-            const auto& iter = m_Macros.find(name);
-            m_Macros.erase(iter);
-        }
+        void DeleteMacroByName(const std::string& name);
         
-        void SetDynamicBufferSize(const std::string& name, size_t size) { m_DesiredDynamicBufferSize[name] = size; }
-        
-        size_t GetHash() const;
+        void SetDynamicBufferSize(const std::string& name, size_t size);
         
     private:
         std::filesystem::path m_SourceFilePath;
@@ -219,6 +214,8 @@ namespace Coust::Render::VK
             const ShaderSource&         source;
             const char*                 scopeName = nullptr;
             const char*                 dedicatedName = nullptr;
+
+            size_t GetHash() const;
         };
         /**
          * @brief Constructor with default debug name
@@ -233,27 +230,24 @@ namespace Coust::Render::VK
         
         ~ShaderModule();
         
-        
         ShaderModule() = delete;
         ShaderModule(const ShaderModule&) = delete;
         ShaderModule(ShaderModule&& other) = delete;
         ShaderModule& operator=(ShaderModule&& other) = delete;
         ShaderModule& operator=(const ShaderModule& other) = delete;
         
-        VkShaderStageFlagBits GetStage() const { return m_Stage; }
-
-        const std::vector<uint32_t>& GetByteCode() const { return m_ByteCode.ByteCode; }
-
-        const std::vector<ShaderResource>& GetResource() const { return m_Resources; }
-        
-        bool IsValid() const { return m_ByteCode.ByteCode.size() > 0 && 
-                                      m_Resources.size() > 0 && 
-                                      m_Handle != VK_NULL_HANDLE; }
-        
         // get disassembled glsl code, this might be useful if we want to check the including and optimization state.
         std::string GetDisassembledSPIRV();
         
         void SetShaderResourceUpdateMode(const std::string& resoureceName, ShaderResourceUpdateMode mode);
+        
+        VkShaderStageFlagBits GetStage() const;
+
+        const std::vector<uint32_t>& GetByteCode() const;
+
+        const std::vector<ShaderResource>& GetResource() const;
+        
+        bool IsValid() const;
         
     private:
         /**

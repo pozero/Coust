@@ -347,46 +347,149 @@ namespace Coust::Render::VK
 
 	void Driver::InitializationTest()
 	{
-		Image::ConstructParam p
+		ShaderSource s(FileSystem::GetFullPathFrom({"Coust", "shaders", "mesh.vert.glsl"}));
+		s.AddMacro("main0", "main");
+
+		std::unique_ptr<ShaderModule> sm{};
+		ShaderModule::ConstructParm smp
 		{
             .ctx = m_Context,
-			.extent = 
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .source = s,
+            .dedicatedName = "test shader module",
+		};
+		if (!ShaderModule::Base::Create(sm, smp))
+			return;
+		COUST_CORE_TRACE(sm->GetDisassembledSPIRV());
+
+		std::unique_ptr<DescriptorSetLayout> dsl{};
+		std::vector<ShaderModule*> smv{ sm.get() };
+		DescriptorSetLayout::ConstructParam dslp
+		{
+            .ctx = m_Context,
+            .set = 0,
+            .shaderModules = smv,
+            .shaderResources = sm->GetResource(),
+            .dedicatedName = "test descriptor set layout",
+		};
+		if (!DescriptorSetLayout::Base::Create(dsl, dslp))
+			return;
+
+		DescriptorSetAllocator::ConstructParam ap
+		{
+            .ctx = m_Context,
+            .layout = *dsl,
+		};
+		std::unique_ptr<DescriptorSetAllocator> a = std::make_unique<DescriptorSetAllocator>(ap);
+
+		Buffer::ConstructParam bp
+		{
+            .ctx = m_Context,
+			// casual value for test
+            .size = 65535,
+            .bufferFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .usage = Buffer::Usage::GPUOnly,
+		};
+		std::vector<std::unique_ptr<Buffer>> bs{};
+		bs.push_back(std::unique_ptr<Buffer>{});
+		bs.push_back(std::unique_ptr<Buffer>{});
+		bs.push_back(std::unique_ptr<Buffer>{});
+		bp.dedicatedName = "test buffer 0";
+		if (!Buffer::Base::Create(bs[0], bp)) return;
+		bp.dedicatedName = "test buffer 1";
+		if (!Buffer::Base::Create(bs[1], bp)) return;
+		bp.dedicatedName = "test buffer 2";
+		if (!Buffer::Base::Create(bs[2], bp)) return;
+
+		std::unique_ptr<Image> i{};
+		Image::ConstructParam ip
+		{
+			.ctx = m_Context,
+            .extent = 
 			{
 				.width = 1200,
 				.height = 800,
 				.depth = 1,
 			},
             .format = VK_FORMAT_R8G8B8A8_SNORM,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            .flags = 0,
-            .mipLevels = 5,
-            .arrayLayers = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .relatedQueues = nullptr,
-            .dedicatedName = "Test",
+            .imageUsage = VK_IMAGE_USAGE_SAMPLED_BIT,
+			.dedicatedName = "test image",
 		};
-		Image* i = nullptr;
-		COUST_CORE_INFO(Image::Base::Create(i, p));
+		if (!Image::Base::Create(i, ip))
+			return;
 
-		ImageView::ConstructParam p1
+		std::unique_ptr<ImageView> iv{};
+		ImageView::ConstructParam ivp
 		{
             .ctx = m_Context,
             .image = *i,
             .type = VK_IMAGE_VIEW_TYPE_2D,
-            .format  = VK_FORMAT_UNDEFINED,
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel = 0,
             .levelCount = VK_REMAINING_MIP_LEVELS,
             .baseArrayLayer = 0,
             .layerCount = VK_REMAINING_ARRAY_LAYERS,
-            .dedicatedName  = "Test",
+            .dedicatedName = "test image view",
 		};
-		ImageView* iv = nullptr;
-		COUST_CORE_INFO(ImageView::Base::Create(iv, p1));
+		if (!ImageView::Base::Create(iv, ivp))
+			return;
 
-		delete i;
-		delete iv;
+		std::vector<BoundArray<VkDescriptorBufferInfo>> bufInfos{};
+		std::vector<BoundArray<VkDescriptorImageInfo>> imageInfos{};
+		for (size_t i = 0; i < bs.size(); ++i)
+		{
+			BoundElement<VkDescriptorBufferInfo> e
+			{
+				.dstArrayIdx = 0,
+				.elementInfo = 
+				{
+					.buffer = bs[i]->GetHandle(),
+					.offset = 0,
+					.range = 65535,
+				},
+			};
+
+			BoundArray<VkDescriptorBufferInfo> a
+			{
+				.bindingIdx = (uint32_t) i,
+				.elements = { e },
+			};
+
+			bufInfos.push_back(a);
+		}
+		{
+			BoundElement<VkDescriptorImageInfo> e
+			{
+				.dstArrayIdx = 0,
+				.elementInfo = 
+				{
+					.sampler = VK_NULL_HANDLE,
+					.imageView = iv->GetHandle(),
+					.imageLayout = VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV,
+				},
+			};
+			BoundArray<VkDescriptorImageInfo> a
+			{
+				.bindingIdx = 3,
+				.elements = { e },
+			};
+			imageInfos.push_back(a);
+		}
+		std::unique_ptr<DescriptorSet> ds{};
+		DescriptorSet::ConstructParam dsp
+		{
+			.ctx = m_Context,
+			.layout = *dsl,
+			.allocator = *a,
+			.bufferInfos = bufInfos,
+			.imageInfos = imageInfos,
+			.dedicatedName = "test descriptor set",
+		};
+		if (!DescriptorSet::Base::Create(ds, dsp))
+			return;
+		COUST_CORE_INFO(true);
+
+		ds->ApplyWrite({0, 1, 2});
+		ds->ApplyWrite();
 	}
 }

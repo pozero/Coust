@@ -66,13 +66,13 @@ namespace Coust
             }
             
             size_t operator()(const T& key) const noexcept
-                requires ImplementedGetHash<T>
+                requires (!StdHashable<T> && ImplementedGetHash<T>)
             {
                 return key.GetHash();
             }
 
             size_t operator()(const T& key) const noexcept
-                requires Murmur3Hashable<T>
+                requires (!StdHashable<T> && ImplementedGetHash<T> && Murmur3Hashable<T>)
             {
                 return (size_t) murmur3((const uint32_t*) &key, sizeof(T) / 4u, 0);
             }
@@ -114,7 +114,7 @@ namespace Coust
 
         template <typename T>
         inline void Combine(size_t& seed, const T& value)
-            requires StdHashable<T> || ImplementedGetHash<T> || Murmur3Hashable<T>
+            requires (StdHashable<T> || ImplementedGetHash<T> || Murmur3Hashable<T>)
         {
             HashFn<T> h;
             size_t hash = h(value);

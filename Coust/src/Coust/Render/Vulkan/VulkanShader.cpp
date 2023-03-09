@@ -78,6 +78,25 @@ namespace Coust::Render::VK
             FileSystem::ReadWholeText(m_SourceFilePath, m_SourceCode);
         return m_SourceCode;
     }
+
+    const std::filesystem::path& ShaderSource::GetPath() const { return m_SourceFilePath; }
+    
+    const std::unordered_map<std::string, std::string>& ShaderSource::GetMacros() const { return m_Macros; }
+    
+    const std::unordered_map<std::string, size_t>& ShaderSource::GetDesiredDynamicBufferSize() const { return m_DesiredDynamicBufferSize; }
+    
+    void ShaderSource::AddMacro(const std::string& name, const std::string& value) { m_Macros[name] = value; }
+    
+    void ShaderSource::DeleteMacroByName(const std::string& name)
+    {
+        const auto& iter = m_Macros.find(name);
+        m_Macros.erase(iter);
+    }
+    
+    void ShaderSource::SetDynamicBufferSize(const std::string& name, size_t size) 
+    { 
+        m_DesiredDynamicBufferSize[name] = size; 
+    }
 	
 	ShaderByteCode::~ShaderByteCode()
 	{
@@ -676,7 +695,7 @@ namespace Coust::Render::VK
     }
 
     ShaderModule::ShaderModule(ShaderModule::ConstructParm param)
-        : Base(param.ctx.Device, VK_NULL_HANDLE), Hashable(0), m_Stage(param.stage), m_Source(param.source)
+        : Base(param.ctx.Device, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Stage(param.stage), m_Source(param.source)
     {
         Construct(param.ctx);
         if (GetByteCode().size() > 0 && GetResource().size() > 0)
@@ -714,7 +733,7 @@ namespace Coust::Render::VK
 
     void ShaderModule::Construct(const Context& ctx)
     {
-        size_t cacheTag = m_Source.GetHash();
+        size_t cacheTag = m_Hash;
 
         // if we can get the cached byte code, use the byte code
         if (std::vector<uint32_t> byteCode{}; GlobalContext::Get().GetFileSystem().GetCache(m_Source.GetPath().string(), cacheTag, byteCode))
@@ -742,9 +761,6 @@ namespace Coust::Render::VK
             else
                 m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
         }
-        
-        // Shader module would use the same hash value as its source
-        m_Hash = cacheTag;
         m_ByteCode.CacheTag = cacheTag;
         
         if (!SPIRVReflectShaderResource(m_ByteCode.ByteCode, m_Stage, m_Source.GetDesiredDynamicBufferSize(), m_Resources))
@@ -771,6 +787,25 @@ namespace Coust::Render::VK
         }
         else
             COUST_CORE_ERROR("Can't find resource {} in shader module {}", resoureceName, m_DebugName);
+    }
+
+    VkShaderStageFlagBits ShaderModule::GetStage() const { return m_Stage; }
+
+    const std::vector<uint32_t>& ShaderModule::GetByteCode() const { return m_ByteCode.ByteCode; }
+
+    const std::vector<ShaderResource>& ShaderModule::GetResource() const { return m_Resources; }
+    
+    bool ShaderModule::IsValid() const 
+    { 
+        return m_ByteCode.ByteCode.size() > 0 && 
+               m_Resources.size() > 0 && 
+               m_Handle != VK_NULL_HANDLE; 
+    }
+
+    // Shader module would use the same hash as its source
+    size_t ShaderModule::ConstructParm::GetHash() const
+    {
+        return source.GetHash();
     }
 
 }

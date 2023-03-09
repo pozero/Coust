@@ -37,6 +37,18 @@ namespace Coust::Render::VK
 		VkResult AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex);
 
 		bool IsValid() const { return m_IsValid; }
+
+		VkSurfaceFormatKHR GetFormat() const;
+
+		VkPresentModeKHR GetPresentMode() const;
+
+		uint32_t GetMinImageCount() const;
+
+		VkExtent2D GetExtent() const;
+
+		VkFormat GetDepthFormat() const;
+
+		uint32_t GetCurrentSwapchainImageCount() const;
 	
 	private:
 		bool Create(const Context &ctx);

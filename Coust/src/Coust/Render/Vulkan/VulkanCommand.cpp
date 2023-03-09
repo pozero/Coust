@@ -26,6 +26,10 @@ namespace Coust::Render::VK
     {
         other.m_State = State::Invalid;
     }
+        
+    CommandBuffer::State CommandBuffer::GetState() const { return m_State; }
+    
+    bool CommandBuffer::IsValid() const { return m_State != State::Invalid; }
 
     bool CommandBuffer::Construct(const CommandPool& commandPool, VkCommandBufferLevel level)
     {

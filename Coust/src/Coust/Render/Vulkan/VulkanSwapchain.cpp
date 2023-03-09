@@ -183,4 +183,16 @@ namespace Coust::Render::VK
 	{
 		return vkAcquireNextImageKHR(m_Device, m_Handle, timeOut, semaphoreToSignal, fenceToSignal, out_ImageIndex);
 	}
+
+	VkSurfaceFormatKHR Swapchain::GetFormat() const { return Format; }
+
+	VkPresentModeKHR Swapchain::GetPresentMode() const { return PresentMode; }
+
+	uint32_t Swapchain::GetMinImageCount() const { return MinImageCount; }
+
+	VkExtent2D Swapchain::GetExtent() const { return Extent; }
+
+	VkFormat Swapchain::GetDepthFormat() const { return DepthFormat; }
+
+	uint32_t Swapchain::GetCurrentSwapchainImageCount() const { return CurrentSwapchainImageCount; }
 }

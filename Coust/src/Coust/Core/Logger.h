@@ -39,9 +39,9 @@ namespace Coust
 #define COUST_TODO(...)					COUST_CORE_ERROR("Code Unfinished:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__);
 
 #ifndef COUST_FULL_RELEASE
-	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); __debugbreak(); }}
-	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); __debugbreak(); }}
+	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); __debugbreak(); }}
+	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); __debugbreak(); }}
 #else
-	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); COUST_CORE_ABORT(); }}
-	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, __VA_ARGS__); COUST_CORE_ABORT(); }}
+	#define COUST_CORE_ASSERT(x, ...)		{ if (!(x)) { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); COUST_CORE_ABORT(); }}
+	#define COUST_ASSERT(x, ...)			{ if (!(x)) { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); COUST_CORE_ABORT(); }}
 #endif

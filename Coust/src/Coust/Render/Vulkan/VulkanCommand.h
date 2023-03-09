@@ -65,9 +65,9 @@ namespace Coust::Render::VK
         CommandBuffer& operator=(const CommandBuffer&) = delete;
         CommandBuffer& operator=(CommandBuffer&& other) = delete;
         
-        State GetState() const { return m_State; }
+        State GetState() const;
         
-        bool IsValid() const { return m_State != State::Invalid; }
+        bool IsValid() const;
     
     public:
         // All vkCmd* goes here

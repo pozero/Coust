@@ -11,6 +11,28 @@ namespace Coust::Render::VK
     class DescriptorSet;
     class DescriptorSetAllocator;
 
+    /**
+     * @brief Structure containing info about a single element in a binding slot
+     * @tparam T can only be VkDescriptorBufferInfo, VkDescriptorImageInfo, VkBufferView
+     */
+    template<typename T>
+    struct BoundElement 
+    {
+        uint32_t dstArrayIdx;
+        T elementInfo;
+    };
+
+    /**
+     * @brief Structure containing info about a object or array in a binding slot
+     * @tparam T can only be VkDescriptorBufferInfo, VkDescriptorImageInfo, VkBufferView
+     */
+    template <typename T>
+    struct BoundArray 
+    {
+        uint32_t bindingIdx;
+        std::vector<BoundElement<T>> elements;
+    };
+
     class DescriptorSetLayout : public Resource<VkDescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT>,
                                 public Hashable
     {
@@ -22,10 +44,12 @@ namespace Coust::Render::VK
         {
             const Context&                                      ctx;
             uint32_t                                            set;
-            const std::vector<std::shared_ptr<ShaderModule>>&   shaderModules;
+            const std::vector<ShaderModule*>&                   shaderModules;
             const std::vector<ShaderResource>&                  shaderResources;
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
+
+            size_t GetHash() const;
         };
         /**
          * @brief Construct a descriptor set layout with default debug name
@@ -48,9 +72,9 @@ namespace Coust::Render::VK
         DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
         DescriptorSetLayout& operator=(DescriptorSetLayout&& other) = delete;
         
-        uint32_t GetSetIndex() const { return m_Set; }
+        uint32_t GetSetIndex() const;
         
-        const std::vector<VkDescriptorSetLayoutBinding>& GetBindings() const { return m_CompactBindings; }
+        const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& GetBindings() const;
         
         std::optional<VkDescriptorSetLayoutBinding> GetBinding(uint32_t bindingIdx) const;
 
@@ -61,38 +85,117 @@ namespace Coust::Render::VK
          * @brief Actual construction happens here
          * 
          * @param ctx 
-         * @param shaderModules 
          * @param shaderResources 
          * @return false if construction failed
          */
-        bool Construct(const Context& ctx, const std::vector<std::shared_ptr<ShaderModule>>& shaderModules, const std::vector<ShaderResource>& shaderResources);
+        bool Construct(const Context& ctx, const std::vector<ShaderResource>& shaderResources);
         
     private:
         uint32_t m_Set;
         
         /**
-         * @brief Containing all bindings for SEARCHING, whose index is its binding index
+         * @brief Binding index -> binding info
          */
-        std::vector<VkDescriptorSetLayoutBinding> m_Bindings{};
-        /**
-         * @brief `m_Bindings` gotten rid of redundant (or empty) bindings
-         */
-        std::vector<VkDescriptorSetLayoutBinding> m_CompactBindings{};
+        std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> m_Bindings{};
 
         /**
-         * @brief shader resource name -> binding index. So given a resource name, its binding information would be `m_Bindings[m_ResNameToBindingIdx[name]]`
+         * @brief shader resource name -> binding index.
          */
         std::unordered_map<std::string, uint32_t> m_ResNameToBindingIdx{};
     };
     
-    class DescriptorSet : public Resource<VkDescriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET>
+    class DescriptorSet : public Resource<VkDescriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET>,
+                          public Hashable
     {
     public:
         using Base = Resource<VkDescriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET>;
         
     public:
-        // DescriptorSet(const Context& ctx, const DescriptorSetLayout& layout, const DescriptorSetAllocator& allocator);
-        
+        struct ConstructParam 
+        {
+            const Context&                                                  ctx;
+            const DescriptorSetLayout&                                      layout;
+            DescriptorSetAllocator&                                         allocator;
+            const std::vector<BoundArray<VkDescriptorBufferInfo>>&          bufferInfos;
+            const std::vector<BoundArray<VkDescriptorImageInfo>>&           imageInfos;
+            const char*                                                     dedicatedName = nullptr;
+            const char*                                                     scopeName = nullptr;
+
+            size_t GetHash() const;
+        };
+        /**
+         * @brief Construct a Descriptor Set object
+         * 
+         * @param ctx 
+         * @param layout            Template to create this descriptor set
+         * @param allocator         Free list of descriptor pool, it MANAGES the lifecycle of this object
+         * @param bufferInfos       Bound buffer infos, they're bound in arrays
+         * @param imageInfos        Bound image infos, they're bound in arrays
+         */
+        DescriptorSet(ConstructParam param);
+
+        // Lifecycle of descriptor set is managed by descriptor set allocator
+        ~DescriptorSet() = default;
+
+        DescriptorSet(DescriptorSet&& other) noexcept;
+
+        DescriptorSet() = delete;
+        DescriptorSet(const DescriptorSet&) = delete;
+        DescriptorSet& operator=(DescriptorSet&&) = delete;
+        DescriptorSet& operator=(const DescriptorSet&) = delete;
+
+        /**
+         * @brief Reset the inner state of the descriptor set
+         * 
+         * @param bufferInfos   Optional. If provided, then the old bufferInfos will be discarded
+         * @param imageInfos    Opitonal. If provided, then the old imageInfos will be discarded
+         */
+        void Reset(const std::optional<std::vector<BoundArray<VkDescriptorBufferInfo>>>& bufferInfos = {}, 
+                   const std::optional<std::vector<BoundArray<VkDescriptorImageInfo>>>& imageInfos = {});
+
+        /**
+         * @brief Flush the write operations in the spcified bingding slot
+         * @param bindingsToUpdate Binding indices to be updated
+         */
+        void ApplyWrite(const std::vector<uint32_t>& bindingsToUpdate);
+
+        /**
+         * @brief Apply all pending write operations 
+         * 
+         * @param overwrite If true, then it will apply all write operations in `m_Writes` without checking if it has been applied (stored in `m_AppliedWrites` in other words)
+         */
+        void ApplyWrite(bool overwrite = false);
+
+        const DescriptorSetLayout& GetLayout() const;
+
+        const std::vector<BoundArray<VkDescriptorBufferInfo>>& GetBufferInfo() const;
+
+        const std::vector<BoundArray<VkDescriptorImageInfo>>& GetImageInfo() const;
+
+    private:
+        /**
+         * @brief Fill up the `m_Writes` according to `m_BufferInfos` and `m_ImageInfos`
+         */
+        void Prepare();
+
+        bool HasBeenApplied(const VkWriteDescriptorSet& write);
+
+    private:
+        const VkPhysicalDeviceProperties& m_GPUProerpties;
+
+        const DescriptorSetLayout& m_Layout;
+
+        DescriptorSetAllocator& m_Allocator;
+
+        std::vector<BoundArray<VkDescriptorBufferInfo>> m_BufferInfos;
+
+        std::vector<BoundArray<VkDescriptorImageInfo>> m_ImageInfos;
+
+        // The write operations to this descriptor set
+        std::vector<VkWriteDescriptorSet> m_Writes;
+
+        // binding index -> HASH of `VkWriteDescriptorSet`. This map keeps track of the already written bindings to prevent a double write
+        std::unordered_map<uint32_t, size_t> m_AppliedWrites;
     };
     
     /**
@@ -106,9 +209,11 @@ namespace Coust::Render::VK
     public:
         struct ConstructParam
         {
-            const Context& ctx;
-            const DescriptorSetLayout& layout;
-            uint32_t maxSets = MAX_SET_PER_POOL;
+            const Context&                  ctx;
+            const DescriptorSetLayout&      layout;
+            uint32_t                        maxSets = MAX_SET_PER_POOL;
+
+            size_t GetHash() const;
         };
         /**
          * @brief Construct a descriptor set allocator
@@ -127,7 +232,7 @@ namespace Coust::Render::VK
         DescriptorSetAllocator& operator=(DescriptorSetAllocator&&) = delete;
         DescriptorSetAllocator& operator=(const DescriptorSetAllocator&) = delete;
         
-        const DescriptorSetLayout& GetLayout() const { return *m_Layout; }
+        const DescriptorSetLayout& GetLayout() const;
         
         /**
          * @brief Allocate a descriptor set, and notice that we don't keep track of the allocated descirptor sets. 
@@ -176,6 +281,7 @@ namespace Coust::Render::VK
         
         std::vector<Factory> m_Factories;
 
+        // reserved for future use
         std::vector<VkDescriptorSet> m_Products;
     };
 }

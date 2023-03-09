@@ -38,7 +38,7 @@ namespace Coust::Render::VK
         }
     }
 
-    Buffer::Buffer(ContructParam param)
+    Buffer::Buffer(ConstructParam param)
         : Base(param.ctx.Device, VK_NULL_HANDLE), m_Size(param.size), m_VMAAllocator(param.ctx.VmaAlloc)
     {
         if (Construct(param.ctx, param.bufferFlags, param.usage, param.relatedQueue))
@@ -73,6 +73,14 @@ namespace Coust::Render::VK
             vmaDestroyBuffer(m_VMAAllocator, m_Handle, m_Allocation);
         }
     }
+
+    VkDeviceSize Buffer::GetSize() const { return m_Size; }
+    
+    VmaAllocation Buffer::GetAllocation() const { return m_Allocation; }
+
+    Buffer::Domain Buffer::GetMemoryDomain() const { return m_Domain; }
+    
+    bool Buffer::IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
 
     bool Buffer::Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const std::vector<uint32_t>* relatedQueues)
     {
@@ -208,6 +216,26 @@ namespace Coust::Render::VK
         }
     }
 
+    VkExtent3D Image::GetExtent() const { return m_Extent; }
+
+    VkFormat Image::GetFormat() const { return m_Format; }
+
+    VkImageUsageFlags Image::GetUsage() const { return m_ImageUsage; }
+
+    VkImageType Image::GetType() const { return m_Type; }
+
+    VkSampleCountFlagBits Image::GetSampleCount() const { return m_SampleCount; }
+
+    VkImageTiling Image::GetTiling() const { return m_Tiling; }
+
+    VkImageSubresource Image::GetSubResource() const { return m_SubResource; }
+
+    VmaAllocation Image::GetAllocation() const { return m_Allocation; }
+
+    const std::unordered_set<ImageView*> Image::GetAttachedView() const { return m_ViewsAttached; }
+
+    bool Image::IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
+
     bool Image::Construct(VkImageCreateFlags              flags,
                           VmaMemoryUsage                  memoryUsage,
                           VmaAllocationCreateFlags        allocationFlags,
@@ -258,6 +286,10 @@ namespace Coust::Render::VK
         VK_CHECK(vmaCreateImage(m_VMAAllocator, &ci, &ai, &m_Handle, &m_Allocation, &info));
         return true;
     }
+
+    void Image::EraseView(ImageView* view) { m_ViewsAttached.erase((ImageView*) this); }
+
+    void Image::AddView(ImageView* view) { m_ViewsAttached.emplace(view); }
 
     Image::~Image()
     {
@@ -326,7 +358,7 @@ namespace Coust::Render::VK
         }
     }
 
-    ImageView::ImageView(ImageView&& other)
+    ImageView::ImageView(ImageView&& other) noexcept
         : Base(std::forward<Base>(other)),
         m_Format(other.m_Format),
         m_SubresourceRange(other.m_SubresourceRange)
@@ -340,6 +372,14 @@ namespace Coust::Render::VK
             m_Image->AddView(this);
         }
     }
+
+    VkFormat ImageView::GetFormat() const { return m_Format; }
+
+    VkImageSubresourceRange ImageView::GetSubresourceRange() const { return m_SubresourceRange; }
+
+    const Image* ImageView::GetImage() const { return m_Image; }
+
+    bool ImageView::IsValid() const { return m_IsValid; }
 
     bool ImageView::Construct(const Context& ctx, VkImageViewType type)
     {
@@ -364,4 +404,12 @@ namespace Coust::Render::VK
 
         return true;
     }
+
+    void ImageView::InValidate() 
+    { 
+        m_IsValid = false;  
+        m_Image = nullptr;
+    }
+
+    void ImageView::SetImage(Image& image) { m_Image = &image; }
 }
