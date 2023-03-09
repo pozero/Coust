@@ -11,8 +11,6 @@ namespace Coust::Render::VK
 {
 	void PipelineState::Reset()
 	{
-		m_VertexInputState = VertexInputState{};
-		
 		m_InputAssembleState = InputAssemblyState{};
 		
 		m_RasterizationState = RasterizationState{};
@@ -28,15 +26,6 @@ namespace Coust::Render::VK
 		m_RenderPass = nullptr;
 		
 		m_SubpassIndex = 0;
-	}
-
-	void PipelineState::SetVertexInputState(const VertexInputState& vertexInputState)
-	{
-		if (m_VertexInputState != vertexInputState)
-		{
-			m_VertexInputState = vertexInputState;
-			m_Dirty = true;
-		}
 	}
 	
 	void PipelineState::SetInputAssemblyState(const InputAssemblyState& inputAssembleState)

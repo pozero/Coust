@@ -106,7 +106,7 @@ namespace Coust::Render::VK
 		}
 	}
 	
-	inline ShaderResourceBaseType GetShaderResourceBastType(spirv_cross::SPIRType::BaseType baseType)
+	ShaderResourceBaseType GetShaderResourceBastType(spirv_cross::SPIRType::BaseType baseType)
     {
         switch (baseType)
         {
@@ -127,7 +127,7 @@ namespace Coust::Render::VK
         }
     }
     
-    inline uint32_t GetShaderResourceBaseTypeSize(spirv_cross::SPIRType::BaseType baseType)
+    uint32_t GetShaderResourceBaseTypeSize(spirv_cross::SPIRType::BaseType baseType)
     {
         switch (baseType)
         {
@@ -806,6 +806,152 @@ namespace Coust::Render::VK
     size_t ShaderModule::ConstructParm::GetHash() const
     {
         return source.GetHash();
+    }
+
+    const char* ToString(ShaderResourceType type)
+    {
+        switch (type) 
+        {
+            case ShaderResourceType::Input:                         return "Input";              
+            case ShaderResourceType::InputAttachment:               return "InputAttachment";    
+            case ShaderResourceType::Output:                        return "Output";             
+            case ShaderResourceType::Image:                         return "Image";              
+            case ShaderResourceType::Sampler:                       return "Sampler";            
+            case ShaderResourceType::ImageAndSampler:               return "ImageAndSampler";    
+            case ShaderResourceType::ImageStorage:                  return "ImageStorage";       
+            case ShaderResourceType::UniformBuffer:                 return "UniformBuffer";      
+            case ShaderResourceType::StorageBuffer:                 return "StorageBuffer";      
+            case ShaderResourceType::PushConstant:                  return "PushConstant";       
+            case ShaderResourceType::SpecializationConstant:        return "SpecializationConstant";       
+            default:                                                return "All";
+        }
+    }
+    
+    const char* ToString(ShaderResourceBaseType type)
+    {
+        switch (type)
+        {
+            case ShaderResourceBaseType::Bool:      return "Bool";
+            case ShaderResourceBaseType::Int8:      return "Int8";
+		    case ShaderResourceBaseType::UInt8:     return "UInt8";
+		    case ShaderResourceBaseType::Int16:     return "Int16";
+		    case ShaderResourceBaseType::UInt16:    return "UInt16";
+            case ShaderResourceBaseType::Int32:     return "Int32";
+            case ShaderResourceBaseType::UInt32:    return "UInt32";
+            case ShaderResourceBaseType::Int64:     return "Int64";
+            case ShaderResourceBaseType::UInt64:    return "UInt64";
+            case ShaderResourceBaseType::Half:      return "Half";
+            case ShaderResourceBaseType::Float:     return "Float";
+            case ShaderResourceBaseType::Double:    return "Double";
+            case ShaderResourceBaseType::Struct:    return "Struct";
+            default:                                return "All";
+        }
+    }
+    
+    std::string ToString(const ShaderResourceMember* pMem)
+    {
+        if (!pMem)
+            return{};
+    
+        std::stringstream ss{};
+        
+        std::queue<const ShaderResourceMember*> memQueue{};
+        std::queue<int> indentQueue{};
+        memQueue.push(pMem);
+        indentQueue.push(2);
+    
+        while (!memQueue.empty())
+        {
+            const auto topMem = memQueue.front();
+            int topMemIndet = indentQueue.front();
+    
+            if (topMem->pMembers)
+            {
+                memQueue.push(topMem->pMembers);
+                indentQueue.push(topMemIndet + 1);
+            }
+            
+            if (topMem->pNextMember)
+            {
+                memQueue.push(topMem->pNextMember);
+                indentQueue.push(topMemIndet);
+            }
+            
+            std::string indent(topMemIndet, '\t');
+            ss << indent
+               << ToString(topMem->BaseType) << ' '
+               << topMem->Name << ' '
+               << "Offset: " << topMem->Offset << ' '
+               << "Size: " << topMem->Size << ' '
+               << "VecSize: " << topMem->VecSize << ' '
+               << "Columns: " << topMem->Columns << ' '
+               << "ArraySize: " << topMem->ArraySize << '\n';
+            
+            memQueue.pop();
+            indentQueue.pop();
+        }
+        
+        return ss.str();
+    }
+    
+    std::string ToString(const ShaderResource& res)
+    {
+        std::stringstream ss{};
+        std::string indent{ "\n\t" };
+        
+        ss << ToString(res.Type) << ' '
+            << res.Name << indent
+            << "Stage: " << ToString<VkShaderStageFlags, VkShaderStageFlagBits>(res.Stage);
+    
+        switch (res.Type)
+        {
+            case ShaderResourceType::Input:
+            case ShaderResourceType::Output:
+                ss << indent << "BaseType: " << ToString(res.BaseType)
+                   << indent << "VecSize: " << res.VecSize
+                   << indent << "Columns: " << res.Columns
+                   << indent << "ArraySize: " << res.ArraySize
+                   << indent << "Location: " << res.Location << '\n';
+                break;
+            case ShaderResourceType::InputAttachment:
+                ss << indent << "ArraySize: " << res.ArraySize
+                   << indent << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access)
+                   << indent << "InputAttachmentIndex: " << res.InputAttachmentIndex
+                   << indent << "Set: " << res.Set
+                   << indent << "Binding: " << res.Binding << '\n';
+                break;
+            case ShaderResourceType::Image:
+            case ShaderResourceType::Sampler:
+            case ShaderResourceType::ImageAndSampler:
+            case ShaderResourceType::ImageStorage:
+                ss << indent << "ArraySize: " << res.ArraySize
+                   << indent << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access)
+                   << indent << "Set: " << res.Set
+                   << indent << "Binding: " << res.Binding << '\n';
+                break;
+            case ShaderResourceType::UniformBuffer:
+            case ShaderResourceType::StorageBuffer:
+                ss << indent << "Size: " << res.Size
+                   << indent << "Access: " << ToString<VkAccessFlags, VkAccessFlagBits>(res.Access)
+                   << indent << "Array Size: " << res.ArraySize
+                   << indent << "Set: " << res.Set
+                   << indent << "Binding: " << res.Binding
+                   << indent << "Members: " << '\n' << ToString(res.pMembers);
+                break;
+            case ShaderResourceType::PushConstant:
+                ss << indent << "Offset: " << res.Offset
+                   << indent << "Size: " << res.Offset
+                   << indent << "Members: " << '\n' << ToString(res.pMembers);
+                break;
+            case ShaderResourceType::SpecializationConstant:
+                ss << indent << "Constant ID: " << res.ConstantId
+                   << indent << "BaseType: " << ToString(res.BaseType)
+                   << indent << "Size: " << res.Size << '\n';
+            default:
+                break;
+        }
+        
+        return ss.str();
     }
 
 }

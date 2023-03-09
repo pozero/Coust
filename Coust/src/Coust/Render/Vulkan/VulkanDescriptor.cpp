@@ -3,6 +3,7 @@
 #include "Coust/Render/Vulkan/VulkanDescriptor.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "Coust/Render/Vulkan/VulkanShader.h"
+#include "Coust/Render/Vulkan/VulkanMemory.h"
 
 #include "Coust/Utils/Hash.h"
 
@@ -279,8 +280,8 @@ namespace Coust::Render::VK
         }
     }
 
-    void DescriptorSet::Reset(const std::optional<std::vector<BoundArray<VkDescriptorBufferInfo>>>& bufferInfos,
-                              const std::optional<std::vector<BoundArray<VkDescriptorImageInfo>>>& imageInfos)
+    void DescriptorSet::Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos,
+                              const std::optional<std::vector<BoundArray<Image>>>& imageInfos)
     {
         bool boundInfoUpdated = false;
         if (bufferInfos.has_value())
@@ -357,9 +358,9 @@ namespace Coust::Render::VK
 
     const DescriptorSetLayout& DescriptorSet::GetLayout() const { return m_Layout; }
 
-    const std::vector<BoundArray<VkDescriptorBufferInfo>>& DescriptorSet::GetBufferInfo() const { return m_BufferInfos; }
+    const std::vector<BoundArray<Buffer>>& DescriptorSet::GetBufferInfo() const { return m_BufferInfos; }
 
-    const std::vector<BoundArray<VkDescriptorImageInfo>>& DescriptorSet::GetImageInfo() const { return m_ImageInfos; }
+    const std::vector<BoundArray<Image>>& DescriptorSet::GetImageInfo() const { return m_ImageInfos; }
 
     void DescriptorSet::Prepare()
     {
@@ -372,13 +373,13 @@ namespace Coust::Render::VK
         for (auto& arr : m_BufferInfos)
         {
             uint32_t bindingIdx = arr.bindingIdx;
-            std::vector<BoundElement<VkDescriptorBufferInfo>>& buffers = arr.elements;
+            std::vector<BoundElement<Buffer>>& buffers = arr.elements;
             if (std::optional<VkDescriptorSetLayoutBinding> bindingInfo = m_Layout.GetBinding(bindingIdx); bindingInfo.has_value())
             {
                 for (auto& b : buffers)
                 {
                     // clamp the binding range to the GPU limit
-                    VkDeviceSize clampedRange = b.elementInfo.range;
+                    VkDeviceSize clampedRange = b.range;
                     if (uint32_t uniformBufferRangeLimit = m_GPUProerpties.limits.maxUniformBufferRange;
                         (bindingInfo->descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
                          bindingInfo->descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) &&
@@ -397,8 +398,13 @@ namespace Coust::Render::VK
                             clampedRange, m_Layout.GetSetIndex(), bindingIdx, storageBufferRangeLimit);
                         clampedRange = storageBufferRangeLimit;
                     }
-                    b.elementInfo.range = clampedRange;
+                    b.range = clampedRange;
 
+                    // https://en.cppreference.com/w/cpp/language/data_members#Standard-layout
+                    // A pointer to an object of standard-layout class type can be reinterpret_cast to pointer to its first non-static non-bitfield data member 
+                    // (if it has non-static data members) or otherwise any of its base class subobjects (if it has any), and vice versa. 
+                    // In other words, padding is not allowed before the first data member of a standard-layout type.
+                    static_assert(std::is_standard_layout<BoundElement<Buffer>>::value, "");
                     VkWriteDescriptorSet write
                     {
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -408,7 +414,8 @@ namespace Coust::Render::VK
                         .dstArrayElement = b.dstArrayIdx,
                         .descriptorCount = 1,
                         .descriptorType = bindingInfo->descriptorType,
-                        .pBufferInfo = &b.elementInfo,
+                        // `BoundElement<*>` is a standard-layout class type so we can convert its pointer directly to `VkDescriptorBufferInfo*`
+                        .pBufferInfo = (const VkDescriptorBufferInfo*) &b,
                     };
                     m_Writes.push_back(write);
                 }
@@ -420,11 +427,12 @@ namespace Coust::Render::VK
         for (auto& arr : m_ImageInfos)
         {
             uint32_t bindingIdx = arr.bindingIdx;
-            std::vector<BoundElement<VkDescriptorImageInfo>>& images = arr.elements;
+            std::vector<BoundElement<Image>>& images = arr.elements;
             if (std::optional<VkDescriptorSetLayoutBinding> bindingInfo = m_Layout.GetBinding(bindingIdx); bindingInfo.has_value())
             {
                 for (auto& i : images)
                 {
+                    static_assert(std::is_standard_layout<BoundElement<Image>>::value, "");
                     VkWriteDescriptorSet write
                     {
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -434,7 +442,7 @@ namespace Coust::Render::VK
                         .dstArrayElement = i.dstArrayIdx,
                         .descriptorCount = 1,
                         .descriptorType = bindingInfo->descriptorType,
-                        .pImageInfo = &i.elementInfo,
+                        .pImageInfo = (const VkDescriptorImageInfo*) &i,
                     };
                     m_Writes.push_back(write);
                 }
@@ -477,7 +485,7 @@ namespace Coust::Render::VK
             for (const auto& e : b.elements)
             {
                 Hash::Combine(h, e.dstArrayIdx);
-                Hash::Combine(h, e.elementInfo);
+                Hash::Combine(h, *(const VkDescriptorBufferInfo*)(&e));
             }
         }
 
@@ -487,7 +495,7 @@ namespace Coust::Render::VK
             for (const auto& e : i.elements)
             {
                 Hash::Combine(h, e.dstArrayIdx);
-                Hash::Combine(h, e.elementInfo);
+                Hash::Combine(h, *(const VkDescriptorImageInfo*)(&e));
             }
         }
 

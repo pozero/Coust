@@ -6,6 +6,8 @@ namespace Coust::Render::VK
 {
     struct ShaderResource;
     class ShaderModule;
+    class Buffer;
+    class Image;
 
     class DescriptorSetLayout;
     class DescriptorSet;
@@ -13,24 +15,38 @@ namespace Coust::Render::VK
 
     /**
      * @brief Structure containing info about a single element in a binding slot
-     * @tparam T can only be VkDescriptorBufferInfo, VkDescriptorImageInfo, VkBufferView
+     * @tparam T can only be Buffer, Image
      */
     template<typename T>
-    struct BoundElement 
+    struct BoundElement;
+
+    template <>
+    struct BoundElement<Buffer>
     {
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        VkDeviceSize range;
         uint32_t dstArrayIdx;
-        T elementInfo;
+    };
+
+    template <>
+    struct BoundElement<Image>
+    {
+        VkSampler sampler;
+        VkImageView imageView;
+        VkImageLayout imageLayout;
+        uint32_t dstArrayIdx;
     };
 
     /**
      * @brief Structure containing info about a object or array in a binding slot
-     * @tparam T can only be VkDescriptorBufferInfo, VkDescriptorImageInfo, VkBufferView
+     * @tparam T can only be Buffer, Image
      */
     template <typename T>
-    struct BoundArray 
+    struct BoundArray
     {
-        uint32_t bindingIdx;
         std::vector<BoundElement<T>> elements;
+        uint32_t bindingIdx;
     };
 
     class DescriptorSetLayout : public Resource<VkDescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT>,
@@ -116,8 +132,8 @@ namespace Coust::Render::VK
             const Context&                                                  ctx;
             const DescriptorSetLayout&                                      layout;
             DescriptorSetAllocator&                                         allocator;
-            const std::vector<BoundArray<VkDescriptorBufferInfo>>&          bufferInfos;
-            const std::vector<BoundArray<VkDescriptorImageInfo>>&           imageInfos;
+            const std::vector<BoundArray<Buffer>>&                          bufferInfos;
+            const std::vector<BoundArray<Image>>&                           imageInfos;
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 
@@ -150,8 +166,8 @@ namespace Coust::Render::VK
          * @param bufferInfos   Optional. If provided, then the old bufferInfos will be discarded
          * @param imageInfos    Opitonal. If provided, then the old imageInfos will be discarded
          */
-        void Reset(const std::optional<std::vector<BoundArray<VkDescriptorBufferInfo>>>& bufferInfos = {}, 
-                   const std::optional<std::vector<BoundArray<VkDescriptorImageInfo>>>& imageInfos = {});
+        void Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos = {}, 
+                   const std::optional<std::vector<BoundArray<Image>>>& imageInfos = {});
 
         /**
          * @brief Flush the write operations in the spcified bingding slot
@@ -168,9 +184,9 @@ namespace Coust::Render::VK
 
         const DescriptorSetLayout& GetLayout() const;
 
-        const std::vector<BoundArray<VkDescriptorBufferInfo>>& GetBufferInfo() const;
+        const std::vector<BoundArray<Buffer>>& GetBufferInfo() const;
 
-        const std::vector<BoundArray<VkDescriptorImageInfo>>& GetImageInfo() const;
+        const std::vector<BoundArray<Image>>& GetImageInfo() const;
 
     private:
         /**
@@ -187,9 +203,9 @@ namespace Coust::Render::VK
 
         DescriptorSetAllocator& m_Allocator;
 
-        std::vector<BoundArray<VkDescriptorBufferInfo>> m_BufferInfos;
+        std::vector<BoundArray<Buffer>> m_BufferInfos;
 
-        std::vector<BoundArray<VkDescriptorImageInfo>> m_ImageInfos;
+        std::vector<BoundArray<Image>> m_ImageInfos;
 
         // The write operations to this descriptor set
         std::vector<VkWriteDescriptorSet> m_Writes;

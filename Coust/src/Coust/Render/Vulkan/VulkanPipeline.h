@@ -13,33 +13,33 @@ namespace Coust::Render::VK
 	class PipelineState;
 	class PipelineLayout;
 	
-	struct VertexInputBinding
-	{
-   		uint32_t             binding;
-   		uint32_t             stride;
-   		VkVertexInputRate    inputRate;
+	// struct VertexInputBinding
+	// {
+   	// 	uint32_t             binding;
+   	// 	uint32_t             stride;
+   	// 	VkVertexInputRate    inputRate;
 		
-		auto operator<=>(const VertexInputBinding&) const = default;
-	};
+	// 	auto operator<=>(const VertexInputBinding&) const = default;
+	// };
 	
-	struct VertexInputAttribute 
-	{
-   		uint32_t    location;
-   		uint32_t    binding;
-   		VkFormat    format;
-   		uint32_t    offset;
+	// struct VertexInputAttribute 
+	// {
+   	// 	uint32_t    location;
+   	// 	uint32_t    binding;
+   	// 	VkFormat    format;
+   	// 	uint32_t    offset;
 		
-		auto operator<=>(const VertexInputAttribute&) const = default;
-	};
+	// 	auto operator<=>(const VertexInputAttribute&) const = default;
+	// };
 	
-	struct VertexInputState
-	{
-		std::vector<VertexInputBinding> 	VertexBindingDescriptions;
-		std::vector<VertexInputAttribute> 	VertexAttributeDescriptions;
+	// struct VertexInputState
+	// {
+	// 	std::vector<VertexInputBinding> 	VertexBindingDescriptions;
+	// 	std::vector<VertexInputAttribute> 	VertexAttributeDescriptions;
 		
-		auto operator<=>(const VertexInputState&) const = default;
-	};
-	
+	// 	auto operator<=>(const VertexInputState&) const = default;
+	// };
+
 	struct InputAssemblyState 
 	{
     	VkPrimitiveTopology 	Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -143,8 +143,6 @@ namespace Coust::Render::VK
 		
 		/* Setter */
 
-		void SetVertexInputState(const VertexInputState& vertexInputState);
-		
 		void SetInputAssemblyState(const InputAssemblyState& inputAssembleState);
 		
 		void SetRasterizationState(const RasterizationState& rasterizationState);
@@ -163,8 +161,6 @@ namespace Coust::Render::VK
 		
 		/* Getter */
 
-		const VertexInputState& GetVertexInputState() const { return m_VertexInputState; }
-		
 		const InputAssemblyState& GetInputAssemblyState() const { return m_InputAssembleState; }
 		
 		const RasterizationState& GetRasterizationState() const { return m_RasterizationState; }
@@ -196,8 +192,6 @@ namespace Coust::Render::VK
 
 	private:
 		bool m_Dirty = false;
-		
-		VertexInputState m_VertexInputState{};
 		
 		InputAssemblyState m_InputAssembleState{};
 		
