@@ -72,7 +72,7 @@ namespace Coust
             }
 
             size_t operator()(const T& key) const noexcept
-                requires (!StdHashable<T> && ImplementedGetHash<T> && Murmur3Hashable<T>)
+                requires (!StdHashable<T> && !ImplementedGetHash<T> && Murmur3Hashable<T>)
             {
                 return (size_t) murmur3((const uint32_t*) &key, sizeof(T) / 4u, 0);
             }

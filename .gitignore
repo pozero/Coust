@@ -5,6 +5,7 @@ vsxmake2022/.vs
 .vscode
 .cache/
 .coustcache/
+.codebackup/
 
 # Files
 *.user

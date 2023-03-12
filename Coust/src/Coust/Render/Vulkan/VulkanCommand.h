@@ -102,9 +102,9 @@ namespace Coust::Render::VK
         ~CommandPool();
         
         CommandPool(CommandPool&& other);
-        CommandPool& operator=(CommandPool&& other);
             
         CommandPool() = delete;
         CommandPool(const CommandPool&) = delete;
+        CommandPool& operator=(CommandPool&& other) = delete;
     };
 }

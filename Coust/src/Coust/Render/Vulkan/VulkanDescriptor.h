@@ -59,24 +59,17 @@ namespace Coust::Render::VK
         struct ConstructParam
         {
             const Context&                                      ctx;
+            // Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
             uint32_t                                            set;
+            // The correspondent shader modules. Passed for hashing.
             const std::vector<ShaderModule*>&                   shaderModules;
+            // Shader resources from SPIR-V reflection contains binding information for construction.
             const std::vector<ShaderResource>&                  shaderResources;
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
 
             size_t GetHash() const;
         };
-        /**
-         * @brief Construct a descriptor set layout with default debug name
-         * 
-         * @param ctx 
-         * @param set                   Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
-         * @param shaderModules         The correspondent shader modules. Passed for hashing.
-         * @param shaderResources       Shader resources from SPIR-V reflection contains binding information for construction.
-         * @param scopeName
-         * @param dedicatedName
-         */
         DescriptorSetLayout(ConstructParam param);
 
         ~DescriptorSetLayout();
@@ -97,13 +90,6 @@ namespace Coust::Render::VK
         std::optional<VkDescriptorSetLayoutBinding> GetBinding(const std::string& name) const;
         
     private:
-        /**
-         * @brief Actual construction happens here
-         * 
-         * @param ctx 
-         * @param shaderResources 
-         * @return false if construction failed
-         */
         bool Construct(const Context& ctx, const std::vector<ShaderResource>& shaderResources);
         
     private:
@@ -130,24 +116,19 @@ namespace Coust::Render::VK
         struct ConstructParam 
         {
             const Context&                                                  ctx;
+            // Template to create this descriptor set
             const DescriptorSetLayout&                                      layout;
+            // Free list of descriptor pool, it MANAGES the lifecycle of this object
             DescriptorSetAllocator&                                         allocator;
+            // Bound buffer infos, they're bound in arrays
             const std::vector<BoundArray<Buffer>>&                          bufferInfos;
+            // Bound image infos, they're bound in arrays
             const std::vector<BoundArray<Image>>&                           imageInfos;
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 
             size_t GetHash() const;
         };
-        /**
-         * @brief Construct a Descriptor Set object
-         * 
-         * @param ctx 
-         * @param layout            Template to create this descriptor set
-         * @param allocator         Free list of descriptor pool, it MANAGES the lifecycle of this object
-         * @param bufferInfos       Bound buffer infos, they're bound in arrays
-         * @param imageInfos        Bound image infos, they're bound in arrays
-         */
         DescriptorSet(ConstructParam param);
 
         // Lifecycle of descriptor set is managed by descriptor set allocator
@@ -231,13 +212,6 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        /**
-         * @brief Construct a descriptor set allocator
-         * 
-         * @param ctx 
-         * @param layout 
-         * @param maxSets 
-         */
         DescriptorSetAllocator(ConstructParam param);
         
         ~DescriptorSetAllocator();

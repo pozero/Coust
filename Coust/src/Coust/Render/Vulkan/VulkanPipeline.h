@@ -9,6 +9,8 @@
 namespace Coust::Render::VK
 {
 	class RenderPass;
+	class ShaderModule;
+	class DescriptorSetLayout;
 
 	class PipelineState;
 	class PipelineLayout;
@@ -129,6 +131,8 @@ namespace Coust::Render::VK
 		
 		auto operator<=>(const ColorBlendState&) const = default;
 	};
+
+	// TODO: Add specialization constant support
 	
 	/**
 	 * @brief Basically a wrapper class of `VkGraphicsPipelineCreateInfo`
@@ -161,21 +165,21 @@ namespace Coust::Render::VK
 		
 		/* Getter */
 
-		const InputAssemblyState& GetInputAssemblyState() const { return m_InputAssembleState; }
+		const InputAssemblyState& GetInputAssemblyState() const;
 		
-		const RasterizationState& GetRasterizationState() const { return m_RasterizationState; }
+		const RasterizationState& GetRasterizationState() const;
 		
-		const MultisampleState& GetMultisampleState() const { return m_MultisampleState; }
+		const MultisampleState& GetMultisampleState() const;
 		
-		const DepthStencilState& GetDepthStencilState() const { return m_DepthStencilState; }
+		const DepthStencilState& GetDepthStencilState() const;
 		
-		const ColorBlendState& GetColorBlendState() const { return m_ColorBlendState; }
+		const ColorBlendState& GetColorBlendState() const;
 		
-		const PipelineLayout* GetPipelineLayout() const { return m_PipelineLayout; }
+		const PipelineLayout* GetPipelineLayout() const;
 		
-		const RenderPass* GetRenderPass() const { return m_RenderPass; }
+		const RenderPass* GetRenderPass() const;
 		
-		const uint32_t GetSubpassIndex() const { return m_SubpassIndex; }
+		const uint32_t GetSubpassIndex() const;
 
 		/* Getter */
 		
@@ -183,12 +187,12 @@ namespace Coust::Render::VK
 		 * @brief PipelienState gets dirty when its changes not being applied yet.
 		 * @return 
 		 */
-		bool IsDirty() const { return m_Dirty; }
+		bool IsDirty() const;
 
 		/**
-		 * @brief The changes have been applied, so flush its dirt.
+		 * @brief The changes have been applied, so flush the dirt.
 		 */
-		void Flush() { m_Dirty = false; }
+		void Flush();
 
 	private:
 		bool m_Dirty = false;
@@ -214,6 +218,17 @@ namespace Coust::Render::VK
 	{
 	public:
 		using Base = Resource<VkPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT>;
+
+	public:
+
+	private:
+		std::vector<ShaderModule*> m_Shaders;
+
+		std::vector<DescriptorSetLayout*> m_DescriptorLayouts;
+
 	};
+
+	// post processing
+	// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/using-compute-post-processing-in-vulkan-on-mali
 
 }

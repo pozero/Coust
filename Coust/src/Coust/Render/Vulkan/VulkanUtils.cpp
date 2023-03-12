@@ -5,6 +5,20 @@
 
 namespace Coust::Render::VK 
 {
+	bool IsDepthOnlyFormat(VkFormat format)
+	{
+		return format == VK_FORMAT_D32_SFLOAT || 
+			   format == VK_FORMAT_D16_UNORM;
+	}
+
+	bool IsDepthStencilFormat(VkFormat format)
+	{
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+		 	   format == VK_FORMAT_D24_UNORM_S8_UINT ||
+			   format == VK_FORMAT_D16_UNORM_S8_UINT ||
+			   IsDepthOnlyFormat(format);
+	}
+
 	const char* ToString(VkResult result)
 	{
 		switch (result)

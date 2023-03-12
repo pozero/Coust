@@ -64,23 +64,15 @@ namespace Coust::Render::VK
         {
             const Context&                      ctx;
             VkDeviceSize                        size;
+            // Specify usage for optimal memory allocation
             VkBufferUsageFlags                  bufferFlags;
+            // Tell vulkan memory allocator how to allocate the memory bound to this buffer
             Usage                               usage;
+            // Optional. The queues that will get access to this buffer
             const std::vector<uint32_t>*        relatedQueue = nullptr;
             const char*                         scopeName = nullptr;
             const char*                         dedicatedName = nullptr;
         };
-        /**
-         * @brief Construct Buffer
-         * 
-         * @param ctx 
-         * @param size 
-         * @param bufferFlags           Specify usage for optimal memory allocation
-         * @param usage                 Tell vulkan memory allocator how to allocate the memory bound to this buffer
-         * @param relatedQueue          Optional. The queues that will get access to this buffer
-         * @param scopeName
-         * @param dedicatedName
-         */
         Buffer(ConstructParam param);
 
         ~Buffer();

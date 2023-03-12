@@ -280,6 +280,19 @@ namespace Coust::Render::VK
         }
     }
 
+    DescriptorSet::DescriptorSet(DescriptorSet&& other) noexcept
+        : Base(std::forward<Base>(other)),
+          Hashable(std::forward<Hashable>(other)),
+          m_GPUProerpties(other.m_GPUProerpties),
+          m_Layout(other.m_Layout),
+          m_Allocator(other.m_Allocator),
+          m_BufferInfos(std::move(other.m_BufferInfos)),
+          m_ImageInfos(std::move(other.m_ImageInfos)),
+          m_Writes(std::move(other.m_Writes)),
+          m_AppliedWrites(std::move(other.m_AppliedWrites))
+    {
+    }
+
     void DescriptorSet::Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos,
                               const std::optional<std::vector<BoundArray<Image>>>& imageInfos)
     {
@@ -477,7 +490,9 @@ namespace Coust::Render::VK
 
     size_t DescriptorSet::ConstructParam::GetHash() const
     {
-        size_t h = layout.GetHash();
+        size_t h = 0;
+
+        Hash::Combine(h, layout);
 
         for (const auto& b : bufferInfos)
         {

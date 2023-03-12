@@ -721,6 +721,16 @@ namespace Coust::Render::VK
                 m_Handle = VK_NULL_HANDLE;
         }
     }
+
+    ShaderModule::ShaderModule(ShaderModule&& other) noexcept
+        : Base(std::forward<Base>(other)),
+          Hashable(std::forward<Hashable>(other)),
+          m_Stage(other.m_Stage),
+          m_Source(std::move(other.m_Source)),
+          m_ByteCode(std::move(other.m_ByteCode)),
+          m_Resources(std::move(other.m_Resources))
+    {
+    }
     
     ShaderModule::~ShaderModule()
     {

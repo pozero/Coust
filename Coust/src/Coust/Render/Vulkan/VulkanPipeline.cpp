@@ -81,11 +81,21 @@ namespace Coust::Render::VK
 			m_PipelineLayout = &pipelineLayout;
 			m_Dirty = true;
 		}
+		else // `m_PipelineLayout` is nullptr
+		{
+			m_PipelineLayout = &pipelineLayout;
+			m_Dirty = true;
+		}
 	}
 	
 	void PipelineState::SetRenderPass(const RenderPass& renderPass)
 	{
 		if (m_RenderPass && m_RenderPass->GetHandle() != renderPass.GetHandle())
+		{
+			m_RenderPass = &renderPass;
+			m_Dirty = true;
+		}
+		else // `m_RenderPass` is nullptr
 		{
 			m_RenderPass = &renderPass;
 			m_Dirty = true;
@@ -100,4 +110,24 @@ namespace Coust::Render::VK
 			m_Dirty = true;
 		}
 	}
+
+	const InputAssemblyState& PipelineState::GetInputAssemblyState() const { return m_InputAssembleState; }
+	
+	const RasterizationState& PipelineState::GetRasterizationState() const { return m_RasterizationState; }
+	
+	const MultisampleState& PipelineState::GetMultisampleState() const { return m_MultisampleState; }
+	
+	const DepthStencilState& PipelineState::GetDepthStencilState() const { return m_DepthStencilState; }
+	
+	const ColorBlendState& PipelineState::GetColorBlendState() const { return m_ColorBlendState; }
+	
+	const PipelineLayout* PipelineState::GetPipelineLayout() const { return m_PipelineLayout; }
+	
+	const RenderPass* PipelineState::GetRenderPass() const { return m_RenderPass; }
+	
+	const uint32_t PipelineState::GetSubpassIndex() const { return m_SubpassIndex; }
+
+	bool PipelineState::IsDirty() const { return m_Dirty; }
+
+	void PipelineState::Flush() { m_Dirty = false; }
 }

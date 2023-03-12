@@ -260,21 +260,6 @@ namespace Coust::Render::VK
         	};																
         	return vkSetDebugUtilsObjectNameEXT(device, &info) == VK_SUCCESS;
         }
-        
-		// For handles to which we didn't give a name (most of them), 
-		// we use random name in lowercase to distinguish between them.
-        // std::string GenRandomName()
-        // {
-        //     const char* CharSet = "abcdefghijklmnopqrstuvwxyz";
-        //     int nameLength = Random::UInteger(4, 5);
-        //     std::string name{};
-        //     for (int i = 0; i < nameLength; ++i)
-        //     {
-        //         name = name + *Random::Pick(CharSet, std::strlen(CharSet));
-        //     }
-		// 	name += ' ';
-        //     return name;
-        // }
     
     protected:
 		VkDevice m_Device = VK_NULL_HANDLE;

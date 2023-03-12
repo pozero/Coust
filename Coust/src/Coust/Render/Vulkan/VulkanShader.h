@@ -126,6 +126,9 @@ namespace Coust::Render::VK
         ShaderSource(std::filesystem::path&& sourceFilePath)
             : m_SourceFilePath(sourceFilePath)
         {}
+
+        ShaderSource(const ShaderSource& other) = default;
+        ShaderSource(ShaderSource&& other) = default;
         
         ~ShaderSource() = default;
         
@@ -217,22 +220,14 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        /**
-         * @brief Constructor with default debug name
-         * 
-         * @param ctx 
-         * @param stage 
-         * @param source
-         * @param scopeName 
-         * @param dedicatedName 
-         */
         ShaderModule(ConstructParm param);
+
+        ShaderModule(ShaderModule&& other) noexcept;
         
         ~ShaderModule();
         
         ShaderModule() = delete;
         ShaderModule(const ShaderModule&) = delete;
-        ShaderModule(ShaderModule&& other) = delete;
         ShaderModule& operator=(ShaderModule&& other) = delete;
         ShaderModule& operator=(const ShaderModule& other) = delete;
         
