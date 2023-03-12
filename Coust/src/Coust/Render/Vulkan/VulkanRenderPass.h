@@ -5,6 +5,9 @@
 namespace Coust::Render::VK
 {
 	class RenderPass;
+	class Framebuffer;
+
+	class ImageView;
 
 	constexpr uint32_t MAX_ATTACHMENT_COUNT = 8;
 	enum AttachmentFlagBits : uint32_t
@@ -38,22 +41,15 @@ namespace Coust::Render::VK
 		struct ConstructParam
 		{
 			const Context& 				ctx;
-			// specifying the format for the attachment, `VK_FORMAT_UNDEFINED` means we don't use this attachment
-			VkFormat 					colorFormat[MAX_ATTACHMENT_COUNT];
+			VkFormat 					colorFormat[MAX_ATTACHMENT_COUNT];	// specifying the format for the attachment, `VK_FORMAT_UNDEFINED` means we don't use this attachment
 			VkFormat 					depthFormat;
-			// `(clear & COLOR0) != 0` means `COLOR0` needs clear operation while loading
-			AttachmentFlags 			clearMask = 0u;
-			// `(discardStartMask & COLOR0) != 0` means `COLOR0` should be discarded while loading (loading operation will be clear if set)
-			AttachmentFlags 			discardStartMask = 0u;
-			// `(discardEndMask & COLOR0) != 0` means `COLOR0` should be discarded whil storing
-			AttachmentFlags 			discardEndMask = 0u;
+			AttachmentFlags 			clearMask = 0u;						// `(clear & COLOR0) != 0` means `COLOR0` needs clear operation while loading
+			AttachmentFlags 			discardStartMask = 0u;				// `(discardStartMask & COLOR0) != 0` means `COLOR0` should be discarded while loading (loading operation will be clear if set)
+			AttachmentFlags 			discardEndMask = 0u;				// `(discardEndMask & COLOR0) != 0` means `COLOR0` should be discarded whil storing
 			VkSampleCountFlagBits 		sample = VK_SAMPLE_COUNT_1_BIT;
-			// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
-			uint8_t 					resolveMask = 0u;
-			// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
-			uint8_t 					inputAttachmentMask = 0u;
-			// if the color attachment is gonna be presented
-			uint8_t 					presentMask = 0u;
+			uint8_t 					resolveMask = 0u;					// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
+			uint8_t 					inputAttachmentMask = 0u;			// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
+			uint8_t 					presentMask = 0u;					// if the color attachment is gonna be presented
 			const char*                 dedicatedName = nullptr;
 			const char*					scopeName = nullptr;
 
@@ -82,5 +78,49 @@ namespace Coust::Render::VK
 						uint8_t resolveMask,
 						uint8_t inputAttachmentMask,
 						uint8_t presentMask);
+	};
+
+	class Framebuffer : public Resource<VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER>,
+						public Hashable
+	{
+	public:
+		using Base = Resource<VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER>;
+
+	public:
+		struct ConstructParam 
+		{
+			const Context& 				ctx;
+			const RenderPass& 			renderPass;
+			uint32_t 					width;
+			uint32_t 					height;
+			uint32_t 					layers = 1u;
+			ImageView* 					color[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
+			ImageView* 					resolve[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
+			ImageView* 					depth;
+			const char*                 dedicatedName = nullptr;
+			const char*					scopeName = nullptr;
+
+			size_t GetHash() const;
+		};
+		Framebuffer(ConstructParam p);
+
+		Framebuffer(Framebuffer&& other) noexcept;
+
+		~Framebuffer();
+
+		Framebuffer() = delete;
+		Framebuffer(const Framebuffer&) = delete;
+		Framebuffer& operator=(const Framebuffer&) = delete;
+		Framebuffer& operator=(Framebuffer&&) = delete;
+
+	private:
+		bool Construction(const Context& ctx, 
+						  const RenderPass& renderPass, 
+						  uint32_t width, 
+						  uint32_t height, 
+						  uint32_t layers, 
+						  ImageView* color[MAX_ATTACHMENT_COUNT],
+						  ImageView* resolve[MAX_ATTACHMENT_COUNT],
+						  ImageView* depth);
 	};
 }

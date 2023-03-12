@@ -59,12 +59,9 @@ namespace Coust::Render::VK
         struct ConstructParam
         {
             const Context&                                      ctx;
-            // Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
-            uint32_t                                            set;
-            // The correspondent shader modules. Passed for hashing.
-            const std::vector<ShaderModule*>&                   shaderModules;
-            // Shader resources from SPIR-V reflection contains binding information for construction.
-            const std::vector<ShaderResource>&                  shaderResources;
+            uint32_t                                            set;            // Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
+            const std::vector<ShaderModule*>&                   shaderModules;  // The correspondent shader modules. Passed for hashing.
+            const std::vector<ShaderResource>&                  shaderResources;// Shader resources from SPIR-V reflection contains binding information for construction.
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
 
@@ -116,14 +113,10 @@ namespace Coust::Render::VK
         struct ConstructParam 
         {
             const Context&                                                  ctx;
-            // Template to create this descriptor set
-            const DescriptorSetLayout&                                      layout;
-            // Free list of descriptor pool, it MANAGES the lifecycle of this object
-            DescriptorSetAllocator&                                         allocator;
-            // Bound buffer infos, they're bound in arrays
-            const std::vector<BoundArray<Buffer>>&                          bufferInfos;
-            // Bound image infos, they're bound in arrays
-            const std::vector<BoundArray<Image>>&                           imageInfos;
+            const DescriptorSetLayout&                                      layout;         // Template to create this descriptor set
+            DescriptorSetAllocator&                                         allocator;      // Free list of descriptor pool, it MANAGES the lifecycle of this object
+            const std::vector<BoundArray<Buffer>>&                          bufferInfos;    // Bound buffer infos, they're bound in arrays
+            const std::vector<BoundArray<Image>>&                           imageInfos;     // Bound image infos, they're bound in arrays
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 

@@ -2,6 +2,7 @@
 
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
+#include "Coust/Render/Vulkan/VulkanMemory.h"
 
 #include "Coust/Utils/Hash.h"
 
@@ -79,6 +80,7 @@ namespace Coust::Render::VK
         };
 
         // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
+        // Note: this array has the same order as the framebuffer attached to this render pass
         VkAttachmentDescription attachements[MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1];
 
         // there're at most 2 subpasses, so one dependency is enough
@@ -230,6 +232,107 @@ namespace Coust::Render::VK
         renderPassCI.attachmentCount = curAttachmentIdx;
         VK_CHECK(vkCreateRenderPass(m_Device, &renderPassCI, nullptr, &m_Handle));
         return true;
+    }
+
+    Framebuffer::Framebuffer(ConstructParam p)
+        : Base(p.ctx.Device, VK_NULL_HANDLE), 
+          Hashable(p.GetHash())
+    {
+        if (Construction(p.ctx, p.renderPass, p.width, p.height, p.layers, p.color, p.resolve, p.depth))
+        {
+            if (p.dedicatedName)
+                SetDedicatedDebugName(p.dedicatedName);
+            else if (p.scopeName)
+                SetDefaultDebugName(p.scopeName, nullptr);
+            else
+                COUST_CORE_WARN("Framebuffer created without debug name");
+        }
+        else  
+            m_Handle = VK_NULL_HANDLE;
+    }
+
+    Framebuffer::Framebuffer(Framebuffer&& other) noexcept
+        : Base(std::forward<Base>(other)),
+          Hashable(std::forward<Hashable>(other))
+    {
+    }
+
+    Framebuffer::~Framebuffer()
+    {
+        if (m_Handle != VK_NULL_HANDLE)
+            vkDestroyFramebuffer(m_Device, m_Handle, nullptr);
+    }
+
+    bool Framebuffer::Construction(const Context& ctx, 
+                                   const RenderPass& renderPass, 
+                                   uint32_t width, 
+                                   uint32_t height, 
+                                   uint32_t layers, 
+                                   ImageView* color[MAX_ATTACHMENT_COUNT],
+                                   ImageView* resolve[MAX_ATTACHMENT_COUNT],
+                                   ImageView* depth)
+    {
+        // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
+        // Note: this array has the same order as the render pass it attaches to
+        VkImageView attachments[MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1];
+        uint32_t curAttachmentIdx = 0;
+
+        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
+        {
+            if (color[i])
+                attachments[curAttachmentIdx++] = color[i]->GetHandle();
+        }
+
+        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
+        {
+            if (resolve[i])
+                attachments[curAttachmentIdx++] = resolve[i]->GetHandle();
+        }
+
+        if (depth)
+            attachments[curAttachmentIdx++] = depth->GetHandle();
+        
+        VkFramebufferCreateInfo ci 
+        {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .renderPass = renderPass.GetHandle(),
+            .attachmentCount = curAttachmentIdx,
+            .pAttachments = attachments,
+            .width = width,
+            .height = height,
+            .layers = layers,
+        };
+
+        VK_CHECK(vkCreateFramebuffer(m_Device, &ci, nullptr, &m_Handle));
+        return true;
+    }
+
+	size_t Framebuffer::ConstructParam::GetHash() const
+    {
+        size_t h = 0;
+
+        Hash::Combine(h, renderPass);
+        Hash::Combine(h, width);
+        Hash::Combine(h, height);
+        Hash::Combine(h, layers);
+
+        // we can end up with vulkan images of the same format but storing different infos, so hash handle is just fine
+        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
+        {
+            if (color[i])
+                Hash::Combine(h, color[i]->GetHandle());
+        }
+
+        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
+        {
+            if (resolve[i])
+                Hash::Combine(h, resolve[i]->GetHandle());
+        }
+
+        if (depth)
+            Hash::Combine(h, depth->GetHandle());
+
+        return h;
     }
 
 	size_t RenderPass::ConstructParam::GetHash() const

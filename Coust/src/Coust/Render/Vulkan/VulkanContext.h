@@ -80,15 +80,9 @@ namespace Coust::Render::VK
         Resource() = default;
 		~Resource() = default;
 		
-		// Since we can't attain current scope name when object gets moved, 
-		// we use '*' to denote it's moved from elsewhere
 		Resource(Resource&& other)
 			: m_Device(other.m_Device), m_Handle(other.m_Handle), m_DebugName(other.m_DebugName)
 		{
-			m_DebugName += '*';
-#ifndef COUST_FULL_RELEASE
-			RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
-#endif
 			other.m_Handle = VK_NULL_HANDLE;
 		}
 
