@@ -262,7 +262,7 @@ namespace Coust::Render::VK
     DescriptorSet::DescriptorSet(ConstructParam param)
         : Base(param.ctx.Device, VK_NULL_HANDLE),
           Hashable(param.GetHash()),
-          m_GPUProerpties(param.ctx.PhysicalDevProps),
+          m_GPUProerpties(*param.ctx.GPUProperties),
           m_Layout(param.layout),
           m_Allocator(param.allocator),
           m_BufferInfos(param.bufferInfos),

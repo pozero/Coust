@@ -17,6 +17,8 @@ namespace Coust::Render::VK
 		
 		virtual void InitializationTest() override;
 
+		virtual void LoopTest() override;
+
 	public:
 		const Context& GetContext() const { return m_Context; }
 		
@@ -31,8 +33,5 @@ namespace Coust::Render::VK
 
     private:
         Context m_Context{};
-
-		CommandBufferList m_CommandList;
-
     };
 }

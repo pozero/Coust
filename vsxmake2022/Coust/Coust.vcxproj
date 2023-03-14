@@ -146,6 +146,7 @@ xmake version 2.7.6+master.882cb4e03
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\KeyEvent.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Driver.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\StagePool.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanCommand.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanContext.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDescriptor.h" />
@@ -188,6 +189,9 @@ xmake version 2.7.6+master.882cb4e03
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Driver.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\StagePool.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VmaBuild.cpp">

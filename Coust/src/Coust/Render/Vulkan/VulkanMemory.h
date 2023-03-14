@@ -9,6 +9,7 @@ namespace Coust::Render::VK
     class Buffer;
     class Image;
     class ImageView;
+    class StagePool;
 
     class Buffer : public Resource<VkBuffer, VK_OBJECT_TYPE_BUFFER>
     {
@@ -91,6 +92,7 @@ namespace Coust::Render::VK
          */
         void Flush() const;
         
+        // Update func for host-visible buffer
         template<typename T>
         void Update(const T& obj, size_t offset = 0)
         {

@@ -12,6 +12,9 @@
 
 namespace Coust::Render::VK
 {
+    constexpr uint32_t INVALID_IDX = ~(0u);
+	class CommandBufferCache;
+
 	struct Context;
     template <typename VkHandle, VkObjectType ObjectType>
     class Resource;
@@ -35,15 +38,19 @@ namespace Coust::Render::VK
 
 		VkDevice Device = VK_NULL_HANDLE;
 
-		uint32_t PresentQueueFamilyIndex = (uint32_t) -1;
-		uint32_t GraphicsQueueFamilyIndex = (uint32_t) - 1;
+		uint32_t PresentQueueFamilyIndex = INVALID_IDX;
+		uint32_t GraphicsQueueFamilyIndex = INVALID_IDX;
+		uint32_t ComputeQueueFamilyIndex = INVALID_IDX;
 
 		VkQueue GraphicsQueue = VK_NULL_HANDLE;
 		VkQueue PresentQueue = VK_NULL_HANDLE;
+		VkQueue ComputeQueue = VK_NULL_HANDLE;
 
-		VkPhysicalDeviceProperties PhysicalDevProps{};
-		
 		VkSampleCountFlags MSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
+
+		std::unique_ptr<VkPhysicalDeviceProperties> GPUProperties{ new VkPhysicalDeviceProperties{} };
+
+		CommandBufferCache* GraphicsCommandBufferCache = nullptr;
    	};
 
 

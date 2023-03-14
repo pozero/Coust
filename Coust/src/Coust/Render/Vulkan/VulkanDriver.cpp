@@ -97,17 +97,18 @@ namespace Coust::Render::VK
             CreateDebugMessengerAndReportCallback() &&
 #endif
             CreateSurface() &&
-            SelectPhysicalDeviceAndCreateDevice() &&
-            m_CommandList.Init(m_Context);
+            SelectPhysicalDeviceAndCreateDevice();
+
+        m_Context.GraphicsCommandBufferCache = new CommandBufferCache{ m_Context, false };
+        m_IsInitialized = m_Context.GraphicsCommandBufferCache->IsValid();
     }
 
     Driver::~Driver()
     {
         m_IsInitialized = false;
 
-        m_CommandList.Shut();
+        delete m_Context.GraphicsCommandBufferCache;
 
-        // internal destruction
         vmaDestroyAllocator(m_Context.VmaAlloc);
         vkDestroyDevice(m_Context.Device, nullptr);
         vkDestroySurfaceKHR(m_Context.Instance, m_Context.Surface, nullptr);
@@ -266,6 +267,7 @@ namespace Coust::Render::VK
                         VkBool32 supportPresent = VK_FALSE;
                         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Context.Surface, &supportPresent);
                         VkBool32 supportGraphics = queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+                        // Try finding a queue that can support present & rendering at the same time
                         if (supportPresent && supportGraphics)
                         {
                             presentQueueFamilyIndex = i;
@@ -276,6 +278,24 @@ namespace Coust::Render::VK
                             presentQueueFamilyIndex = i;
                         if (!graphicsQueueFamilyIndex.has_value() && supportGraphics)
                             graphicsQueueFamilyIndex = i;
+                    }
+
+                    // Try finding another queue that support compute
+                    for (uint32_t i = 0; i < queueFamilyProperties.size(); ++i)
+                    {
+                        const bool supportCompute = (queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+                        if (supportCompute)
+                        {
+                            if (m_Context.ComputeQueueFamilyIndex == INVALID_IDX)
+                                m_Context.ComputeQueueFamilyIndex = i;
+                            if (graphicsQueueFamilyIndex.has_value() && graphicsQueueFamilyIndex.value() != i)
+                            {
+                                m_Context.ComputeQueueFamilyIndex = i;
+                                break;
+                            }
+                        }
+                        
+
                     }
                 }
 
@@ -345,7 +365,7 @@ namespace Coust::Render::VK
                 return false;
             }
 
-            vkGetPhysicalDeviceProperties(m_Context.PhysicalDevice, &m_Context.PhysicalDevProps);
+            vkGetPhysicalDeviceProperties(m_Context.PhysicalDevice, m_Context.GPUProperties.get());
         }
  
         {
@@ -353,6 +373,7 @@ namespace Coust::Render::VK
             {
                 m_Context.PresentQueueFamilyIndex,
                 m_Context.GraphicsQueueFamilyIndex,
+                m_Context.ComputeQueueFamilyIndex,
             };
             std::vector<VkDeviceQueueCreateInfo> deviceQueueInfo{};
             float queuePriority = 1.0f;
@@ -404,6 +425,7 @@ namespace Coust::Render::VK
 
             vkGetDeviceQueue(m_Context.Device, m_Context.PresentQueueFamilyIndex, 0, &m_Context.PresentQueue);
             vkGetDeviceQueue(m_Context.Device, m_Context.GraphicsQueueFamilyIndex, 0, &m_Context.GraphicsQueue);
+            vkGetDeviceQueue(m_Context.Device, m_Context.ComputeQueueFamilyIndex, 0, &m_Context.ComputeQueue);
 
             {
                 VmaVulkanFunctions functions
@@ -427,5 +449,33 @@ namespace Coust::Render::VK
 
     void Driver::InitializationTest()
     {
+        auto cmd0 = m_Context.GraphicsCommandBufferCache->Get();
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        (void) 0;
+        auto cmd1 = m_Context.GraphicsCommandBufferCache->Get();
+        auto cmd2 = m_Context.GraphicsCommandBufferCache->Get();
+
+        m_Context.GraphicsCommandBufferCache->Flush();
+    }
+
+    void Driver::LoopTest()
+    {
+        static uint32_t frame = 0;
+        if (frame % 10 == 0)
+            m_Context.GraphicsCommandBufferCache->GC();
+
+        auto cmd0 = m_Context.GraphicsCommandBufferCache->Get();
+        auto cmd1 = m_Context.GraphicsCommandBufferCache->Get();
+        auto cmd2 = m_Context.GraphicsCommandBufferCache->Get();
+        auto cmd3 = m_Context.GraphicsCommandBufferCache->Get();
+
+        m_Context.GraphicsCommandBufferCache->Flush();
     }
 }
