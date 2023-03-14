@@ -2,46 +2,63 @@
 
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "Coust/Render/Vulkan/VulkanCommand.h"
-#include "Coust/Render/Vulkan/VulkanRenderPass.h"
-#include "Coust/Render/Vulkan/VulkanFramebuffer.h"
 
 namespace Coust::Render::VK
 {
-    CommandBuffer::CommandBuffer(CommandBuffer::ConstructParam param)
-        : Base(param.commandPool.GetDevice(), VK_NULL_HANDLE), m_Level(param.level), m_CommandPoolCreatedFrom(&param.commandPool)
+    bool CommandBufferList::Init(const Context& ctx)
     {
-        if (Construct(param.commandPool, param.level))
+        m_Device = ctx.Device;
+
+        VkCommandPoolCreateInfo cmdPoolCI 
         {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, ToString(m_Level));
-            else
-                COUST_CORE_WARN("Command buffer created without a debug name");
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = ctx.GraphicsQueueFamilyIndex,
+        };
+
+        VkCommandBufferAllocateInfo bufAI 
+        {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = VK_NULL_HANDLE,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = COMMAND_BUFFER_COUNT,
+        };
+
+        for (uint32_t p = 0; p < COMMAND_POOL_COUNT; ++ p)
+        {
+            VK_CHECK(vkCreateCommandPool(m_Device, &cmdPoolCI, nullptr, &m_Pools[p].cmdPool));
+
+            bufAI.commandPool = m_Pools[p].cmdPool;
+            VK_CHECK(vkAllocateCommandBuffers(m_Device, &bufAI, m_Pools[p].cmdBuffer));
+        }
+
+        return true;
+    }
+
+    void CommandBufferList::Shut()
+    {
+        for (uint32_t p = 0; p < COMMAND_POOL_COUNT; ++ p)
+        {
+            vkFreeCommandBuffers(m_Device, m_Pools[p].cmdPool, COMMAND_BUFFER_COUNT, &m_Pools[p].cmdBuffer[0]);
+            vkDestroyCommandPool(m_Device, m_Pools[p].cmdPool, nullptr);
         }
     }
 
-    CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
-        : Base(std::forward<Base>(other)), m_Level(other.m_Level), m_CommandPoolCreatedFrom(other.m_CommandPoolCreatedFrom)
+    void CommandBufferList::Begin()
     {
-        other.m_State = State::Invalid;
+        m_CurPoolIdx = (++m_CurPoolIdx) % COMMAND_POOL_COUNT;
+        m_Pools[m_CurPoolIdx].nextAvailableBufIdx = 0;
     }
-        
-    CommandBuffer::State CommandBuffer::GetState() const { return m_State; }
-    
-    bool CommandBuffer::IsValid() const { return m_State != State::Invalid; }
 
-    bool CommandBuffer::Construct(const CommandPool& commandPool, VkCommandBufferLevel level)
+    VkCommandBuffer CommandBufferList::Get()
     {
-        VkCommandBufferAllocateInfo ai 
+        if (m_Pools[m_CurPoolIdx].nextAvailableBufIdx >= COMMAND_BUFFER_COUNT)
         {
-            .sType                  = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool            = commandPool.GetHandle(),
-            .level                  = level,
-            .commandBufferCount     = 1,
-        };
-        VK_CHECK(vkAllocateCommandBuffers(m_Device, &ai, &m_Handle));
-        m_State = State::Initial;
-        return true;
+            // If there isn't enough free command buffer, just log and return null
+            COUST_CORE_ERROR("There isn't enough command buffer available. Consider increase the `COMMAND_BUFFER_COUNT`");
+            return VK_NULL_HANDLE;
+        }
+
+        return m_Pools[m_CurPoolIdx].cmdBuffer[m_Pools[m_CurPoolIdx].nextAvailableBufIdx++];
     }
 }

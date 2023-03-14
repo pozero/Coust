@@ -9,8 +9,6 @@
 
 #include "Coust/Core/Window.h"
 
-#include "Coust/Utils/FileSystem.h"
-
 #include <GLFW/glfw3.h>
 
 namespace Coust::Render::VK
@@ -99,12 +97,17 @@ namespace Coust::Render::VK
             CreateDebugMessengerAndReportCallback() &&
 #endif
             CreateSurface() &&
-            SelectPhysicalDeviceAndCreateDevice();
+            SelectPhysicalDeviceAndCreateDevice() &&
+            m_CommandList.Init(m_Context);
     }
 
     Driver::~Driver()
     {
         m_IsInitialized = false;
+
+        m_CommandList.Shut();
+
+        // internal destruction
         vmaDestroyAllocator(m_Context.VmaAlloc);
         vkDestroyDevice(m_Context.Device, nullptr);
         vkDestroySurfaceKHR(m_Context.Instance, m_Context.Surface, nullptr);
@@ -424,27 +427,5 @@ namespace Coust::Render::VK
 
     void Driver::InitializationTest()
     {
-        // COLOR0 -> lighting
-        // COLOR1 -> albedo
-        // COLOR2 -> normal
-        // DEPTH
-        RenderPass::ConstructParam p 
-        {
-            .ctx = m_Context,
-            .depthFormat = VK_FORMAT_D32_SFLOAT,
-            .clearMask = AttachmentFlagBits::COLOR0 | AttachmentFlagBits::COLOR1 | 
-                         AttachmentFlagBits::COLOR2 | AttachmentFlagBits::DEPTH,
-            .discardEndMask = AttachmentFlagBits::COLOR1 | AttachmentFlagBits::COLOR2 | 
-                              AttachmentFlagBits::DEPTH,
-            .sample = VK_SAMPLE_COUNT_1_BIT,
-            .inputAttachmentMask = AttachmentFlagBits::COLOR1 | AttachmentFlagBits::COLOR2,
-            .presentMask = AttachmentFlagBits::COLOR0,
-            .dedicatedName = "Test render pass",
-        };
-        p.colorFormat[0] = VK_FORMAT_B8G8R8A8_SRGB;
-        p.colorFormat[1] = VK_FORMAT_B8G8R8A8_UNORM;
-        p.colorFormat[2] = VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-        RenderPass rp{ p };
-        COUST_CORE_INFO(RenderPass::Base::CheckValidation(rp));
     }
 }

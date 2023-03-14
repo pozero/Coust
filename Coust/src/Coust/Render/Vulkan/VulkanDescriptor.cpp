@@ -51,8 +51,8 @@ namespace Coust::Render::VK
     DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept
         : Base(std::forward<Base>(other)), Hashable(std::forward<Hashable>(other)),
           m_Set(other.m_Set), 
-          m_Bindings(other.m_Bindings), 
-          m_ResNameToBindingIdx(other.m_ResNameToBindingIdx)
+          m_Bindings(std::move(other.m_Bindings)), 
+          m_ResNameToBindingIdx(std::move(other.m_ResNameToBindingIdx))
     {
     }
 
@@ -70,9 +70,10 @@ namespace Coust::Render::VK
                                         const std::vector<ShaderResource>& shaderResources)
     {
         std::vector<VkDescriptorSetLayoutBinding> bindingsVec{};
+        bindingsVec.reserve(m_Bindings.size());
         for (const auto& res : shaderResources)
         {
-            // skip resources without binding poinshaderHasht
+            // skip resources without binding point
             if (res.Type == ShaderResourceType::Input ||
                 res.Type == ShaderResourceType::Output ||
                 res.Type == ShaderResourceType::PushConstant ||
@@ -103,7 +104,7 @@ namespace Coust::Render::VK
             }
             else 
             {
-                COUST_CORE_ERROR("There are different shader resources with the same binding while constructing {}. The binding is: Name {} -> Set {}, Binding {}", m_DebugName, res.Name, m_Set, res.Binding);
+                COUST_CORE_ERROR("There are different shader resources with the same binding while constructing {}. The conflicting binding is: Name {} -> Set {}, Binding {}", m_DebugName, res.Name, m_Set, res.Binding);
                 return false;
             }
         }
@@ -151,6 +152,7 @@ namespace Coust::Render::VK
         // Get count of each type of descriptor, this information then becomes our template to create descriptor pool
         const auto& bindings = param.layout.GetBindings();
         std::unordered_map<VkDescriptorType, uint32_t> descriptorTypeCounts{};
+        descriptorTypeCounts.reserve(bindings.size());
         for (const auto& b : bindings)
         {
             descriptorTypeCounts[b.second.descriptorType] += b.second.descriptorCount;
@@ -248,7 +250,7 @@ namespace Coust::Render::VK
             // Or there's still enough capacity to allocate new descriptor set
             else if (m_Factories[searchIdx].CurrentProductCount < m_MaxSetsPerPool)
                 break;
-            // Capacity of current descriptor pool has depleted, search for next one
+            // Capacity of current descriptor pool is depleted, search for next one
             else  
                 ++ searchIdx;
         }
@@ -317,26 +319,31 @@ namespace Coust::Render::VK
         Prepare();
     }
 
-    void DescriptorSet::ApplyWrite(const std::vector<uint32_t>& bindingsToUpdate)
+    void DescriptorSet::ApplyWrite(uint32_t bindingsToUpdateMask)
     {
-        std::vector<VkWriteDescriptorSet> writeNotYetApplied{};
-        for (size_t i = 0; i < m_Writes.size(); ++i)
+        VkWriteDescriptorSet writeNotYetApplied[sizeof(bindingsToUpdateMask)];
+        uint32_t curIdx = 0;
+        for (uint32_t i = 0; i < m_Writes.size(); ++ i)
         {
-            // if we can find the binding index in the `m_Writes`
-            if (std::find(bindingsToUpdate.begin(), bindingsToUpdate.end(), m_Writes[i].dstBinding) != bindingsToUpdate.end())
+            if (i >= sizeof(bindingsToUpdateMask))
             {
-                // not yet been applied
+                COUST_CORE_ERROR("There're more than {} binding slots, the type of binding mask should upscale");
+                continue;
+            }
+            if ((1 << i) & bindingsToUpdateMask)
+            {
                 if (!HasBeenApplied(m_Writes[i]))
                 {
-                    writeNotYetApplied.push_back(m_Writes[i]);
+                    writeNotYetApplied[curIdx++] = m_Writes[i];
                     // record this write
                     size_t hash = Hash::HashFn<VkWriteDescriptorSet>{}(m_Writes[i]);
                     m_AppliedWrites[m_Writes[i].dstBinding] = hash;
                 }
             }
         }
-        if (!writeNotYetApplied.empty())
-            vkUpdateDescriptorSets(m_Device, ToU32(writeNotYetApplied.size()), writeNotYetApplied.data(), 0, nullptr);
+
+        if (curIdx != 0)
+            vkUpdateDescriptorSets(m_Device, curIdx, writeNotYetApplied, 0, nullptr);
     }
 
     void DescriptorSet::ApplyWrite(bool overwrite)
@@ -353,6 +360,7 @@ namespace Coust::Render::VK
         else
         {
             std::vector<VkWriteDescriptorSet> writeNotYetApplied{};
+            writeNotYetApplied.reserve(m_Writes.size());
             for (size_t i = 0; i < m_Writes.size(); ++i)
             {
                 // not yet been applied
@@ -455,6 +463,7 @@ namespace Coust::Render::VK
                         .dstArrayElement = i.dstArrayIdx,
                         .descriptorCount = 1,
                         .descriptorType = bindingInfo->descriptorType,
+                        // `BoundElement<*>` is a standard-layout class type so we can convert its pointer directly to `VkDescriptorBufferInfo*`
                         .pImageInfo = (const VkDescriptorImageInfo*) &i,
                     };
                     m_Writes.push_back(write);

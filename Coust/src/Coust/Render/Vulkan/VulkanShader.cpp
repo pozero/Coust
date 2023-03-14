@@ -694,6 +694,55 @@ namespace Coust::Render::VK
         }
     }
 
+    void ShaderModule::CollectShaderResources(const std::vector<ShaderModule*> modules, 
+                                              std::vector<ShaderResource>& out_AllShaderResources, 
+                                              std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup)
+    {
+        for (const auto m : modules)
+        {
+            const auto& res = m->GetResource();
+            for (const auto& r : res)
+            {
+                auto iter = std::find_if(out_AllShaderResources.begin(), out_AllShaderResources.end(), 
+                    [&r](const ShaderResource& a) -> bool 
+                    { 
+                        const bool IsNotIO = !(a.Type == ShaderResourceType::Input || a.Type == ShaderResourceType::Output);
+                        const bool HasSameName = a.Name == r.Name;
+                        // seems that glsl just 
+                        const bool IsSameType = a.Type == r.Type;
+                        return IsNotIO && HasSameName && IsSameType;
+                    });
+                // the same resource can be referenced by different shaders, just logical or the stage flag
+                if (iter != out_AllShaderResources.end())
+                    iter->Stage |= r.Stage;
+                else
+                    out_AllShaderResources.push_back(r);
+            }
+        }
+
+        if (out_AllShaderResources.size() > sizeof(decltype(out_SetToResourceIdxLookup[0])))
+        {
+            COUST_CORE_ERROR("There're {} shader resources presenting in this group of shader modules. The value type of `out_SetToResourceIdxLookup` should upscale", out_AllShaderResources.size());
+            return;
+        }
+
+        for (size_t i = 0; i < out_AllShaderResources.size(); ++ i)
+        {
+            const auto& r = out_AllShaderResources[i];
+            // skip shader resource without bining point
+            if (r.Type == ShaderResourceType::Input ||
+                r.Type == ShaderResourceType::Output ||
+                r.Type == ShaderResourceType::PushConstant ||
+                r.Type == ShaderResourceType::SpecializationConstant)
+                continue;
+            
+            if (auto iter = out_SetToResourceIdxLookup.find(r.Set); iter != out_SetToResourceIdxLookup.end())
+                iter->second |= (1ll << i);
+            else 
+                out_SetToResourceIdxLookup[r.Set] = (1ll << i);
+        }
+    }
+
     ShaderModule::ShaderModule(ShaderModule::ConstructParm param)
         : Base(param.ctx.Device, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Stage(param.stage), m_Source(param.source)
     {

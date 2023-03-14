@@ -3,8 +3,12 @@
 #include "Coust/Render/Driver.h"
 #include "Coust/Render/Vulkan/VulkanContext.h"
 
+#include "Coust/Render/Vulkan/VulkanCommand.h"
+
 namespace Coust::Render::VK
 {
+	class CommandBufferList;
+
     class Driver : public Coust::Render::Driver
     {
 	public:
@@ -27,5 +31,8 @@ namespace Coust::Render::VK
 
     private:
         Context m_Context{};
+
+		CommandBufferList m_CommandList;
+
     };
 }

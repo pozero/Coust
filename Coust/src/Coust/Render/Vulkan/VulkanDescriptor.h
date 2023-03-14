@@ -59,9 +59,9 @@ namespace Coust::Render::VK
         struct ConstructParam
         {
             const Context&                                      ctx;
-            uint32_t                                            set;            // Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
-            const std::vector<ShaderModule*>&                   shaderModules;  // The correspondent shader modules. Passed for hashing.
-            const std::vector<ShaderResource>&                  shaderResources;// Shader resources from SPIR-V reflection contains binding information for construction.
+            uint32_t                                            set;                // Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
+            const std::vector<ShaderModule*>&                   shaderModules;      // The correspondent shader modules. Passed for hashing.
+            const std::vector<ShaderResource>&                  shaderResources;    // Shader resources from SPIR-V reflection contains binding information for construction.
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
 
@@ -140,14 +140,14 @@ namespace Coust::Render::VK
          * @param bufferInfos   Optional. If provided, then the old bufferInfos will be discarded
          * @param imageInfos    Opitonal. If provided, then the old imageInfos will be discarded
          */
-        void Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos = {}, 
-                   const std::optional<std::vector<BoundArray<Image>>>& imageInfos = {});
+        void Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos, 
+                   const std::optional<std::vector<BoundArray<Image>>>& imageInfos);
 
         /**
          * @brief Flush the write operations in the spcified bingding slot
-         * @param bindingsToUpdate Binding indices to be updated
+         * @param bindingsToUpdateMask Mask of binding indices to be updated. It supports at most 32 bindings per set (that's enough, maybe?)
          */
-        void ApplyWrite(const std::vector<uint32_t>& bindingsToUpdate);
+        void ApplyWrite(uint32_t bindingsToUpdateMask);
 
         /**
          * @brief Apply all pending write operations 

@@ -24,6 +24,6 @@ namespace Coust::Render
         bool IsInitialized() const { return m_IsInitialized; }
     
     protected:
-        bool m_IsInitialized = true;
+        bool m_IsInitialized = false;
     };
 }

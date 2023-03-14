@@ -2,109 +2,51 @@
 
 #include "Coust/Render/Vulkan/VulkanContext.h"
 
+#include <mutex>
+#include <atomic>
+#include <functional>
+
 namespace Coust::Render::VK
 {
-    class RenderPass;
-    class Framebuffer;
-    class CommandBUffer;
-    class CommandPool;
-
     /**
-     * @brief Wrapping of all vkCmd*() function.
-     *        Also tracks the pipeline state and resource (image, buffer) binding state.
+     * @brief Keep track of a list of command pools, which manages a list of command buffers
+     *        Typical usage is allocate a command pool for each frame when rendering 
      */
-    class CommandBuffer : public Resource<VkCommandBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER>
+    class CommandBufferList
     {
     public:
-        using Base = Resource<VkCommandBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER>;
+        static constexpr uint32_t COMMAND_POOL_COUNT = 3;
+        static constexpr uint32_t COMMAND_BUFFER_COUNT = 8;
 
-        enum class State 
-        {
-            Initial,
-            Recording,
-            Executable,
-            Pending,
-            Invalid,
-        };
-        
-        /**
-         * @brief Helper struct keeps track of target `RenderPass` and `Framebuffer`
-         */
-        struct RenderPassBinding
-        {
-            const RenderPass* renderPass;
-            const Framebuffer* framebuffer;
-        };
-        
     public:
-        struct ConstructParam
-        {
-            const CommandPool&      commandPool;
-            VkCommandBufferLevel    level;
-            const char*             dedicatedName = nullptr;
-            const char*             scopeName = nullptr;
-        };
-        /**
-         * @brief Constructor with default debug name
-         *
-         * @param commandPool           Command pool to allocate from
-         * @param level                 Command buffer level
-         * @param dedicatedName         Dedicated debug name, if it presents then use it
-         * @param scopeName             Scope name, provided by caller
-         */
-        CommandBuffer(ConstructParam param);
+        CommandBufferList() = default;
+        ~CommandBufferList() = default;
 
-        // Command buffers are always attached to command pools. 
-        // And we always reset the whole command pool instead of freeing or resetting command buffer individually.
-        ~CommandBuffer() = default;
+        CommandBufferList(CommandBufferList&&) = delete;
+        CommandBufferList(const CommandBufferList&) = delete;
+        CommandBufferList& operator=(CommandBufferList&&) = delete;
+        CommandBufferList& operator=(const CommandBufferList&) = delete;
 
-        CommandBuffer(CommandBuffer&& other) noexcept;
-        
-        CommandBuffer() = delete;
-        CommandBuffer(const CommandBuffer&) = delete;
-        CommandBuffer& operator=(const CommandBuffer&) = delete;
-        CommandBuffer& operator=(CommandBuffer&& other) = delete;
-        
-        State GetState() const;
-        
-        bool IsValid() const;
-    
-    public:
-        // All vkCmd* goes here
-        
+        bool Init(const Context& ctx);
+        void Shut();
+
+        void Begin();
+
+        VkCommandBuffer Get();
+
     private:
-        /**
-         * @brief Actual constructor, all construction happen here
-         * 
-         * @param commandPool 
-         * @param level 
-         * @return false if construction failed
-         */
-        bool Construct(const CommandPool& commandPool, VkCommandBufferLevel level);
-        
+        struct PerPool
+        {
+            VkCommandPool cmdPool = VK_NULL_HANDLE;
+            VkCommandBuffer cmdBuffer[COMMAND_BUFFER_COUNT]{};
+            uint32_t nextAvailableBufIdx = 0;
+        };
+
     private:
-        State m_State = State::Invalid;
-        
-        VkCommandBufferLevel m_Level;
-        
-        const CommandPool* m_CommandPoolCreatedFrom;
-        
-        RenderPassBinding m_RenderPassBinding;
-    };
-    
-    class CommandPool : public Resource<VkCommandPool, VK_OBJECT_TYPE_COMMAND_POOL>
-    {
-    public:
-        using Base = Resource<VkCommandPool, VK_OBJECT_TYPE_COMMAND_POOL>;
-        
-    public:
-        
-        ~CommandPool();
-        
-        CommandPool(CommandPool&& other);
-            
-        CommandPool() = delete;
-        CommandPool(const CommandPool&) = delete;
-        CommandPool& operator=(CommandPool&& other) = delete;
+        VkDevice m_Device = VK_NULL_HANDLE;
+
+        PerPool m_Pools[COMMAND_POOL_COUNT]{};
+
+        uint32_t m_CurPoolIdx = 0;
     };
 }

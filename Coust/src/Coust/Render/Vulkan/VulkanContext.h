@@ -5,6 +5,7 @@
 
 #include <string>
 #include <concepts>
+#include <atomic>
 
 #include "Coust/Utils/Random.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
@@ -115,7 +116,8 @@ namespace Coust::Render::VK
 		/**
 		 * @brief Set Default Debug Name
 		 * 
-         * @param scopeName     	C++ scope name, provided by the class that creates this object
+         * @param scopeName     	C++ scope name, provided by the class that uses this object 
+		 							A resource might be used by several different class, which would lead to ambiguity. So it's recommended to use a dedicated name
          * @param categoryName     	Optional. Further distinction, like that between primary command buffer and secondary command buffer
 		 * @return 
 		 */
@@ -256,7 +258,7 @@ namespace Coust::Render::VK
         }
     
     protected:
-		VkDevice m_Device = VK_NULL_HANDLE;
+		const VkDevice m_Device;
         VkHandle m_Handle = VK_NULL_HANDLE;
         std::string m_DebugName{};
     };

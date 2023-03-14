@@ -208,6 +208,18 @@ namespace Coust::Render::VK
     {
     public:
         using Base = Resource<VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE>;
+
+    public:
+        /**
+         * @brief Collect all shader resources in the shader module group and classify them according to set (if the resource has set index)
+         * 
+         * @param modules 
+         * @param out_AllShaderResources 
+         * @param out_SetToResourceIdxLookup    set -> mask of indice in `out_AllShaderResources` of all resources in this set
+         */
+        static void CollectShaderResources(const std::vector<ShaderModule*> modules, 
+                                           std::vector<ShaderResource>& out_AllShaderResources, 
+                                           std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup);
         
     public:
         struct ConstructParm

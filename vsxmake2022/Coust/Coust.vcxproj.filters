@@ -113,9 +113,6 @@ xmake version 2.7.6+master.882cb4e03
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDriver.h">
       <Filter>Coust\src\Coust\Render\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanFramebuffer.h">
-      <Filter>Coust\src\Coust\Render\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanMemory.h">
       <Filter>Coust\src\Coust\Render\Vulkan</Filter>
     </ClInclude>
@@ -191,9 +188,6 @@ xmake version 2.7.6+master.882cb4e03
       <Filter>Coust\src\Coust\Render\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDriver.cpp">
-      <Filter>Coust\src\Coust\Render\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanFramebuffer.cpp">
       <Filter>Coust\src\Coust\Render\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanMemory.cpp">

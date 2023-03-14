@@ -14,33 +14,6 @@ namespace Coust::Render::VK
 
 	class PipelineState;
 	class PipelineLayout;
-	
-	// struct VertexInputBinding
-	// {
-   	// 	uint32_t             binding;
-   	// 	uint32_t             stride;
-   	// 	VkVertexInputRate    inputRate;
-		
-	// 	auto operator<=>(const VertexInputBinding&) const = default;
-	// };
-	
-	// struct VertexInputAttribute 
-	// {
-   	// 	uint32_t    location;
-   	// 	uint32_t    binding;
-   	// 	VkFormat    format;
-   	// 	uint32_t    offset;
-		
-	// 	auto operator<=>(const VertexInputAttribute&) const = default;
-	// };
-	
-	// struct VertexInputState
-	// {
-	// 	std::vector<VertexInputBinding> 	VertexBindingDescriptions;
-	// 	std::vector<VertexInputAttribute> 	VertexAttributeDescriptions;
-		
-	// 	auto operator<=>(const VertexInputState&) const = default;
-	// };
 
 	struct InputAssemblyState 
 	{
