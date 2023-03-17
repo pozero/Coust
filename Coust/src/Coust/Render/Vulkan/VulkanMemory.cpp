@@ -2,6 +2,8 @@
 
 #include "Coust/Render/Vulkan/VulkanMemory.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
+#include "Coust/Render/Vulkan/VulkanCommand.h"
+#include "Coust/Render/Vulkan/StagePool.h"
 
 namespace Coust::Render::VK 
 {
@@ -10,6 +12,7 @@ namespace Coust::Render::VK
         switch (usage)
         {
             case Buffer::Usage::GPUOnly:
+                out_BufferFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 out_MemoryUsage = VMA_MEMORY_USAGE_AUTO;
                 out_AllocationFlags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
                 return;
@@ -27,6 +30,7 @@ namespace Coust::Render::VK
                                        VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 return;
             case Buffer::Usage::FrequentReadWrite:
+                out_BufferFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
                 out_BufferFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 out_MemoryUsage = VMA_MEMORY_USAGE_AUTO;
                 out_AllocationFlags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
@@ -34,12 +38,96 @@ namespace Coust::Render::VK
                                        VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 return;
             default:
+                out_MemoryUsage = VMA_MEMORY_USAGE_AUTO;
                 return;
         }
     }
 
-    Buffer::Buffer(ConstructParam param)
-        : Base(param.ctx.Device, VK_NULL_HANDLE), m_Size(param.size), m_VMAAllocator(param.ctx.VmaAlloc)
+    inline void GetImageConfig(Image::Type type, VkImageCreateInfo& CI, VmaAllocationCreateInfo& AI, VkImageViewType& viewType, VkImageLayout& defaultLayout, bool blitable)
+    {
+        // For the convenience of copying data between image (debug for example), the image can be blitable
+        const VkImageUsageFlags blit = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        if (blitable)
+            CI.usage |= blit;
+        
+        // https://gpuopen.com/learn/vulkan-renderpasses/
+        // Finally, Vulkan includes the concept of transient attachments. 
+        // These are framebuffer attachments that begin in an uninitialized or cleared state at the beginning of a renderpass, 
+        // are written by one or more subpasses, consumed by one or more subpasses and are ultimately discarded at the end of the renderpass. 
+        // In this scenario, the data in the attachments only lives within the renderpass and never needs to be written to main memory. 
+        // Although we'll still allocate memory for such an attachment, the data may never leave the GPU, instead only ever living in cache. 
+        // This saves bandwidth, reduces latency and improves power efficiency.
+        if (CI.usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)
+        {
+            AI.preferredFlags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+        }
+        
+        switch (type)
+        {
+            case Image::Type::CubeMap:
+                CI.arrayLayers = 6;
+                CI.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+                CI.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+                CI.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+                defaultLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
+                return;
+            case Image::Type::Texture2D:
+                CI.arrayLayers = 1;
+                CI.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+                CI.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                viewType = VK_IMAGE_VIEW_TYPE_2D;
+                defaultLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
+                return;
+            case Image::Type::DepthStencilAttachment:
+                CI.arrayLayers = 1;
+                CI.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                viewType = VK_IMAGE_VIEW_TYPE_2D;
+                defaultLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+                return;
+            case Image::Type::ColorAttachment:
+                CI.arrayLayers = 1;
+                CI.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                viewType = VK_IMAGE_VIEW_TYPE_2D;
+                defaultLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+                return;
+            case Image::Type::InputAttachment:
+                CI.arrayLayers = 1;
+                // Commonly, input attachment is also the color attachment for the previous subpass
+                CI.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                CI.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                viewType = VK_IMAGE_VIEW_TYPE_2D;
+                defaultLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+                return;
+            default: // Image::Type::None
+                AI.usage = VMA_MEMORY_USAGE_AUTO;
+                return;
+        }
+    }
+
+    const char* ToString(Image::Type type)
+    {
+        switch (type)
+        {
+            case Image::Type::CubeMap: return "CubeMap";
+            case Image::Type::Texture2D: return "Texture2D";
+            case Image::Type::InputAttachment: return "InputAttachment";
+            case Image::Type::ColorAttachment: return "ColorAttachment";
+            case Image::Type::DepthStencilAttachment: return "DepthStencilAttachment";
+            default: return "None";
+        }
+    }
+
+    Buffer::Buffer(const ConstructParam& param)
+        : Base(param.ctx, VK_NULL_HANDLE), 
+          m_Size(param.size), 
+          m_VMAAllocator(param.ctx.VmaAlloc),
+          m_Usage(param.bufferFlags)
     {
         if (Construct(param.ctx, param.bufferFlags, param.usage, param.relatedQueue))
         {
@@ -47,6 +135,9 @@ namespace Coust::Render::VK
                 SetDedicatedDebugName(param.dedicatedName);
             else if (param.scopeName)
                 SetDefaultDebugName(param.scopeName, ToString<VkBufferUsageFlags, VkBufferUsageFlagBits>(param.bufferFlags).c_str());
+            
+            if (param.usage == Usage::Readback)
+                m_UpdateMode = UpdateMode::ReadOnly;
         }
         else  
             m_Handle = VK_NULL_HANDLE;
@@ -72,11 +163,150 @@ namespace Coust::Render::VK
         }
     }
 
+    void Buffer::Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset)
+    {
+        // If the buffer is host-visible, then just use memcpy
+        if (m_Domain == MemoryDomain::DeviceOnly)
+        {
+            auto stagingBuf = stagePool.AcquireStagingBuffer(numBytes);
+            stagingBuf->Update(stagePool, data, numBytes, offset);
+            stagingBuf->Flush();
+
+            VkCommandBuffer cmdBuf = m_Ctx.CmdBufCacheGraphics->Get();
+            VkBufferCopy copyInfo 
+            {
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size = numBytes,
+            };
+            vkCmdCopyBuffer(cmdBuf, stagingBuf->GetHandle(), m_Handle, 1, &copyInfo);
+
+            // Using memory barrier to make sure the data actually reaches the memory before using it
+            if (m_Usage & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT ||
+                m_Usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
+            {
+                VkBufferMemoryBarrier2 barrier 
+                {
+                    .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                    .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    // wait for another possible upload
+                    .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT | 
+                        VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
+                    .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT | 
+                        VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_2_INDEX_READ_BIT,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .buffer = m_Handle,
+                    .offset = 0,
+                    .size = VK_WHOLE_SIZE,
+                };
+
+                VkDependencyInfo dependency 
+                {
+                    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                    .memoryBarrierCount = 0,
+                    .pMemoryBarriers = nullptr,
+                    .bufferMemoryBarrierCount = 1,
+                    .pBufferMemoryBarriers = &barrier,
+                    .imageMemoryBarrierCount = 0,
+                    .pImageMemoryBarriers = nullptr,
+                };
+
+                vkCmdPipelineBarrier2(cmdBuf, &dependency);
+            }
+
+            if (m_Usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+            {
+                VkBufferMemoryBarrier2 barrier 
+                {
+                    .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                    .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    // wait for another possible upload
+                    .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT | 
+                        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                    .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT | 
+                        VK_ACCESS_2_UNIFORM_READ_BIT,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .buffer = m_Handle,
+                    .offset = 0,
+                    .size = VK_WHOLE_SIZE,
+                };
+
+                VkDependencyInfo dependency 
+                {
+                    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                    // .dependencyFlags;
+                    .memoryBarrierCount = 0,
+                    .pMemoryBarriers = nullptr,
+                    .bufferMemoryBarrierCount = 1,
+                    .pBufferMemoryBarriers = &barrier,
+                    .imageMemoryBarrierCount = 0,
+                    .pImageMemoryBarriers = nullptr,
+                };
+
+                vkCmdPipelineBarrier2(cmdBuf, &dependency);
+            }
+
+            if (m_Usage & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+            {
+                VkBufferMemoryBarrier2 barrier 
+                {
+                    .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                    .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+
+                    // wait for another possible upload of vertex data
+                    .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT | 
+                        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                    .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT | 
+                        VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .buffer = m_Handle,
+                    .offset = 0,
+                    .size = VK_WHOLE_SIZE,
+                };
+
+                VkDependencyInfo dependency 
+                {
+                    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                    // .dependencyFlags;
+                    .memoryBarrierCount = 0,
+                    .pMemoryBarriers = nullptr,
+                    .bufferMemoryBarrierCount = 1,
+                    .pBufferMemoryBarriers = &barrier,
+                    .imageMemoryBarrierCount = 0,
+                    .pImageMemoryBarriers = nullptr,
+                };
+
+                vkCmdPipelineBarrier2(cmdBuf, &dependency);
+            }
+        }
+        else
+        {
+            std::memcpy(m_MappedData + offset, data, numBytes);
+            if (m_UpdateMode == UpdateMode::AlwaysFlush)
+                Flush();
+        }
+    }
+
+    const uint8_t* Buffer::GetMappedData() const 
+    { 
+        if (m_UpdateMode == UpdateMode::ReadOnly)
+            return m_MappedData; 
+
+        COUST_CORE_WARN("Trying to rand access a block of memory without `VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT`");
+        return nullptr;
+    }
+
     VkDeviceSize Buffer::GetSize() const { return m_Size; }
     
     VmaAllocation Buffer::GetAllocation() const { return m_Allocation; }
 
-    Buffer::Domain Buffer::GetMemoryDomain() const { return m_Domain; }
+    MemoryDomain Buffer::GetMemoryDomain() const { return m_Domain; }
     
     bool Buffer::IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
 
@@ -112,16 +342,16 @@ namespace Coust::Render::VK
         VkMemoryPropertyFlags memPropFlags;
         vmaGetAllocationMemoryProperties(m_VMAAllocator, m_Allocation, &memPropFlags);
         if (memPropFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT && memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            m_Domain = Domain::HostAndDevice;
+            m_Domain = MemoryDomain::HostAndDevice;
         else if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            m_Domain = Domain::HostOnly;
+            m_Domain = MemoryDomain::HostOnly;
         else
-            m_Domain = Domain::DeviceOnly;
+            m_Domain = MemoryDomain::DeviceOnly;
 
         if (memPropFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
             m_UpdateMode = UpdateMode::AutoFlush;
         
-        if (m_Domain != Domain::DeviceOnly && allocationFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT)
+        if (m_Domain != MemoryDomain::DeviceOnly && allocationFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT)
             m_MappedData = (uint8_t*) ai.pMappedData;
 
         return true;
@@ -129,7 +359,7 @@ namespace Coust::Render::VK
     
     void Buffer::SetAlwaysFlush(bool shouldAlwaysFlush)
     {
-        if (m_UpdateMode == UpdateMode::AutoFlush)
+        if (m_UpdateMode == UpdateMode::AutoFlush || m_UpdateMode == UpdateMode::ReadOnly)
             return;
         m_UpdateMode = shouldAlwaysFlush ? UpdateMode::AlwaysFlush : UpdateMode::FlushOnDemand;
     }
@@ -139,251 +369,352 @@ namespace Coust::Render::VK
         vmaFlushAllocation(m_VMAAllocator, m_Allocation, 0, m_Size);
     }
 
-    inline VkImageType GetImageType(VkExtent3D& extent)
-    {
-        uint32_t dimensionCount = 0;
-        if (extent.height >= 1)
-            ++ dimensionCount;
-        if (extent.width >= 1)
-            ++ dimensionCount;
-        if (extent.depth > 1)
-            ++ dimensionCount;
-
-        switch (dimensionCount)
-        {
-            case 1:
-                return VK_IMAGE_TYPE_1D;
-            case 2:
-                return VK_IMAGE_TYPE_2D;
-            case 3:
-                return VK_IMAGE_TYPE_3D;
-            default:
-                COUST_CORE_WARN("Can't find appropriate image type based on its extent, which has no dimension");
-                return VK_IMAGE_TYPE_MAX_ENUM;
-        }
-    }
-
-    Image::Image(ConstructParam param)
-        : Resource(param.ctx.Device, VK_NULL_HANDLE), 
-          m_Extent(param.extent),
-          m_SubResource{ 0, param.mipLevels, param.arrayLayers },
+    Image::Image(const ConstructParam_Create& param)
+        : Base(param.ctx, VK_NULL_HANDLE),
+          m_Extent{ param.width, param.height, 1 },
+        //   m_WholeSubRange(),
+        //   m_PrimarySubRange(),
+        //   m_Allocation(),
           m_Format(param.format),
-          m_VMAAllocator(param.ctx.VmaAlloc),
-          m_ImageUsage(param.imageUsage),
+        //   m_ViewType(),
           m_SampleCount(param.samples),
-          m_Tiling(param.tiling)
+          m_MipLevelCount(param.mipLevels)
     {
-        if (param.mipLevels == 0 || param.arrayLayers == 0)
+        VkImageCreateInfo CI 
         {
-            COUST_CORE_ERROR("Image should have at least one mip level and one array layer.");
-            return;
-        }
-        m_Type = GetImageType(param.extent);
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .flags = param.createFlags,
+            // TODO: for now, we hard coded the imageType as `VK_IMAGE_TYPE_2D`
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = param.format,
+            .extent = m_Extent,
+            .mipLevels = param.mipLevels,
+            .arrayLayers = 0,
+            .samples = param.samples,
+            .tiling = param.tiling,
+            .usage = param.usageFlags,
+            .initialLayout = param.initialLayout
+        };
 
-        // TODO: Now the VmaMemoryUsage and VmaAllocationCreateFlags are fixed. We need some kind of image usage enum class later on.
-        if (Construct(param.flags, VMA_MEMORY_USAGE_AUTO, 0, param.initialLayout, param.relatedQueues))
+        if (param.relatedQueues && param.relatedQueues->size() > 1)
+        {
+            CI.sharingMode = VK_SHARING_MODE_CONCURRENT;
+            CI.queueFamilyIndexCount = (uint32_t) param.relatedQueues->size();
+            CI.pQueueFamilyIndices = param.relatedQueues->data();
+        }
+
+        VmaAllocationCreateInfo AI{};
+
+        // TODO: for now we hard coded the blitable var as true
+        GetImageConfig(param.type, CI, AI, m_ViewType, m_DefaultLayout, true);
+
+        m_PrimarySubRange.aspectMask = IsDepthStencilFormat(param.format) ? 
+            VK_IMAGE_ASPECT_DEPTH_BIT : 
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        m_PrimarySubRange.baseArrayLayer = 0;
+        m_PrimarySubRange.layerCount = CI.arrayLayers;
+        m_PrimarySubRange.baseMipLevel = 0;
+        m_PrimarySubRange.levelCount = CI.mipLevels;
+
+        bool success = false;
+        VmaAllocationInfo info{};
+        VK_REPORT(vmaCreateImage(m_Ctx.VmaAlloc, &CI, &AI, &m_Handle, &m_Allocation, &info), success);
+
+        // create image view for the primary subresource range
+        GetView(m_PrimarySubRange);
+
+        if (success)
         {
             if (param.dedicatedName)
                 SetDedicatedDebugName(param.dedicatedName);
             else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, ToString<VkImageUsageFlags, VkImageUsageFlagBits>(param.imageUsage).c_str());
+                SetDefaultDebugName(param.scopeName, ToString(param.type));
+            else  
+                COUST_CORE_WARN("Image created without a debug name");
         }
         else  
             m_Handle = VK_NULL_HANDLE;
     }
 
+    Image::Image(const ConstructParam_Wrap& param)
+        : Base(param.ctx, param.handle),
+          m_Extent(param.extent),
+          m_Format(param.format),
+          m_SampleCount(param.samples),
+          // we won't sample this image, so this is just a dummy value
+          m_MipLevelCount(0)
+    {
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, nullptr);
+    }
+
     Image::Image(Image&& other) noexcept
         : Base(std::forward<Base>(other)),
-          m_ViewsAttached(other.m_ViewsAttached),
+          m_CachedImageView(std::move(other.m_CachedImageView)),
+          m_SubRangeLayouts(std::move(other.m_SubRangeLayouts)),
+          m_MSAAImage(std::move(other.m_MSAAImage)),
           m_Extent(other.m_Extent),
-          m_SubResource(other.m_SubResource),
+          m_PrimarySubRange(other.m_PrimarySubRange),
           m_Format(other.m_Format),
-          m_VMAAllocator(other.m_VMAAllocator),
           m_Allocation(other.m_Allocation),
-          m_ImageUsage(other.m_ImageUsage),
-          m_Type(other.m_Type),
+          m_ViewType(other.m_ViewType),
           m_SampleCount(other.m_SampleCount),
-          m_Tiling(other.m_Tiling)
+          m_MipLevelCount(other.m_MipLevelCount)
     {
-        other.m_Allocation = VK_NULL_HANDLE;
-        for (auto v : m_ViewsAttached)
+    }
+
+    Image::~Image()
+    {
+        // if we perform the actual allocation, then it's our responsiblity to destroy it
+        if (m_Allocation != VK_NULL_HANDLE)
+            vmaDestroyImage(m_Ctx.VmaAlloc, m_Handle, m_Allocation);
+    }
+
+    void Image::Update(StagePool& stagePool, const UpdateParam& p)
+    {
+        VkFormat linearFormat = UnpackSRGBFormat(m_Format);
+        size_t dataSize = p.width * p.height * GetBytePerPixelFromFormat(p.dataFormat);
+        VkCommandBuffer cmdBuf = m_Ctx.CmdBufCacheGraphics->Get();
+        VkImageAspectFlags aspect = IsDepthStencilFormat(m_Format) ? 
+            VK_IMAGE_ASPECT_DEPTH_BIT : 
+            VK_IMAGE_ASPECT_COLOR_BIT;
+
+        const bool needFormatConversion = p.dataFormat != VK_FORMAT_UNDEFINED && p.dataFormat != linearFormat;
+        const bool needResizing = p.width != m_Extent.width || p.height != m_Extent.height;
+        // If format conversion or resizing is needed, we use blit
+        if (needFormatConversion || needResizing)
         {
-            v->SetImage(*this);
+            auto stagingImg = stagePool.AcquireStagingImage(p.dataFormat, p.width, p.height);
+            stagingImg->Update(p.data, dataSize);
+
+            // we always copy from entrie region to entire region
+            VkOffset3D srcRect[2] = { { 0, 0, 0 }, { int32_t(p.width), int32_t(p.height), 1 }};
+            VkOffset3D dstRect[2] = { { 0, 0, 0 }, { int32_t(m_Extent.width), int32_t(m_Extent.height), 1}};
+            VkImageBlit blitInfo 
+            {
+                .srcSubresource = 
+                {
+                    .aspectMask = aspect,
+                    .mipLevel = 0,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+                .srcOffsets = { srcRect[0], srcRect[1] },
+                .dstSubresource = 
+                {
+                    .aspectMask = aspect,
+                    .mipLevel = p.dstImageMipmapLevel,
+                    .baseArrayLayer = p.dstImageLayer,
+                    .layerCount = p.dstImageLayerCount,
+                },
+                .dstOffsets= { dstRect[0], dstRect[1] },
+            };
+
+            VkImageSubresourceRange range
+            {
+                .aspectMask = aspect,
+                .baseMipLevel = p.dstImageMipmapLevel,
+                .levelCount = 1,
+                .baseArrayLayer = p.dstImageLayer,
+                .layerCount = p.dstImageLayerCount,
+            };
+
+            TransitionLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, range);
+            vkCmdBlitImage(cmdBuf, stagingImg->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+                m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blitInfo, VK_FILTER_NEAREST);
+            TransitionLayout(cmdBuf, m_DefaultLayout, range);
         }
+        // Or we can directly copy it from buffer
+        else  
+        {
+            auto stagingBuf = stagePool.AcquireStagingBuffer(dataSize);
+            stagingBuf->Update(stagePool, p.data, dataSize);
+
+            VkBufferImageCopy copyInfo 
+            {
+                .bufferOffset = 0,
+                .bufferRowLength = 0,
+                .bufferImageHeight = 0,
+                .imageSubresource = 
+                {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .mipLevel = p.dstImageMipmapLevel,
+                    .baseArrayLayer = p.dstImageLayer,
+                    .layerCount = p.dstImageLayerCount,
+                },
+                .imageOffset = { 0, 0, 0 },
+                .imageExtent = { p.width, p.height, 1 },
+            };
+
+            VkImageSubresourceRange range
+            {
+                .aspectMask = aspect,
+                .baseMipLevel = p.dstImageMipmapLevel,
+                .levelCount = 1,
+                .baseArrayLayer = p.dstImageLayer,
+                .layerCount = p.dstImageLayerCount,
+            };
+
+            TransitionLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, range);
+            vkCmdCopyBufferToImage(cmdBuf, stagingBuf->GetHandle(), m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyInfo);
+            TransitionLayout(cmdBuf, m_DefaultLayout, range);
+        }
+    }
+
+    void Image::TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange)
+    {
+        const uint32_t layerFirst = subRange.baseArrayLayer;
+        const uint32_t layerLast = subRange.baseArrayLayer + subRange.layerCount - 1;
+        const uint32_t levelFirst = subRange.baseMipLevel;
+        const uint32_t levelLast = subRange.baseMipLevel + subRange.levelCount - 1;
+        const VkImageLayout oldLayout = GetLayout(layerFirst, levelFirst);
+
+        // Check if the layout in the `subRange` is consistent
+        if (oldLayout != VK_IMAGE_LAYOUT_UNDEFINED) 
+        {
+            for (uint32_t layer = layerFirst; layer <= layerLast; ++ layer)
+            {
+                for (uint32_t level = levelFirst; level <= levelLast; ++ level)
+                {
+                    if (GetLayout(layer, level) != oldLayout)
+                    {
+                        COUST_CORE_ERROR("Try to transition image subresource with inconsisitent image layouts");
+                        return;
+                    }
+                }
+            }
+        }
+
+        TransitionImageLayout(cmdBuf, ImageBlitTransition( 
+            VkImageMemoryBarrier2
+            {
+                .oldLayout = oldLayout,
+                .newLayout = newLayout,
+                .image = m_Handle,
+                .subresourceRange = subRange,
+            }));
+
+        // clear the old layout for undefined new layout
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+            for (uint32_t layer = layerFirst; layer <= layerLast; ++layer)
+            {
+                auto iterFirst = m_SubRangeLayouts.lower_bound((layer << 16) | levelFirst);
+                auto iterLast = m_SubRangeLayouts.upper_bound((layer << 16) | levelLast);
+                m_SubRangeLayouts.erase(iterFirst, iterLast);
+            }
+        }
+        // change the old layout to the new layout
+        else 
+        {
+            for (uint32_t layer = layerFirst; layer <= layerLast; ++layer)
+            {
+                for (uint32_t level = levelFirst; level <= levelLast; ++level)
+                {
+                    m_SubRangeLayouts[(layer << 16) | level] = newLayout;
+                }
+            }
+        }
+    }
+
+    VkImageLayout Image::GetLayout(uint32_t layer, uint32_t level) const
+    {
+        const uint32_t key = (layer << 16) | level;
+        auto iter = m_SubRangeLayouts.find(key);
+        if (iter != m_SubRangeLayouts.end())
+            return iter->second;
+        else
+            return VK_IMAGE_LAYOUT_UNDEFINED;
+    }
+
+    void Image::ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout)
+    {
+        const uint32_t key = (layer << 16) | level;
+        if (newLayout == VK_IMAGE_LAYOUT_UNDEFINED) 
+        {
+            if (auto iter = m_SubRangeLayouts.find(key); iter != m_SubRangeLayouts.end())
+                m_SubRangeLayouts.erase(iter);
+        }
+        else 
+        {
+            m_SubRangeLayouts[key] = newLayout;
+        }
+    }
+
+    std::shared_ptr<Image::View> Image::GetView(VkImageSubresourceRange subRange)
+    {
+        if (auto iter = m_CachedImageView.find(subRange); iter != m_CachedImageView.end())
+        {
+            return iter->second;
+        }
+
+        std::shared_ptr<View> v;
+        View::ConstructParam p 
+        {
+            .ctx = m_Ctx,
+            .image = *this,
+            .type = m_ViewType,
+            .subRange = subRange,
+            .scopeName = m_DebugName.c_str(),
+        };
+        if (!View::Base::Create(v, p))
+            return nullptr;
+        
+        m_CachedImageView[subRange] = v;
+        return v;
+    }
+
+    VkImageLayout Image::GetPrimaryLayout() const
+    {
+        return GetLayout(m_PrimarySubRange.baseArrayLayer, m_PrimarySubRange.baseMipLevel);
+    }
+
+    std::shared_ptr<Image::View> Image::GetPrimaryView()
+    {
+        return m_CachedImageView.at(m_PrimarySubRange);
+    }
+
+    VkImageSubresourceRange Image::GetPrimarySubRange() const { return m_PrimarySubRange; }
+
+    void Image::SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel)
+    {
+        maxMipmaplevel = std::min(maxMipmaplevel, m_MipLevelCount - 1);
+        m_PrimarySubRange.baseMipLevel = minMipmapLevel;
+        m_PrimarySubRange.levelCount = maxMipmaplevel - minMipmapLevel + 1;
+        GetView(m_PrimarySubRange);
     }
 
     VkExtent3D Image::GetExtent() const { return m_Extent; }
 
     VkFormat Image::GetFormat() const { return m_Format; }
 
-    VkImageUsageFlags Image::GetUsage() const { return m_ImageUsage; }
-
-    VkImageType Image::GetType() const { return m_Type; }
+    VmaAllocation Image::GetAllocation() const { return m_Allocation; }
 
     VkSampleCountFlagBits Image::GetSampleCount() const { return m_SampleCount; }
 
-    VkImageTiling Image::GetTiling() const { return m_Tiling; }
+    std::shared_ptr<Image> Image::GetMSAAImage() const { return m_MSAAImage; }
 
-    VkImageSubresource Image::GetSubResource() const { return m_SubResource; }
+    void Image::SetMASSImage(std::shared_ptr<Image> msaaImage) { m_MSAAImage = msaaImage; } 
 
-    VmaAllocation Image::GetAllocation() const { return m_Allocation; }
-
-    const std::unordered_set<ImageView*> Image::GetAttachedView() const { return m_ViewsAttached; }
-
-    bool Image::IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
-
-    bool Image::Construct(VkImageCreateFlags              flags,
-                          VmaMemoryUsage                  memoryUsage,
-                          VmaAllocationCreateFlags        allocationFlags,
-                          VkImageLayout                   initialLayout,
-                          const std::vector<uint32_t>*    relatedQueues)
+    Image::View::View(const ConstructParam& param)
+        : Base(param.ctx, VK_NULL_HANDLE), 
+          m_Image(param.image)
     {
-        VkImageCreateInfo ci 
-        {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .flags = flags,
-            .imageType = m_Type,
-            .format = m_Format,
-            .extent = m_Extent,
-            .mipLevels = m_SubResource.mipLevel,
-            .arrayLayers = m_SubResource.arrayLayer,
-            .samples = m_SampleCount,
-            .tiling = m_Tiling,
-            .usage = m_ImageUsage,
-            .initialLayout = initialLayout,
-        };
-        if (relatedQueues && relatedQueues->size() > 1)
-        {
-            ci.sharingMode = VK_SHARING_MODE_CONCURRENT;
-            ci.queueFamilyIndexCount = (uint32_t) relatedQueues->size();
-            ci.pQueueFamilyIndices = relatedQueues->data();
-        }
-
-        VmaAllocationCreateInfo ai 
-        {
-            .flags = allocationFlags,
-            .usage = memoryUsage,
-        };
-        // https://gpuopen.com/learn/vulkan-renderpasses/
-        // Finally, Vulkan includes the concept of transient attachments. 
-        // These are framebuffer attachments that begin in an uninitialized or cleared state at the beginning of a renderpass, 
-        // are written by one or more subpasses, consumed by one or more subpasses and are ultimately discarded at the end of the renderpass. 
-        // In this scenario, the data in the attachments only lives within the renderpass and never needs to be written to main memory. 
-        // Although we��ll still allocate memory for such an attachment, the data may never leave the GPU, instead only ever living in cache. 
-        // This saves bandwidth, reduces latency and improves power efficiency.
-        if (m_ImageUsage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)
-        {
-            ai.preferredFlags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
-        }
-
-        // reserved for future use
-        VmaAllocationInfo info{};
-
-        VK_CHECK(vmaCreateImage(m_VMAAllocator, &ci, &ai, &m_Handle, &m_Allocation, &info));
-        return true;
-    }
-
-    void Image::EraseView(ImageView* view) { m_ViewsAttached.erase((ImageView*) this); }
-
-    void Image::AddView(ImageView* view) { m_ViewsAttached.emplace(view); }
-
-    Image::~Image()
-    {
-        if (IsValid())
-            vmaDestroyImage(m_VMAAllocator, m_Handle, m_Allocation);
-        for (auto v : m_ViewsAttached)
-            v->InValidate();
-    }
-
-    ImageView::ImageView(ConstructParam param)
-        : Base(param.ctx.Device, VK_NULL_HANDLE), 
-          m_Format(param.format), 
-          m_SubresourceRange{ 
-            param.aspectMask,
-            param.baseMipLevel,
-            param.levelCount,
-            param.baseArrayLayer,
-            param.layerCount
-          },
-          m_Image(&param.image)
-    {
-        if (param.layerCount == 0 || param.levelCount == 0)
+        if (param.subRange.layerCount == 0 || param.subRange.levelCount == 0)
         {
             COUST_CORE_ERROR("Can't create image view with 0 mipmap level count or 0 array layer count");
             return;
         }
-
-        // use the format of the image it attached to 
-        if (param.format == VK_FORMAT_UNDEFINED)
-            m_Format = param.image.GetFormat();
-
-        // if the value of `levelCount` or `layerCount` is `VK_REMAINING_MIP_LEVELS` or `VK_REMAINING_ARRAY_LAYERS` (both are ~0u), calculate the actual count
-        m_SubresourceRange.levelCount = param.levelCount == VK_REMAINING_MIP_LEVELS ? 
-            param.image.GetSubResource().mipLevel - param.baseMipLevel : 
-            param.levelCount;
-        m_SubresourceRange.layerCount = param.layerCount == VK_REMAINING_ARRAY_LAYERS ? 
-            param.image.GetSubResource().arrayLayer - param.baseArrayLayer : 
-            param.layerCount;
-
-        if (Construct(param.ctx, param.type))
-        {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, param.image.m_DebugName.c_str());
-
-            m_IsValid = true;
-
-            m_Image->AddView(this);
-        }
-        else
-            m_Handle = VK_NULL_HANDLE;
-    }
-
-    ImageView::~ImageView()
-    {
-        if (m_Image)
-            m_Image->EraseView(this);
-
-        if (m_Handle != VK_NULL_HANDLE)
-        {
-            m_IsValid = false;
-            vkDestroyImageView(m_Device, m_Handle, nullptr);
-        }
-    }
-
-    ImageView::ImageView(ImageView&& other) noexcept
-        : Base(std::forward<Base>(other)),
-        m_Format(other.m_Format),
-        m_SubresourceRange(other.m_SubresourceRange)
-    {
-        std::swap(m_Image, other.m_Image);
-        if (other.m_IsValid)
-        {
-            m_Image->EraseView(&other);
-            other.m_IsValid = false;
-            m_IsValid = true;
-            m_Image->AddView(this);
-        }
-    }
-
-    VkFormat ImageView::GetFormat() const { return m_Format; }
-
-    VkImageSubresourceRange ImageView::GetSubresourceRange() const { return m_SubresourceRange; }
-
-    const Image* ImageView::GetImage() const { return m_Image; }
-
-    bool ImageView::IsValid() const { return m_IsValid; }
-
-    bool ImageView::Construct(const Context& ctx, VkImageViewType type)
-    {
+            
         VkImageViewCreateInfo ci
         {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .flags = 0,
-            .image = m_Image->GetHandle(),
-            .viewType = type,
-            .format = m_Format,
+            .image = m_Image.GetHandle(),
+            .viewType = param.type,
+            .format = m_Image.GetFormat(),
             .components = 
             {
                 .r = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -391,19 +722,121 @@ namespace Coust::Render::VK
                 .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .a = VK_COMPONENT_SWIZZLE_IDENTITY,
             },
-            .subresourceRange = m_SubresourceRange,
+            .subresourceRange = param.subRange,
         };
 
-        VK_CHECK(vkCreateImageView(m_Device, &ci, nullptr, &m_Handle));
+        bool success = false;
+        VK_REPORT(vkCreateImageView(m_Ctx.Device, &ci, nullptr, &m_Handle), success);
 
-        return true;
+        if (success)
+        {
+            if (param.dedicatedName)
+                SetDedicatedDebugName(param.dedicatedName);
+            else if (param.scopeName)
+                SetDefaultDebugName(param.scopeName, param.image.m_DebugName.c_str());
+        }
+        else
+            m_Handle = VK_NULL_HANDLE;
     }
 
-    void ImageView::InValidate() 
-    { 
-        m_IsValid = false;  
-        m_Image = nullptr;
+    Image::View::~View()
+    {
+        if (m_Handle != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(m_Ctx.Device, m_Handle, nullptr);
+        }
     }
 
-    void ImageView::SetImage(Image& image) { m_Image = &image; }
+    const Image& Image::View::GetImage() const { return m_Image; }
+
+    HostImage::HostImage(const ConstructParam& param)
+        : Base(param.ctx, VK_NULL_HANDLE), m_Format(param.format)
+    {
+        VkImageCreateInfo CI
+        {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = param.format,
+            .extent = 
+            {
+                .width = param.width,
+                .height = param.height,
+                .depth = 1,
+            },
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_LINEAR,
+            .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+
+        VmaAllocationCreateInfo AI 
+        {
+            .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+            .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+        };
+
+        bool success = false;
+        VmaAllocationInfo allocInfo{};
+        VK_REPORT(vmaCreateImage(m_Ctx.VmaAlloc, &CI, &AI, &m_Handle, &m_Allocation, &allocInfo), success);
+
+        m_MappedData = allocInfo.pMappedData;
+
+        if (!success)
+        {
+            m_Handle = VK_NULL_HANDLE;
+            m_Allocation = VK_NULL_HANDLE;
+            return;
+        }
+
+        auto aspect = GetAspect();
+
+        TransitionImageLayout(m_Ctx.CmdBufCacheGraphics->Get(), ImageBlitTransition(
+            VkImageMemoryBarrier2
+            {
+                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                .image = m_Handle,
+                .subresourceRange = 
+                {
+                    .aspectMask = aspect,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            }));
+
+        SetDefaultDebugName("StagePool", nullptr);
+    }
+
+
+    HostImage::~HostImage()
+    {
+        if (m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyImage(m_Ctx.VmaAlloc, m_Handle, m_Allocation);
+        }
+    }
+
+    void HostImage::Update(const void* data, size_t size)
+    {
+        memcpy(m_MappedData, data, size);
+        // auto flush
+        vmaFlushAllocation(m_Ctx.VmaAlloc, m_Allocation, 0, size);
+    }
+
+    VkImageAspectFlags HostImage::GetAspect() const
+    {
+        return IsDepthStencilFormat(m_Format) ? 
+            VK_IMAGE_ASPECT_DEPTH_BIT : 
+            VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
+    VkFormat HostImage::GetFormat() const { return m_Format; }
+
+    uint32_t HostImage::GetWidth() const { return m_Width; }
+
+    uint32_t HostImage::GetHeight() const { return m_Height; }
 }

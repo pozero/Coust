@@ -214,6 +214,9 @@ xmake version 2.7.6+master.882cb4e03
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanUtils.cpp">
       <Filter>Coust\src\Coust\Render\Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\stb_image_impl.cpp">
+      <Filter>Coust\src\Coust\Render</Filter>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileSystem.cpp">
       <Filter>Coust\src\Coust\Utils</Filter>
     </ClCompile>

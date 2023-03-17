@@ -17,6 +17,8 @@
 
 #include <random>
 
+#include <map>
+#include <list>
 #include <vector>
 #include <queue>
 #include <unordered_map>

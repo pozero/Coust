@@ -8,11 +8,11 @@
 
 namespace Coust::Render::VK 
 {
-	RenderPass::RenderPass(ConstructParam p)
-        : Base(p.ctx.Device, VK_NULL_HANDLE),
+	RenderPass::RenderPass(const ConstructParam& p)
+        : Base(p.ctx, VK_NULL_HANDLE),
           Hashable(p.GetHash())
     {
-        if (Construct(p.colorFormat, p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask, p.presentMask))
+        if (Construct(&p.colorFormat[0], p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask, p.presentMask))
         {
             if (p.dedicatedName)
                 SetDedicatedDebugName(p.dedicatedName);
@@ -34,10 +34,10 @@ namespace Coust::Render::VK
 	RenderPass::~RenderPass()
     {
         if (m_Handle != VK_NULL_HANDLE)
-            vkDestroyRenderPass(m_Device, m_Handle, nullptr);
+            vkDestroyRenderPass(m_Ctx.Device, m_Handle, nullptr);
     }
 
-    bool RenderPass::Construct( VkFormat colorFormat[MAX_ATTACHMENT_COUNT],
+    bool RenderPass::Construct( const VkFormat* colorFormat,
                                 VkFormat depthFormat,
                                 AttachmentFlags clearMask,
                                 AttachmentFlags discardStartMask,
@@ -230,12 +230,12 @@ namespace Coust::Render::VK
         }
 
         renderPassCI.attachmentCount = curAttachmentIdx;
-        VK_CHECK(vkCreateRenderPass(m_Device, &renderPassCI, nullptr, &m_Handle));
+        VK_CHECK(vkCreateRenderPass(m_Ctx.Device, &renderPassCI, nullptr, &m_Handle));
         return true;
     }
 
-    Framebuffer::Framebuffer(ConstructParam p)
-        : Base(p.ctx.Device, VK_NULL_HANDLE), 
+    Framebuffer::Framebuffer(const ConstructParam& p)
+        : Base(p.ctx, VK_NULL_HANDLE), 
           Hashable(p.GetHash())
     {
         if (Construction(p.ctx, p.renderPass, p.width, p.height, p.layers, p.color, p.resolve, p.depth))
@@ -260,7 +260,7 @@ namespace Coust::Render::VK
     Framebuffer::~Framebuffer()
     {
         if (m_Handle != VK_NULL_HANDLE)
-            vkDestroyFramebuffer(m_Device, m_Handle, nullptr);
+            vkDestroyFramebuffer(m_Ctx.Device, m_Handle, nullptr);
     }
 
     bool Framebuffer::Construction(const Context& ctx, 
@@ -268,9 +268,9 @@ namespace Coust::Render::VK
                                    uint32_t width, 
                                    uint32_t height, 
                                    uint32_t layers, 
-                                   ImageView* color[MAX_ATTACHMENT_COUNT],
-                                   ImageView* resolve[MAX_ATTACHMENT_COUNT],
-                                   ImageView* depth)
+						           Image::View * const (&color)[MAX_ATTACHMENT_COUNT],
+						           Image::View * const (&resolve)[MAX_ATTACHMENT_COUNT],
+                                   Image::View* depth)
     {
         // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
         // Note: this array has the same order as the render pass it attaches to
@@ -303,7 +303,7 @@ namespace Coust::Render::VK
             .layers = layers,
         };
 
-        VK_CHECK(vkCreateFramebuffer(m_Device, &ci, nullptr, &m_Handle));
+        VK_CHECK(vkCreateFramebuffer(m_Ctx.Device, &ci, nullptr, &m_Handle));
         return true;
     }
 

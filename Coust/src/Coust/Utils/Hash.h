@@ -98,7 +98,7 @@ namespace Coust
             }
             
             bool operator()(const T& lhs, const T& rhs) const noexcept
-                requires Murmur3Hashable<T>
+                requires (!Comparable<T> && Murmur3Hashable<T>)
             {
                 auto l = (const uint32_t*) &lhs;
                 auto r = (const uint32_t*) &rhs;

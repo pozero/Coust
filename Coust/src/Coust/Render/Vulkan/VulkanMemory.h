@@ -1,15 +1,30 @@
 #pragma once
 
 #include "Coust/Render/Vulkan/VulkanContext.h"
+#include "Coust/Utils/Hash.h"
 
-#include <unordered_set>
+#include <map>
+#include <unordered_map>
 
 namespace Coust::Render::VK 
 {
     class Buffer;
     class Image;
-    class ImageView;
     class StagePool;
+        
+    enum class MemoryDomain
+    {
+        HostOnly,
+        DeviceOnly,
+        // In both cases, the memory can be visible on both host side & device side:
+        //      1. On systems with unified memory (e.g. AMD APU or Intel integrated graphics, mobile chips), 
+        //         a memory type may be available that is both HOST_VISIBLE (available for mapping) and DEVICE_LOCAL (fast to access from the GPU).
+        //      2. Systems with a discrete graphics card and separate video memory may or may not expose a memory type that is both HOST_VISIBLE and DEVICE_LOCAL, 
+        //         also known as Base Address Register (BAR). 
+        //         Writes performed by the host to that memory go through PCI Express bus. The performance of these writes may be limited, 
+        //         but it may be fine, especially on PCIe 4.0, as long as rules of using uncached and write-combined memory are followed - only sequential writes and no reads.
+        HostAndDevice,
+    };
 
     class Buffer : public Resource<VkBuffer, VK_OBJECT_TYPE_BUFFER>
     {
@@ -18,21 +33,7 @@ namespace Coust::Render::VK
 
         // The classification comes from the VMA official manual: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
         
-        enum class Domain 
-        {
-            HostOnly,
-            DeviceOnly,
-            // In both cases, the memory can be visible on both host side & device side:
-            //      1. On systems with unified memory (e.g. AMD APU or Intel integrated graphics, mobile chips), 
-            //         a memory type may be available that is both HOST_VISIBLE (available for mapping) and DEVICE_LOCAL (fast to access from the GPU).
-            //      2. Systems with a discrete graphics card and separate video memory may or may not expose a memory type that is both HOST_VISIBLE and DEVICE_LOCAL, 
-            //         also known as Base Address Register (BAR). 
-            //         Writes performed by the host to that memory go through PCI Express bus. The performance of these writes may be limited, 
-            //         but it may be fine, especially on PCIe 4.0, as long as rules of using uncached and write-combined memory are followed - only sequential writes and no reads.
-            HostAndDevice,
-        };
-        
-        enum class Usage 
+        enum class Usage
         {
             // Any resources that you frequently write and read on GPU, 
             // e.g. images used as color attachments (aka "render targets"), depth-stencil attachments, 
@@ -49,6 +50,10 @@ namespace Coust::Render::VK
         
         enum class UpdateMode
         {
+            // If the buffer is used for read purpose
+
+            ReadOnly,
+
             // If the memory is `HOST_VISIBLE` but not `HOST_COHERENT`, then we can choose from them to alleviate cache pressure strategically
         
             // The `Update()` function will always flush after copy
@@ -71,7 +76,7 @@ namespace Coust::Render::VK
             const char*                         scopeName = nullptr;
             const char*                         dedicatedName = nullptr;
         };
-        Buffer(ConstructParam param);
+        Buffer(const ConstructParam& param);
 
         ~Buffer();
 
@@ -92,40 +97,34 @@ namespace Coust::Render::VK
          */
         void Flush() const;
         
-        // Update func for host-visible buffer
         template<typename T>
-        void Update(const T& obj, size_t offset = 0)
+        void Update(StagePool& stagePool, const T& obj, size_t offset = 0)
         {
-            update(&obj, 1, offset);
+            Update(stagePool, (const void*) &obj, sizeof(T), offset);
         }
         
         template<typename T>
-        void Update(const std::vector<T>& data, size_t offset = 0)
+        void Update(StagePool& stagePool, const std::vector<T>& data, size_t offset = 0)
         {
-            update(data.data(), data.size(), offset);
+            Update(stagePool, (const void*) data.data(), sizeof(T) * data.size(), offset);
         }
         
         template<typename T>
-        void Update(const T* data, size_t count, size_t offset = 0)
+        void Update(StagePool& stagePool, const T* data, size_t count, size_t offset = 0)
         {
-            if (m_Domain != Domain::DeviceOnly)
-            {
-                std::memcpy(m_MappedData + offset, data, count * sizeof(T));
-                if (m_UpdateMode == UpdateMode::AlwaysFlush)
-                    Flush();
-            }
-            else
-                COUST_CORE_WARN("Try to update a memory without `VK_MEMORY_PROPERTY_HOST_VISIBLE`");
+            Update(stagePool, (const void*) data, count * sizeof(T), offset);
         }
 
-        // TODO: All kinds of memory usage the code provides now don't support random access, comment it for now
-        // const uint8_t* GetMappedData() const { return m_MappedData; }
+        // the update will check the memory domain and decide whether to use a staging buffer to update its content
+        void Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset = 0);
+
+        const uint8_t* GetMappedData() const;
 
 		VkDeviceSize GetSize() const;
 		
 		VmaAllocation GetAllocation() const;
 
-        Domain GetMemoryDomain() const;
+        MemoryDomain GetMemoryDomain() const;
         
         bool IsValid() const;
         
@@ -144,7 +143,9 @@ namespace Coust::Render::VK
 
         uint8_t* m_MappedData = nullptr;
 
-        Domain m_Domain;
+        VkBufferUsageFlags m_Usage;
+
+        MemoryDomain m_Domain;
 
         UpdateMode m_UpdateMode = UpdateMode::AlwaysFlush;
     };
@@ -154,16 +155,58 @@ namespace Coust::Render::VK
     public:
         using Base = Resource<VkImage, VK_OBJECT_TYPE_IMAGE>;
 
+        enum class Type 
+        {
+            CubeMap,
+            Texture2D,
+            DepthStencilAttachment,
+            ColorAttachment,
+            InputAttachment,
+        };
+
+        class View : public Resource<VkImageView, VK_OBJECT_TYPE_IMAGE_VIEW>
+        {
+        public:
+            using Base = Resource<VkImageView, VK_OBJECT_TYPE_IMAGE_VIEW>;
+
+        public:
+            View() = delete;
+            View(View&&) = delete;
+            View(const View&) = delete;
+            View operator=(View&&) = delete;
+            View& operator=(const View&) = delete;
+
+            const Image& GetImage() const;
+
+            struct ConstructParam
+            {
+                const Context&          ctx;
+                Image&                  image;
+                VkImageViewType         type;
+                VkImageSubresourceRange subRange;
+                const char*             dedicatedName = nullptr;
+                const char*             scopeName = nullptr;
+            };
+            View(const ConstructParam& param);
+
+            ~View();
+
+        private:
+            Image& m_Image;
+        };
+
     public:
-        struct ConstructParam
+        // we don't support any kind of 3d image here
+        struct ConstructParam_Create
         {
             const Context&                  ctx;
-            VkExtent3D                      extent;
+            uint32_t                        width;
+            uint32_t                        height;
             VkFormat                        format;
-            VkImageUsageFlags               imageUsage;
-            VkImageCreateFlags              flags = 0;
+            Type                            type;
+            VkImageUsageFlags               usageFlags = 0;
+            VkImageCreateFlags              createFlags = 0;
             uint32_t                        mipLevels = 1;
-            uint32_t                        arrayLayers = 1;
             VkSampleCountFlagBits           samples = VK_SAMPLE_COUNT_1_BIT;
             VkImageTiling                   tiling = VK_IMAGE_TILING_OPTIMAL;
             VkImageLayout                   initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -171,7 +214,19 @@ namespace Coust::Render::VK
             const char*                     dedicatedName = nullptr;
             const char*                     scopeName = nullptr;
         };
-        Image(ConstructParam param);
+        Image(const ConstructParam_Create& param);
+
+        struct ConstructParam_Wrap
+        {
+            const Context& ctx;
+            VkImage handle;
+            VkExtent3D extent;
+            VkFormat format;
+            VkSampleCountFlagBits samples;
+            const char*                     dedicatedName = nullptr;
+            const char*                     scopeName = nullptr;
+        };
+        Image(const ConstructParam_Wrap& param);
 
         ~Image();
 
@@ -182,143 +237,115 @@ namespace Coust::Render::VK
         Image& operator=(Image&&) = delete;
         Image& operator=(const Image&) = delete;
 
+        // don't bother 3d image now
+        struct UpdateParam 
+        {
+            VkFormat        dataFormat;
+            uint32_t        width;
+            uint32_t        height;
+            const void*     data;
+            uint32_t        dstImageLayer = 0;
+            uint32_t        dstImageLayerCount = 1;
+            uint32_t        dstImageMipmapLevel = 0;
+        };
+        void Update(StagePool& stagePool, const UpdateParam& p);
+
+        void TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange);
+
+        VkImageLayout GetLayout(uint32_t layer, uint32_t level) const;
+
+        // If the class is just a wrapper around a `VkImage` handle, like a swapchain image, then its layout might be changed during renderpass.
+        // We can use this method to keep track of the actual layout
+        void ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout);
+
+        // return or create the required image view
+        std::shared_ptr<View> GetView(VkImageSubresourceRange subRange);
+
+        // helper function related to primary subresource range
+        VkImageLayout GetPrimaryLayout() const;
+        std::shared_ptr<View> GetPrimaryView();
+        VkImageSubresourceRange GetPrimarySubRange() const;
+        void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel);
+
         VkExtent3D GetExtent() const;
 
         VkFormat GetFormat() const;
 
-        VkImageUsageFlags GetUsage() const;
-
-        VkImageType GetType() const;
+        VmaAllocation GetAllocation() const;
 
         VkSampleCountFlagBits GetSampleCount() const;
 
-        VkImageTiling GetTiling() const;
-
-        VkImageSubresource GetSubResource() const;
-
-        VmaAllocation GetAllocation() const;
-
-        const std::unordered_set<ImageView*> GetAttachedView() const;
-
-        bool IsValid() const;
+        std::shared_ptr<Image> GetMSAAImage() const;
+        void SetMASSImage(std::shared_ptr<Image> massImage);
 
     private:
-        friend class ImageView;
+        std::unordered_map<VkImageSubresourceRange, std::shared_ptr<View>, 
+            Hash::HashFn<VkImageSubresourceRange>, Hash::EqualFn<VkImageSubresourceRange>>  m_CachedImageView;
 
-        /**
-         * @brief Get called when the attached view is destroyed or moved
-         * @param view 
-        */
-        void EraseView(ImageView* view);
+        // (layer << 16) | level => image layout of this pair of array layer and mipmap level
+        std::map<uint32_t, VkImageLayout> m_SubRangeLayouts;
 
-        /**
-         * @brief Get called when the attached view is constructed or moved
-        */
-        void AddView(ImageView* view);
-
-    private:
-        bool Construct(VkImageCreateFlags              flags,
-                       VmaMemoryUsage                  memoryUsage,
-                       VmaAllocationCreateFlags        allocationFlags,
-                       VkImageLayout                   initialLayout,
-                       const std::vector<uint32_t>*    relatedQueues);
-
-    private:
-        /**
-         * @brief Used to track the image views attached to this image in case it's moved or destructed
-        */
-        std::unordered_set<ImageView*> m_ViewsAttached{};
+        std::shared_ptr<Image> m_MSAAImage = nullptr;
 
         VkExtent3D m_Extent;
 
-        VkImageSubresource m_SubResource;
+        // When used as textures, this member specify the binding range
+        VkImageSubresourceRange m_PrimarySubRange;
 
         VkFormat m_Format;
 
-        VmaAllocator m_VMAAllocator;
-
         VmaAllocation m_Allocation;
 
-        VkImageUsageFlags m_ImageUsage;
+        // the default layout is determined by the type when the image is created
+        VkImageLayout m_DefaultLayout;
 
-        VkImageType m_Type;
+        // to construct image views
+        VkImageViewType m_ViewType;
 
         VkSampleCountFlagBits m_SampleCount;
 
-        VkImageTiling m_Tiling;
+        const uint32_t m_MipLevelCount;
     };
 
-    class ImageView : public Resource<VkImageView, VK_OBJECT_TYPE_IMAGE_VIEW>
+    // There's no need to add staging function to the VK::Image class, which is mainly used for device only image
+    // So we create another litte helper class here
+    class HostImage : public Resource<VkImage, VK_OBJECT_TYPE_IMAGE>
     {
     public:
-        using Base = Resource<VkImageView, VK_OBJECT_TYPE_IMAGE_VIEW>;
+        using Base = Resource<VkImage, VK_OBJECT_TYPE_IMAGE>;
 
     public:
         struct ConstructParam
         {
-            const Context&          ctx;
-            Image&                  image;
-            VkImageViewType         type;
-            VkFormat                format = VK_FORMAT_UNDEFINED;
-            VkImageAspectFlags      aspectMask;
-            uint32_t                baseMipLevel;
-            uint32_t                levelCount;
-            uint32_t                baseArrayLayer;
-            uint32_t                layerCount;
-            const char*             dedicatedName = nullptr;
-            const char*             scopeName = nullptr;
+            const Context& ctx;
+            VkFormat format;
+            uint32_t width;
+            uint32_t height;
+
         };
-        ImageView(ConstructParam param);
+        HostImage(const ConstructParam& param);
 
-        ImageView(ImageView&& other) noexcept;
+        ~HostImage();
 
-        ~ImageView();
+        void Update(const void* data, size_t size);
 
-        ImageView() = delete;
-        ImageView(const ImageView&) = delete;
-        ImageView operator=(ImageView&&) = delete;
-        ImageView& operator=(const ImageView&) = delete;
+        VkImageAspectFlags GetAspect() const;
 
         VkFormat GetFormat() const;
 
-        VkImageSubresourceRange GetSubresourceRange() const;
+        uint32_t GetWidth() const;
 
-        const Image* GetImage() const;
-
-        bool IsValid() const;
+        uint32_t GetHeight() const;
 
     private:
-        friend class Image;
+        VmaAllocation m_Allocation = VK_NULL_HANDLE;
 
-        /**
-         * @brief Get called when the image it attched to is destroyed
-         */
-        void InValidate();
+        void* m_MappedData = nullptr;
 
-        /**
-         * @brief Get called when the image it attched to is moved
-         * 
-         * @param image 
-         */
-        void SetImage(Image& image);
-
-    private:
-        /**
-         * @brief Actual construction happens here
-         * 
-         * @param ctx 
-         * @param type 
-         * @return false if construction failed
-         */
-        bool Construct(const Context& ctx, VkImageViewType type);
-
-    private:
         VkFormat m_Format;
 
-        VkImageSubresourceRange m_SubresourceRange;
+        uint32_t m_Width;
 
-        Image* m_Image;
-
-        bool m_IsValid = false;
+        uint32_t m_Height;
     };
 }

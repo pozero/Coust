@@ -67,7 +67,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        DescriptorSetLayout(ConstructParam param);
+        DescriptorSetLayout(const ConstructParam& param);
 
         ~DescriptorSetLayout();
         
@@ -122,7 +122,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        DescriptorSet(ConstructParam param);
+        DescriptorSet(const ConstructParam& param);
 
         // Lifecycle of descriptor set is managed by descriptor set allocator
         ~DescriptorSet() = default;
@@ -205,7 +205,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        DescriptorSetAllocator(ConstructParam param);
+        DescriptorSetAllocator(const ConstructParam& param);
         
         ~DescriptorSetAllocator();
         
@@ -242,21 +242,16 @@ namespace Coust::Render::VK
             Resource<VkDescriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL> Pool;
             uint32_t CurrentProductCount = 0;
             
-            Factory(VkDevice device, VkDescriptorPool handle)
-                : Pool(device, handle)
+            Factory(const Context& ctx, VkDescriptorPool handle)
+                : Pool(ctx, handle)
             {
-                Pool.SetDefaultDebugName("Coust::VK::DescriptorAllocator", nullptr);
+                Pool.SetDefaultDebugName("VK::DescriptorAllocator", nullptr);
             }
             Factory() = delete;
         };
         
     private:
-        
-        uint32_t m_MaxSetsPerPool;
-        
-        uint32_t m_CurrentFactoryIdx = 0;
-        
-        VkDevice m_Device;
+        const Context& m_Ctx;
         
         const DescriptorSetLayout* m_Layout;
 
@@ -266,5 +261,10 @@ namespace Coust::Render::VK
 
         // reserved for future use
         std::vector<VkDescriptorSet> m_Products;
+        
+        uint32_t m_MaxSetsPerPool;
+        
+        uint32_t m_CurrentFactoryIdx = 0;
+        
     };
 }

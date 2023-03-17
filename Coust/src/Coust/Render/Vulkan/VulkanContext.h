@@ -13,7 +13,11 @@
 namespace Coust::Render::VK
 {
     constexpr uint32_t INVALID_IDX = ~(0u);
+
+    constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_3;
+
 	class CommandBufferCache;
+	class StagePool;
 
 	struct Context;
     template <typename VkHandle, VkObjectType ObjectType>
@@ -50,7 +54,7 @@ namespace Coust::Render::VK
 
 		std::unique_ptr<VkPhysicalDeviceProperties> GPUProperties{ new VkPhysicalDeviceProperties{} };
 
-		CommandBufferCache* GraphicsCommandBufferCache = nullptr;
+		CommandBufferCache* CmdBufCacheGraphics = nullptr;
    	};
 
 
@@ -74,14 +78,8 @@ namespace Coust::Render::VK
     class Resource
     {
     public:
-		/**
-		 * @brief Construct a new Resource object
-		 * 
-		 * @param ctx 
-		 * @param handle 
-		 */
-        Resource(VkDevice device, VkHandle handle)
-            : m_Device(device), m_Handle(handle)
+        Resource(const Context& ctx, VkHandle handle)
+            : m_Ctx(ctx), m_Handle(handle)
 		{
 		}
 		
@@ -89,7 +87,7 @@ namespace Coust::Render::VK
 		~Resource() = default;
 		
 		Resource(Resource&& other)
-			: m_Device(other.m_Device), m_Handle(other.m_Handle), m_DebugName(other.m_DebugName)
+			: m_Ctx(other.m_Ctx), m_Handle(other.m_Handle), m_DebugName(other.m_DebugName)
 		{
 			other.m_Handle = VK_NULL_HANDLE;
 		}
@@ -98,7 +96,7 @@ namespace Coust::Render::VK
 		Resource& operator=(Resource&& other) = delete;
 		Resource& operator=(const Resource& other) = delete;
 		
-		VkDevice GetDevice() const { return m_Device; }
+		VkDevice GetDevice() const { return m_Ctx.Device; }
         
         VkHandle GetHandle() const { return m_Handle; }
 
@@ -114,7 +112,7 @@ namespace Coust::Render::VK
 		{
 			m_DebugName = dedicatedName;
 #ifndef COUST_FULL_RELEASE
-			return RegisterDebugName(m_Device, ObjectType, m_Handle, dedicatedName);
+			return RegisterDebugName(m_Ctx.Device, ObjectType, m_Handle, dedicatedName);
 #else
 			return true;
 #endif
@@ -139,7 +137,7 @@ namespace Coust::Render::VK
 			}
             m_DebugName = typeName + scopeName;
 #ifndef COUST_FULL_RELEASE
-			return RegisterDebugName(m_Device, ObjectType, m_Handle, m_DebugName.c_str());
+			return RegisterDebugName(m_Ctx.Device, ObjectType, m_Handle, m_DebugName.c_str());
 #else
 			return true;
 #endif
@@ -192,7 +190,7 @@ namespace Coust::Render::VK
 		{
 			T* ptr = nullptr;
 			bool result =  Create(ptr, args...);
-			out_Resource = std::unique_ptr<T>{ptr};
+			out_Resource.reset(ptr);
 			return result;
 		}
 
@@ -211,7 +209,7 @@ namespace Coust::Render::VK
 		{
 			T* ptr = nullptr;
 			bool result =  Create(ptr, args...);
-			out_Resource = std::shared_ptr<T>{ptr};
+			out_Resource.reset(ptr);
 			return result;
 		}
 	
@@ -265,7 +263,7 @@ namespace Coust::Render::VK
         }
     
     protected:
-		const VkDevice m_Device;
+		const Context& m_Ctx;
         VkHandle m_Handle = VK_NULL_HANDLE;
         std::string m_DebugName{};
     };
@@ -282,5 +280,30 @@ namespace Coust::Render::VK
 		
 	protected: 
 		size_t m_Hash;
+	};
+
+	// A timer used for releasing ununsed resources
+	class EvictTimer
+	{
+	public:
+		EvictTimer(uint32_t evictionInterval)
+		// We start count from eviction interval so we don't have to deal with wrapping unsigned integer stuff (pretty annoying)
+			: m_EvictionInterval(evictionInterval), m_Count(evictionInterval)
+		{}
+
+		void Tick() { m_Count ++; }
+
+		bool ShouldEvict(uint32_t lastAccessed) const
+		{
+			return (m_Count - m_EvictionInterval) > lastAccessed;
+		}
+
+		uint32_t CurrentCount() const { return m_Count; }
+	
+	private:
+		const uint32_t m_EvictionInterval;
+		// Don't worry, it would take about two years' continuous running (if our renderer runs in 60 FPS) before this unsinged integer counter overflow.
+		// If still feel unsafe, just use `uint64_t`, which takes 9 trillion years to overflow :)
+		uint32_t m_Count = 0;
 	};
 }

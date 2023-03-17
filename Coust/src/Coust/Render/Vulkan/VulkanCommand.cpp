@@ -35,23 +35,22 @@ namespace Coust::Render::VK
             }
         }
 
-        const CommandBuffer* CommandBufferCache::Get()
+        VkCommandBuffer CommandBufferCache::Get()
         {
             if (m_CurCmdBufIdx != INVALID_IDX)
             {
-                return &m_AllCmdBuf[m_CurCmdBufIdx];
+                return m_AllCmdBuf[m_CurCmdBufIdx].Handle;
             }
 
             while (m_AvailableCmdBuf == 0)
             {
-                COUST_CORE_TRACE("No available command buffer, command cache stalled. If this happens frequently, consider increasing `COMMAND_BUFFER_COUNT`");
                 Wait();
                 GC();
             }
 
             for (uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++ i)
             {
-                if (m_AllCmdBuf[i].State.load(std::memory_order::seq_cst) == CommandBuffer::State::NonExist)
+                if (m_AllCmdBuf[i].State == CommandBuffer::State::NonExist)
                 {
                     m_CurCmdBufIdx = i;
                     -- m_AvailableCmdBuf;
@@ -78,10 +77,10 @@ namespace Coust::Render::VK
 
             VkFenceCreateInfo fenceCI { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, };
             // The only two senario these vulkan call would fail is we've run out of host or device memory, which is really rare. 
-            // And if it actually happened, the allocation of command buffer probably already failed.
+            // And if it actually happened, the allocation of command buffer would probably already fail.
             VK_REPORT(vkCreateFence(m_Device, &fenceCI, nullptr, &m_AllCmdBuf[m_CurCmdBufIdx].Fence), success);
 
-            m_AllCmdBuf[m_CurCmdBufIdx].State.store(CommandBuffer::State::Initial);
+            m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Initial;
 
             VkCommandBufferBeginInfo cmdBufBI 
             {
@@ -90,10 +89,9 @@ namespace Coust::Render::VK
             };
             VK_REPORT(vkBeginCommandBuffer(m_AllCmdBuf[m_CurCmdBufIdx].Handle, &cmdBufBI), success);
 
-            m_AllCmdBuf[m_CurCmdBufIdx].State.store(CommandBuffer::State::Recording);
+            m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Recording;
 
-            COUST_CORE_TRACE("Get command buffer {}", m_CurCmdBufIdx);
-            return &m_AllCmdBuf[m_CurCmdBufIdx];
+            return m_AllCmdBuf[m_CurCmdBufIdx].Handle;
         }
 
         bool CommandBufferCache::Flush()
@@ -102,7 +100,7 @@ namespace Coust::Render::VK
                 return false;
 
             vkEndCommandBuffer(m_AllCmdBuf[m_CurCmdBufIdx].Handle);
-            m_AllCmdBuf[m_CurCmdBufIdx].State.store(CommandBuffer::State::Executable, std::memory_order::relaxed);
+            m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Executable;
 
             // simply wait for all
             VkPipelineStageFlags waitStages[2] 
@@ -136,8 +134,7 @@ namespace Coust::Render::VK
                 waitSignals[SI.waitSemaphoreCount++] = m_InjectedSignal;
 
             VK_CHECK(vkQueueSubmit(m_Queue, 1, &SI, m_AllCmdBuf[m_CurCmdBufIdx].Fence));
-
-            COUST_CORE_TRACE("Flush command buffer {}", m_CurCmdBufIdx);
+            m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Pending;
 
             m_LastSubmissionSignal = m_AllSubmissionSignal[m_CurCmdBufIdx];
             m_InjectedSignal = VK_NULL_HANDLE;
@@ -162,18 +159,17 @@ namespace Coust::Render::VK
         {
             for (uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++ i)
             {
-                if (m_AllCmdBuf[i].State.load(std::memory_order::seq_cst) != CommandBuffer::State::NonExist)
+                if (m_AllCmdBuf[i].State != CommandBuffer::State::NonExist)
                 {
                     // time out is 0, just query the status of fence (execution finished or not in other words)
                     VkResult res = vkWaitForFences(m_Device, 1, &m_AllCmdBuf[i].Fence, VK_TRUE, 0);
                     if (res == VK_SUCCESS)
                     {
-                        COUST_CORE_TRACE("Release command buffer {}", i);
                         vkFreeCommandBuffers(m_Device, m_Pool, 1, &m_AllCmdBuf[i].Handle);
                         m_AllCmdBuf[i].Handle = VK_NULL_HANDLE;
                         vkDestroyFence(m_Device, m_AllCmdBuf[i].Fence, nullptr);
                         m_AllCmdBuf[i].Fence = VK_NULL_HANDLE;
-                        m_AllCmdBuf[i].State.store(CommandBuffer::State::NonExist, std::memory_order::seq_cst);
+                        m_AllCmdBuf[i].State = CommandBuffer::State::NonExist;
 
                         ++ m_AvailableCmdBuf;
                     }
@@ -188,11 +184,10 @@ namespace Coust::Render::VK
             for (uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++ i)
             {
                 // the current command buffer might not even be submitted, skip it
-                if (i != m_CurCmdBufIdx && m_AllCmdBuf[i].State.load(std::memory_order::seq_cst) != CommandBuffer::State::NonExist)
+                if (i != m_CurCmdBufIdx && m_AllCmdBuf[i].State != CommandBuffer::State::NonExist)
                 {
-                    COUST_CORE_TRACE("Wait command buffer {}", i);
                     fencesToWait[idx++] = m_AllCmdBuf[i].Fence;
-                    m_AllCmdBuf[i].State.store(CommandBuffer::State::Invalid, std::memory_order::relaxed);
+                    m_AllCmdBuf[i].State = CommandBuffer::State::Invalid;
                 }
             }
             if (idx > 0)
@@ -203,6 +198,4 @@ namespace Coust::Render::VK
         {
             m_CmdBufChangedCallback = callback;
         }
-        
-        bool CommandBufferCache::IsValid() const { return m_Pool != VK_NULL_HANDLE; }
 }

@@ -232,7 +232,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        ShaderModule(ConstructParm param);
+        ShaderModule(const ConstructParm& param);
 
         ShaderModule(ShaderModule&& other) noexcept;
         

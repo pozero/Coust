@@ -743,8 +743,8 @@ namespace Coust::Render::VK
         }
     }
 
-    ShaderModule::ShaderModule(ShaderModule::ConstructParm param)
-        : Base(param.ctx.Device, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Stage(param.stage), m_Source(param.source)
+    ShaderModule::ShaderModule(const ConstructParm& param)
+        : Base(param.ctx, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Stage(param.stage), m_Source(param.source)
     {
         Construct(param.ctx);
         if (GetByteCode().size() > 0 && GetResource().size() > 0)
@@ -787,7 +787,7 @@ namespace Coust::Render::VK
         {
             CleanResourceMembersInfo(r.pMembers);
         }
-        vkDestroyShaderModule(m_Device, m_Handle, nullptr);
+        vkDestroyShaderModule(m_Ctx.Device, m_Handle, nullptr);
     }
 
     void ShaderModule::Construct(const Context& ctx)

@@ -2,8 +2,7 @@
 
 #include "Coust/Render/Driver.h"
 #include "Coust/Render/Vulkan/VulkanContext.h"
-
-#include "Coust/Render/Vulkan/VulkanCommand.h"
+#include "Coust/Render/Vulkan/StagePool.h"
 
 namespace Coust::Render::VK
 {
@@ -33,5 +32,6 @@ namespace Coust::Render::VK
 
     private:
         Context m_Context{};
+		StagePool m_StagePool;
     };
 }

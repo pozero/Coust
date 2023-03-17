@@ -57,7 +57,7 @@ namespace Coust::Render::VK
         CommandBuffer& operator=(CommandBuffer&&) = delete;
         CommandBuffer& operator=(const CommandBuffer&) = delete;
 
-        std::atomic<State> State = State::NonExist;
+        State State = State::NonExist;
 
         VkFence Fence = VK_NULL_HANDLE;
         VkCommandBuffer Handle = VK_NULL_HANDLE;
@@ -82,7 +82,7 @@ namespace Coust::Render::VK
         CommandBufferCache& operator=(const CommandBufferCache&) = delete;
 
         // Get command buffer from cache or create a new one
-        const CommandBuffer* Get();
+        VkCommandBuffer Get();
 
         // Commit current command buffer and clear all the status, if there isn't current command buffer, then do nothing.
         bool Flush();
@@ -104,8 +104,6 @@ namespace Coust::Render::VK
 
         void SetCommandBufferChangedCallback(CommandBufferChangedCallback&& callback);
 
-        bool IsValid() const;
-    
     private:
         VkDevice m_Device;
         VkQueue m_Queue;

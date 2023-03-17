@@ -11,7 +11,7 @@
 namespace Coust::Render::VK
 {
 	Swapchain::Swapchain(const Context &ctx)
-		: Base(ctx.Device, VK_NULL_HANDLE)
+		: Base(ctx, VK_NULL_HANDLE)
 	{
 		{
 			VkSurfaceFormatKHR bestSurfaceFormat{};
@@ -87,7 +87,7 @@ namespace Coust::Render::VK
 	Swapchain::~Swapchain()
 	{
 		if (m_Handle)
-			vkDestroySwapchainKHR(m_Device, m_Handle, nullptr);
+			vkDestroySwapchainKHR(m_Ctx.Device, m_Handle, nullptr);
 	}
 
 	bool Swapchain::Create(const Context &ctx)
@@ -163,12 +163,12 @@ namespace Coust::Render::VK
 			glfwGetFramebufferSize(GlobalContext::Get().GetWindow().GetHandle(), &width, &height);
 			glfwWaitEvents();
 		}
-		vkDeviceWaitIdle(m_Device);
+		vkDeviceWaitIdle(m_Ctx.Device);
 
 		VkSwapchainKHR old = m_Handle;
 		if (Create(ctx))
 		{
-			vkDestroySwapchainKHR(m_Device, old, nullptr);
+			vkDestroySwapchainKHR(m_Ctx.Device, old, nullptr);
 			return true;
 		}
 		else
@@ -181,7 +181,7 @@ namespace Coust::Render::VK
 	
 	VkResult Swapchain::AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex)
 	{
-		return vkAcquireNextImageKHR(m_Device, m_Handle, timeOut, semaphoreToSignal, fenceToSignal, out_ImageIndex);
+		return vkAcquireNextImageKHR(m_Ctx.Device, m_Handle, timeOut, semaphoreToSignal, fenceToSignal, out_ImageIndex);
 	}
 
 	VkSurfaceFormatKHR Swapchain::GetFormat() const { return Format; }

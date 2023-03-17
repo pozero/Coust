@@ -5,11 +5,14 @@
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "Coust/Render/Vulkan/VulkanDescriptor.h"
 #include "Coust/Render/Vulkan/VulkanMemory.h"
-#include "Coust/Render/VUlkan/VulkanRenderPass.h"
+#include "Coust/Render/Vulkan/VulkanRenderPass.h"
+#include "Coust/Render/Vulkan/VulkanCommand.h"
 
 #include "Coust/Core/Window.h"
+#include "Coust/Utils/FileSystem.h"
 
 #include <GLFW/glfw3.h>
+#include <stb_image.h>
 
 namespace Coust::Render::VK
 {
@@ -89,6 +92,7 @@ namespace Coust::Render::VK
     }
 
     Driver::Driver()
+        : m_StagePool(m_Context)
     {
         VK_REPORT(volkInitialize(), m_IsInitialized);
 
@@ -99,15 +103,15 @@ namespace Coust::Render::VK
             CreateSurface() &&
             SelectPhysicalDeviceAndCreateDevice();
 
-        m_Context.GraphicsCommandBufferCache = new CommandBufferCache{ m_Context, false };
-        m_IsInitialized = m_Context.GraphicsCommandBufferCache->IsValid();
+        m_Context.CmdBufCacheGraphics = new CommandBufferCache{ m_Context, false };
     }
 
     Driver::~Driver()
     {
         m_IsInitialized = false;
 
-        delete m_Context.GraphicsCommandBufferCache;
+        delete m_Context.CmdBufCacheGraphics;
+        m_StagePool.Reset();
 
         vmaDestroyAllocator(m_Context.VmaAlloc);
         vkDestroyDevice(m_Context.Device, nullptr);
@@ -180,7 +184,7 @@ namespace Coust::Render::VK
 #ifndef COUST_FULL_RELEASE
             "VK_LAYER_KHRONOS_validation"
 #endif
-           };
+        };
         {
             uint32_t providedLayerCount = 0;
             vkEnumerateInstanceLayerProperties(&providedLayerCount, nullptr);
@@ -240,7 +244,7 @@ namespace Coust::Render::VK
     {
         std::vector <const char*> requiredDeviceExtensions
         {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         };
         {
             uint32_t physicalDeviceCount = 0;
@@ -407,10 +411,18 @@ namespace Coust::Render::VK
                     .descriptorBindingVariableDescriptorCount = VK_TRUE,
                     .runtimeDescriptorArray = VK_TRUE,
                 };
+
+                VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features
+                {
+                    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+                    .pNext = &physicalDeviceDescriptorIndexingFeatures,
+                    .synchronization2 = VK_TRUE,
+                };
+
                 VkDeviceCreateInfo deviceInfo
                 {
                     .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                    .pNext = &physicalDeviceDescriptorIndexingFeatures,
+                    .pNext = &physicalDeviceSynchronization2Features,
                     .queueCreateInfoCount = (uint32_t)deviceQueueInfo.size(),
                     .pQueueCreateInfos = deviceQueueInfo.data(),
                     .enabledLayerCount = 0,
@@ -449,33 +461,65 @@ namespace Coust::Render::VK
 
     void Driver::InitializationTest()
     {
-        auto cmd0 = m_Context.GraphicsCommandBufferCache->Get();
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        (void) 0;
-        auto cmd1 = m_Context.GraphicsCommandBufferCache->Get();
-        auto cmd2 = m_Context.GraphicsCommandBufferCache->Get();
+        const std::vector<uint32_t> dummyData(65535, 0);
+        const size_t size = dummyData.size() * sizeof(dummyData[0]);
+        Buffer::ConstructParam bp 
+        {   
+            .ctx = m_Context,
+            .size = size,
+            .bufferFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            .usage = Buffer::Usage::GPUOnly,
+            .dedicatedName = "GPUBuffer",
+        };
+        Buffer b{ bp };
+        if (!Buffer::Base::CheckValidation(b)) return;
+        b.Update(m_StagePool, dummyData, 0);
+        
+        m_Context.CmdBufCacheGraphics->Flush();
+        m_Context.CmdBufCacheGraphics->Wait();
 
-        m_Context.GraphicsCommandBufferCache->Flush();
+        int dataWidth = 0, dataHeight = 0;
+        auto path = FileSystem::GetFullPathFrom({"Coust", "asset", "orange-cat-face-pixabay.jpg"});
+        auto imgData = stbi_load(path.string().c_str(), &dataWidth, &dataHeight, nullptr, STBI_rgb_alpha);
+
+        Image::ConstructParam_Create ip 
+        {
+            .ctx = m_Context,
+            .width = 800,
+            .height = 600,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .type = Image::Type::Texture2D,
+            .usageFlags = 0,
+            .createFlags = 0,
+            .mipLevels = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .dedicatedName = "GPUImage",
+        };
+        Image i { ip };
+        if (!Image::Base::CheckValidation(i)) return;
+        Image::UpdateParam up 
+        {
+            .dataFormat = VK_FORMAT_R8G8B8A8_UNORM,
+            .width = (uint32_t) dataWidth,
+            .height = (uint32_t) dataHeight,
+            .data = imgData,
+            .dstImageLayer = 0,
+            .dstImageLayerCount = 1,
+            .dstImageMipmapLevel = 0,
+        };
+        i.Update(m_StagePool, up);
+
+        stbi_image_free(imgData);
+        
+        m_Context.CmdBufCacheGraphics->Flush();
+        m_Context.CmdBufCacheGraphics->Wait();
     }
 
     void Driver::LoopTest()
     {
-        static uint32_t frame = 0;
-        if (frame % 10 == 0)
-            m_Context.GraphicsCommandBufferCache->GC();
-
-        auto cmd0 = m_Context.GraphicsCommandBufferCache->Get();
-        auto cmd1 = m_Context.GraphicsCommandBufferCache->Get();
-        auto cmd2 = m_Context.GraphicsCommandBufferCache->Get();
-        auto cmd3 = m_Context.GraphicsCommandBufferCache->Get();
-
-        m_Context.GraphicsCommandBufferCache->Flush();
+        m_Context.CmdBufCacheGraphics->GC();
+        m_StagePool.GC();
     }
 }

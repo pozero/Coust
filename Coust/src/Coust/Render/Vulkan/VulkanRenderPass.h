@@ -1,13 +1,12 @@
 #pragma once
 
 #include "Coust/Render/Vulkan/VulkanContext.h"
+#include "Coust/Render/Vulkan/VulkanMemory.h"
 
 namespace Coust::Render::VK
 {
 	class RenderPass;
 	class Framebuffer;
-
-	class ImageView;
 
 	constexpr uint32_t MAX_ATTACHMENT_COUNT = 8;
 	enum AttachmentFlagBits : uint32_t
@@ -38,6 +37,7 @@ namespace Coust::Render::VK
 
 	public:
 		// Each render pass can have at most 2 subpasses (e.g. deferred rendering)
+		// TODO: use VkCreateRenderPass2 to support automatic depth desolve
 		struct ConstructParam
 		{
 			const Context& 				ctx;
@@ -55,7 +55,7 @@ namespace Coust::Render::VK
 
 			size_t GetHash() const;
 		};
-		RenderPass(ConstructParam p);
+		RenderPass(const ConstructParam& p);
 
 		RenderPass(RenderPass&& other);
 
@@ -69,7 +69,7 @@ namespace Coust::Render::VK
 		const VkExtent2D GetRenderAreaGranularity() const;
 
 	private:
-		bool Construct( VkFormat colorFormat[MAX_ATTACHMENT_COUNT],
+		bool Construct( const VkFormat* colorFormat,
 						VkFormat depthFormat,
 						AttachmentFlags clearMask,
 						AttachmentFlags discardStartMask,
@@ -94,15 +94,15 @@ namespace Coust::Render::VK
 			uint32_t 					width;
 			uint32_t 					height;
 			uint32_t 					layers = 1u;
-			ImageView* 					color[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
-			ImageView* 					resolve[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
-			ImageView* 					depth;
+			Image::View* 				color[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
+			Image::View* 				resolve[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
+			Image::View* 				depth;
 			const char*                 dedicatedName = nullptr;
 			const char*					scopeName = nullptr;
 
 			size_t GetHash() const;
 		};
-		Framebuffer(ConstructParam p);
+		Framebuffer(const ConstructParam& p);
 
 		Framebuffer(Framebuffer&& other) noexcept;
 
@@ -119,8 +119,8 @@ namespace Coust::Render::VK
 						  uint32_t width, 
 						  uint32_t height, 
 						  uint32_t layers, 
-						  ImageView* color[MAX_ATTACHMENT_COUNT],
-						  ImageView* resolve[MAX_ATTACHMENT_COUNT],
-						  ImageView* depth);
+						  Image::View * const (&color)[MAX_ATTACHMENT_COUNT],
+						  Image::View * const (&resolve)[MAX_ATTACHMENT_COUNT],
+						  Image::View* depth);
 	};
 }
