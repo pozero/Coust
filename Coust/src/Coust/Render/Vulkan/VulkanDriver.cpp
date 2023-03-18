@@ -114,8 +114,8 @@ namespace Coust::Render::VK
         m_IsInitialized = false;
 
         m_Swapchain.Destroy();
-        m_StagePool.Reset();
         delete m_Context.CmdBufCacheGraphics;
+        m_StagePool.Reset();
 
         vmaDestroyAllocator(m_Context.VmaAlloc);
         vkDestroyDevice(m_Context.Device, nullptr);
