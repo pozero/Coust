@@ -92,11 +92,12 @@ namespace Coust::Render::VK
     }
 
     Driver::Driver()
-        : m_StagePool(m_Context)
+        : m_StagePool(m_Context),
+          m_Swapchain(m_Context)
     {
         VK_REPORT(volkInitialize(), m_IsInitialized);
 
-        m_IsInitialized = CreateInstance() &&
+        m_IsInitialized = m_IsInitialized && CreateInstance() &&
 #ifndef COUST_FULL_RELEASE
             CreateDebugMessengerAndReportCallback() &&
 #endif
@@ -104,14 +105,17 @@ namespace Coust::Render::VK
             SelectPhysicalDeviceAndCreateDevice();
 
         m_Context.CmdBufCacheGraphics = new CommandBufferCache{ m_Context, false };
+        m_Swapchain.Prepare();
+        m_IsInitialized = m_Swapchain.Create() && m_IsInitialized;
     }
 
     Driver::~Driver()
     {
         m_IsInitialized = false;
 
-        delete m_Context.CmdBufCacheGraphics;
+        m_Swapchain.Destroy();
         m_StagePool.Reset();
+        delete m_Context.CmdBufCacheGraphics;
 
         vmaDestroyAllocator(m_Context.VmaAlloc);
         vkDestroyDevice(m_Context.Device, nullptr);

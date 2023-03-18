@@ -12,7 +12,7 @@ namespace Coust::Render::VK
         : Base(p.ctx, VK_NULL_HANDLE),
           Hashable(p.GetHash())
     {
-        if (Construct(&p.colorFormat[0], p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask, p.presentMask))
+        if (Construct(&p.colorFormat[0], p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask))
         {
             if (p.dedicatedName)
                 SetDedicatedDebugName(p.dedicatedName);
@@ -44,8 +44,7 @@ namespace Coust::Render::VK
                                 AttachmentFlags discardEndMask,
                                 VkSampleCountFlagBits sample,
                                 uint8_t resolveMask,
-                                uint8_t inputAttachmentMask,
-                                uint8_t presentMask)
+                                uint8_t inputAttachmentMask)
     {
         const bool hasSubpasses = (inputAttachmentMask != 0);
         const bool hasDepth = (depthFormat != VK_FORMAT_UNDEFINED);
@@ -151,7 +150,6 @@ namespace Coust::Render::VK
 
             const bool clear = (clearMask & (1 << i)) != 0;
             const bool discard = (discardStartMask & (1 << i)) != 0;
-            const bool present = (presentMask & (1 << i)) != 0;
 
             attachements[curAttachmentIdx].flags = 0;
             attachements[curAttachmentIdx].format = colorFormat[i];
@@ -169,9 +167,7 @@ namespace Coust::Render::VK
             attachements[curAttachmentIdx].initialLayout = discard ? 
                 VK_IMAGE_LAYOUT_UNDEFINED :
                 VK_IMAGE_LAYOUT_GENERAL;
-            attachements[curAttachmentIdx].finalLayout = present ? 
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : 
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             ++ curAttachmentIdx;
         }
 
@@ -351,7 +347,6 @@ namespace Coust::Render::VK
         Hash::Combine(h, sample);
         Hash::Combine(h, resolveMask);
         Hash::Combine(h, inputAttachmentMask);
-        Hash::Combine(h, presentMask);
 
         return h;
     }

@@ -1,63 +1,53 @@
 #pragma once
 
 #include "Coust/Render/Vulkan/VulkanContext.h"
+#include "Coust/Render/Vulkan/VulkanMemory.h"
 
 #include <vector>
 
 namespace Coust::Render::VK
 {
-	/**
-	 * @brief Simple wrapper class containing `VkSwapchainKHR` and its images `VkImage`.
-	 * 		  Responsible for creating or recreating swapchain.
-	 */
 	class Swapchain : public Resource<VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR>
 	{
 	public:
 		using Base = Resource<VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR>;
 
-	public:
-		/**
-		 * @brief Get appropriate parameter and create swapchain using it.
-		 * @param ctx 
-		 */
-		Swapchain(const Context &ctx);
-
-		~Swapchain();
-
 		Swapchain() = delete;
-
-		// copy & move prohibited
 		Swapchain(Swapchain&&) = delete;
 		Swapchain(const Swapchain&) = delete;
 		Swapchain& operator=(Swapchain&&) = delete;
 		Swapchain& operator=(const Swapchain&) = delete;
 
-		bool Recreate(const Context &ctx);
-		
-		VkResult AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex);
+	public:
+		Swapchain(const Context &ctx);
 
-		bool IsValid() const { return m_IsValid; }
+		~Swapchain() = default;
 
-		VkSurfaceFormatKHR GetFormat() const;
+		void Prepare();
 
-		VkPresentModeKHR GetPresentMode() const;
+		bool Create();
 
-		uint32_t GetMinImageCount() const;
+		void Destroy();
 
-		VkExtent2D GetExtent() const;
+		// acquire next swapchain image
+		bool Acquire();
 
-		VkFormat GetDepthFormat() const;
+		// Manually query the change
+		bool HasResized();
 
-		uint32_t GetCurrentSwapchainImageCount() const;
-	
-	private:
-		bool Create(const Context &ctx);
+		// TODO: we let swapchain responsible for presentable layout transition for now 
+		// (it should be much slower than transition inside renderpass), it will be changed later
+		void MakePresentable();
+
+		Image& GetColorAttachment();
+		Image& GetDepthAttachment();
+		uint32_t GetImageIndex() const;
 
 	public:
 		// We pass Swapchain through `const Swapchain&` most of the time, 
 		// so declaring these properties as public members is just fine.
 
-		VkSurfaceFormatKHR Format{};
+		VkSurfaceFormatKHR SurfaceFormat{};
 
 		VkPresentModeKHR PresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -67,11 +57,18 @@ namespace Coust::Render::VK
 
 		VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
 
-		uint32_t CurrentSwapchainImageCount = 0;
+		VkSemaphore ImgAvaiSignal = VK_NULL_HANDLE;
+		mutable bool IsNextImgAcquired = false;
+
+		mutable bool IsFirstRenderPass = false;
+
+		bool IsSubOptimal = false;
 
 	private:
-		bool m_IsValid = false;
+		std::vector<std::unique_ptr<Image>> m_Images;
 
-		std::vector<VkImage> m_Images{};
+		std::unique_ptr<Image> m_Depth;
+
+		uint32_t m_CurImgIdx = 0;
 	};
 }

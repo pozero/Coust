@@ -372,11 +372,7 @@ namespace Coust::Render::VK
     Image::Image(const ConstructParam_Create& param)
         : Base(param.ctx, VK_NULL_HANDLE),
           m_Extent{ param.width, param.height, 1 },
-        //   m_WholeSubRange(),
-        //   m_PrimarySubRange(),
-        //   m_Allocation(),
           m_Format(param.format),
-        //   m_ViewType(),
           m_SampleCount(param.samples),
           m_MipLevelCount(param.mipLevels)
     {
@@ -423,6 +419,11 @@ namespace Coust::Render::VK
         // create image view for the primary subresource range
         GetView(m_PrimarySubRange);
 
+        // the layout transition for texture is deferred until upload
+        if (param.type == Type::ColorAttachment || param.type == Type::DepthStencilAttachment ||
+            param.type == Type::InputAttachment)
+            TransitionLayout(m_Ctx.CmdBufCacheGraphics->Get(), m_DefaultLayout, m_PrimarySubRange);
+
         if (success)
         {
             if (param.dedicatedName)
@@ -438,7 +439,7 @@ namespace Coust::Render::VK
 
     Image::Image(const ConstructParam_Wrap& param)
         : Base(param.ctx, param.handle),
-          m_Extent(param.extent),
+          m_Extent{param.width, param.height, 1},
           m_Format(param.format),
           m_SampleCount(param.samples),
           // we won't sample this image, so this is just a dummy value
@@ -643,14 +644,13 @@ namespace Coust::Render::VK
         }
     }
 
-    std::shared_ptr<Image::View> Image::GetView(VkImageSubresourceRange subRange)
+    const Image::View* Image::GetView(VkImageSubresourceRange subRange)
     {
         if (auto iter = m_CachedImageView.find(subRange); iter != m_CachedImageView.end())
         {
-            return iter->second;
+            return &iter->second;
         }
 
-        std::shared_ptr<View> v;
         View::ConstructParam p 
         {
             .ctx = m_Ctx,
@@ -659,11 +659,12 @@ namespace Coust::Render::VK
             .subRange = subRange,
             .scopeName = m_DebugName.c_str(),
         };
-        if (!View::Base::Create(v, p))
+        View v { p };
+        if (!View::CheckValidation(v))
             return nullptr;
         
-        m_CachedImageView[subRange] = v;
-        return v;
+        m_CachedImageView.emplace(subRange, std::move(v));
+        return &m_CachedImageView.at(subRange);
     }
 
     VkImageLayout Image::GetPrimaryLayout() const
@@ -671,9 +672,9 @@ namespace Coust::Render::VK
         return GetLayout(m_PrimarySubRange.baseArrayLayer, m_PrimarySubRange.baseMipLevel);
     }
 
-    std::shared_ptr<Image::View> Image::GetPrimaryView()
+    const Image::View* Image::GetPrimaryView()
     {
-        return m_CachedImageView.at(m_PrimarySubRange);
+        return &m_CachedImageView.at(m_PrimarySubRange);
     }
 
     VkImageSubresourceRange Image::GetPrimarySubRange() const { return m_PrimarySubRange; }
@@ -739,12 +740,16 @@ namespace Coust::Render::VK
             m_Handle = VK_NULL_HANDLE;
     }
 
+    Image::View::View(View&& other)
+        : Base(std::forward<Base>(other)),
+          m_Image(other.m_Image)
+    {
+    }
+    
     Image::View::~View()
     {
         if (m_Handle != VK_NULL_HANDLE)
-        {
             vkDestroyImageView(m_Ctx.Device, m_Handle, nullptr);
-        }
     }
 
     const Image& Image::View::GetImage() const { return m_Image; }

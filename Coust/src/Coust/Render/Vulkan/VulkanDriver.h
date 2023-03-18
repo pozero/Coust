@@ -3,6 +3,7 @@
 #include "Coust/Render/Driver.h"
 #include "Coust/Render/Vulkan/VulkanContext.h"
 #include "Coust/Render/Vulkan/StagePool.h"
+#include "Coust/Render/Vulkan/VulkanSwapchain.h"
 
 namespace Coust::Render::VK
 {
@@ -32,6 +33,9 @@ namespace Coust::Render::VK
 
     private:
         Context m_Context{};
+
 		StagePool m_StagePool;
+
+		Swapchain m_Swapchain;
     };
 }

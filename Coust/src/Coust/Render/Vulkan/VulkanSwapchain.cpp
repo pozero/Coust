@@ -1,25 +1,31 @@
 #include "pch.h"
 
+#include "Coust/Render/Vulkan/VulkanSwapchain.h"
+#include "Coust/Render/Vulkan/VulkanCommand.h"
+#include "Coust/Render/Vulkan/VulkanUtils.h"
+
 #include "Coust/Event/ApplicationEvent.h"
 #include "Coust/Core/Window.h"
-
-#include "Coust/Render/Vulkan/VulkanSwapchain.h"
-#include "Coust/Render/Vulkan/VulkanUtils.h"
 
 #include <GLFW/glfw3.h>
 
 namespace Coust::Render::VK
 {
 	Swapchain::Swapchain(const Context &ctx)
-		: Base(ctx, VK_NULL_HANDLE)
+		: Base(ctx, VK_NULL_HANDLE),
+		  IsFirstRenderPass(true)
+	{}
+
+	void Swapchain::Prepare()
 	{
+		// prepare the information needed during creation
 		{
 			VkSurfaceFormatKHR bestSurfaceFormat{};
 			uint32_t surfaceFormatCount = 0;
 			std::vector<VkSurfaceFormatKHR> surfaceFormats{};
-			vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceFormatCount, nullptr);
+			vkGetPhysicalDeviceSurfaceFormatsKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfaceFormatCount, nullptr);
 			surfaceFormats.resize(surfaceFormatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceFormatCount, surfaceFormats.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfaceFormatCount, surfaceFormats.data());
 			bestSurfaceFormat = surfaceFormats[0];
 			for (const auto& surfaceFormat : surfaceFormats)
 			{
@@ -29,16 +35,16 @@ namespace Coust::Render::VK
 					break;
 				}
 			}
-			Format = bestSurfaceFormat;
+			SurfaceFormat = bestSurfaceFormat;
 		}
 
 		{
 			VkPresentModeKHR bestSurfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
 			uint32_t surfacePresentModeCount = 0;
 			std::vector<VkPresentModeKHR> surfacePresentModes{};
-			vkGetPhysicalDeviceSurfacePresentModesKHR(ctx.PhysicalDevice, ctx.Surface, &surfacePresentModeCount, nullptr);
+			vkGetPhysicalDeviceSurfacePresentModesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfacePresentModeCount, nullptr);
 			surfacePresentModes.resize(surfacePresentModeCount);    // `surfacePresentModeCount` might be 0?
-			vkGetPhysicalDeviceSurfacePresentModesKHR(ctx.PhysicalDevice, ctx.Surface, &surfacePresentModeCount, surfacePresentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfacePresentModeCount, surfacePresentModes.data());
 			for (const auto& mode : surfacePresentModes)
 			{
 				if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
@@ -52,7 +58,7 @@ namespace Coust::Render::VK
 	
 		{
 			VkSurfaceCapabilitiesKHR surfaceCapabilities{};
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceCapabilities);
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfaceCapabilities);
 			uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
 			if (surfaceCapabilities.maxImageCount != 0 && imageCount > surfaceCapabilities.maxImageCount)
 				imageCount = surfaceCapabilities.maxImageCount;
@@ -65,7 +71,7 @@ namespace Coust::Render::VK
 			for (uint32_t i = 0; i < ARRAYSIZE(candidates); ++i)
 			{
 				VkFormatProperties props{};
-				vkGetPhysicalDeviceFormatProperties(ctx.PhysicalDevice, candidates[i], &props);
+				vkGetPhysicalDeviceFormatProperties(m_Ctx.PhysicalDevice, candidates[i], &props);
 				// select optimal tiling
 				if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 				{
@@ -78,24 +84,23 @@ namespace Coust::Render::VK
 			COUST_CORE_ASSERT(bestDepthFormat != VK_FORMAT_UNDEFINED, "Can't find appropriate depth image format for vulkan");
 			DepthFormat = bestDepthFormat;
 		}
-		
-		m_IsValid = Create(ctx);
-		if (m_IsValid)
-			SetDedicatedDebugName("Swapchain");
 	}
 
-	Swapchain::~Swapchain()
+	bool Swapchain::Create()
 	{
-		if (m_Handle)
-			vkDestroySwapchainKHR(m_Ctx.Device, m_Handle, nullptr);
-	}
+		// if the window is minimized, just wait here
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(GlobalContext::Get().GetWindow().GetHandle(), &width, &height);
+		while (width == 0 || height == 0)
+		{
+			glfwGetFramebufferSize(GlobalContext::Get().GetWindow().GetHandle(), &width, &height);
+			glfwWaitEvents();
+		}
 
-	bool Swapchain::Create(const Context &ctx)
-	{
 		VkSurfaceCapabilitiesKHR surfaceCapabilities{};
 		{
 			VkExtent2D bestSurfaceExtent{};
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.PhysicalDevice, ctx.Surface, &surfaceCapabilities);
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfaceCapabilities);
 			if (surfaceCapabilities.currentExtent.width == (uint32_t) -1)
 			{
 				int width, height;
@@ -106,25 +111,22 @@ namespace Coust::Render::VK
 			}
 			else
 				bestSurfaceExtent = surfaceCapabilities.currentExtent;
-
 			Extent = bestSurfaceExtent;
 		}
 
 		VkSwapchainCreateInfoKHR swapchainCreateInfo
 		{
 			.sType           	= VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-			.surface         	= ctx.Surface,
+			.surface         	= m_Ctx.Surface,
 			.minImageCount   	= MinImageCount,
-			.imageFormat     	= Format.format,
-			.imageColorSpace 	= Format.colorSpace,
+			.imageFormat     	= SurfaceFormat.format,
+			.imageColorSpace 	= SurfaceFormat.colorSpace,
 			.imageExtent     	= Extent,
 			.imageArrayLayers 	= 1,
-			// the image can be updated by command buffer
-			// TODO: May need to support screenshot?
-			.imageUsage      	= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,	
+			.imageUsage      	= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | 
+				VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			.imageSharingMode	= VK_SHARING_MODE_EXCLUSIVE,
 			.preTransform       = surfaceCapabilities.currentTransform,
-			// TODO: We don't need alpha composition now
 			.compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 			.presentMode     	= PresentMode,
 			.clipped            = VK_TRUE,
@@ -133,10 +135,10 @@ namespace Coust::Render::VK
 	
 		uint32_t queueFamilyIndices[] = 
 		{
-			ctx.PresentQueueFamilyIndex,
-			ctx.GraphicsQueueFamilyIndex,
+			m_Ctx.PresentQueueFamilyIndex,
+			m_Ctx.GraphicsQueueFamilyIndex,
 		};
-		if (ctx.PresentQueueFamilyIndex != ctx.GraphicsQueueFamilyIndex) // graphics & present family is not the same
+		if (m_Ctx.PresentQueueFamilyIndex != m_Ctx.GraphicsQueueFamilyIndex) // graphics & present family is not the same
 		{
 			swapchainCreateInfo.imageSharingMode        = VK_SHARING_MODE_CONCURRENT;
 			swapchainCreateInfo.queueFamilyIndexCount   = 2;
@@ -144,55 +146,124 @@ namespace Coust::Render::VK
 		}
 		else
 			swapchainCreateInfo.imageSharingMode    = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK(vkCreateSwapchainKHR(m_Ctx.Device, &swapchainCreateInfo, nullptr, &m_Handle));
 	
-		VK_CHECK(vkCreateSwapchainKHR(ctx.Device, &swapchainCreateInfo, nullptr, &m_Handle));
-	
-		VK_CHECK(vkGetSwapchainImagesKHR(ctx.Device, m_Handle, &CurrentSwapchainImageCount, nullptr));
-		m_Images.resize(CurrentSwapchainImageCount);
-		VK_CHECK(vkGetSwapchainImagesKHR(ctx.Device, m_Handle, &CurrentSwapchainImageCount, m_Images.data()));
-	
+		uint32_t imageCount;
+		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, nullptr));
+		m_Images.resize(imageCount);
+		std::vector<VkImage> rawImg(imageCount, VK_NULL_HANDLE);
+		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, rawImg.data()));
+		for (uint32_t i = 0; i < imageCount; ++ i)
+		{
+			std::string name{ "Swapchain Attached" };
+			name += std::to_string(i);
+			Image::ConstructParam_Wrap p 
+			{
+            	.ctx = m_Ctx,
+            	.handle = rawImg[i],
+            	.width = Extent.width,
+				.height = Extent.height,
+            	.format = SurfaceFormat.format,
+            	.samples = VK_SAMPLE_COUNT_1_BIT,
+            	.dedicatedName = name.c_str(),
+			};
+			Image::Create(m_Images[i], p);
+		}
+
+		VkSemaphoreCreateInfo sci { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VK_CHECK(vkCreateSemaphore(m_Ctx.Device, &sci, nullptr, &ImgAvaiSignal));
+		IsNextImgAcquired = false;
+
+		Image::ConstructParam_Create p
+		{
+            .ctx = m_Ctx,
+            .width = Extent.width,
+            .height = Extent.height,
+            .format = DepthFormat,
+            .type = Image::Type::DepthStencilAttachment,
+            .usageFlags = 0,
+            .createFlags = 0,
+            .mipLevels = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .dedicatedName = "Depth Stencil Attachment"
+		};
+		Image::Create(m_Depth, p);
+
+		if (!Image::CheckValidation(*m_Depth))
+		{
+			COUST_CORE_ERROR("Can't create depth stencil attachment for swapchain");
+			return false;
+		}
+
+		SetDedicatedDebugName("Swapchain");
+
 		return true;
 	}
 
-	bool Swapchain::Recreate(const Context &ctx)
+	void Swapchain::Destroy()
 	{
-		int width = 0, height = 0;
-		glfwGetFramebufferSize(GlobalContext::Get().GetWindow().GetHandle(), &width, &height);
-		while (width == 0 || height == 0)
-		{
-			glfwGetFramebufferSize(GlobalContext::Get().GetWindow().GetHandle(), &width, &height);
-			glfwWaitEvents();
-		}
-		vkDeviceWaitIdle(m_Ctx.Device);
+		// clear the state of command buffers before destroy swapchain
+		m_Ctx.CmdBufCacheGraphics->Flush();
+		m_Ctx.CmdBufCacheGraphics->Wait();
 
-		VkSwapchainKHR old = m_Handle;
-		if (Create(ctx))
+		m_Depth.reset();
+		for (auto& i : m_Images)
 		{
-			vkDestroySwapchainKHR(m_Ctx.Device, old, nullptr);
-			return true;
+			i.reset();
 		}
-		else
+
+		vkDestroySwapchainKHR(m_Ctx.Device, m_Handle, nullptr);
+		vkDestroySemaphore(m_Ctx.Device, ImgAvaiSignal, nullptr);
+	}
+
+	bool Swapchain::Acquire()
+	{
+		VkResult res = vkAcquireNextImageKHR(m_Ctx.Device, m_Handle, 
+			std::numeric_limits<uint64_t>::max(), ImgAvaiSignal, VK_NULL_HANDLE, &m_CurImgIdx);
+		
+		if (res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR)
 		{
-			m_Handle = old;
-			m_IsValid = false;
+			COUST_CORE_ERROR("`vkAcquireNextImageKHR` return error: {}", ToString(res));
 			return false;
 		}
+
+		m_Ctx.CmdBufCacheGraphics->InjectDependency(ImgAvaiSignal);
+		IsNextImgAcquired = true;
+
+		if (res == VK_SUBOPTIMAL_KHR && !IsSubOptimal)
+		{
+			COUST_CORE_WARN("Suboptimal swapchain image");
+			IsSubOptimal = true;
+		}
+
+		return true;
 	}
-	
-	VkResult Swapchain::AcquireNextImage(uint64_t timeOut, VkSemaphore semaphoreToSignal, VkFence fenceToSignal, uint32_t* out_ImageIndex)
+
+	bool Swapchain::HasResized()
 	{
-		return vkAcquireNextImageKHR(m_Ctx.Device, m_Handle, timeOut, semaphoreToSignal, fenceToSignal, out_ImageIndex);
+		VkSurfaceCapabilitiesKHR capabilities;
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &capabilities);
+		return capabilities.currentExtent.width != Extent.width || capabilities.currentExtent.height != Extent.height;
 	}
 
-	VkSurfaceFormatKHR Swapchain::GetFormat() const { return Format; }
+	void Swapchain::MakePresentable()
+	{
+		GetColorAttachment().TransitionLayout(m_Ctx.CmdBufCacheGraphics->Get(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 
+			VkImageSubresourceRange
+			{
+    			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    			.baseMipLevel = 0,
+    			.levelCount = 1,
+    			.baseArrayLayer = 0,
+    			.layerCount = 1,
+			});
+	}
 
-	VkPresentModeKHR Swapchain::GetPresentMode() const { return PresentMode; }
+	Image& Swapchain::GetColorAttachment() { return *m_Images[m_CurImgIdx]; }
 
-	uint32_t Swapchain::GetMinImageCount() const { return MinImageCount; }
+	Image& Swapchain::GetDepthAttachment() { return *m_Depth; }
 
-	VkExtent2D Swapchain::GetExtent() const { return Extent; }
-
-	VkFormat Swapchain::GetDepthFormat() const { return DepthFormat; }
-
-	uint32_t Swapchain::GetCurrentSwapchainImageCount() const { return CurrentSwapchainImageCount; }
+	uint32_t Swapchain::GetImageIndex() const { return m_CurImgIdx; }
 }

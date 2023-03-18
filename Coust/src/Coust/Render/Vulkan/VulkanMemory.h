@@ -171,7 +171,6 @@ namespace Coust::Render::VK
 
         public:
             View() = delete;
-            View(View&&) = delete;
             View(const View&) = delete;
             View operator=(View&&) = delete;
             View& operator=(const View&) = delete;
@@ -188,6 +187,8 @@ namespace Coust::Render::VK
                 const char*             scopeName = nullptr;
             };
             View(const ConstructParam& param);
+
+            View(View&& other);
 
             ~View();
 
@@ -218,13 +219,14 @@ namespace Coust::Render::VK
 
         struct ConstructParam_Wrap
         {
-            const Context& ctx;
-            VkImage handle;
-            VkExtent3D extent;
-            VkFormat format;
-            VkSampleCountFlagBits samples;
-            const char*                     dedicatedName = nullptr;
-            const char*                     scopeName = nullptr;
+            const Context&              ctx;
+            VkImage                     handle;
+            uint32_t                    width;
+            uint32_t                    height;
+            VkFormat                    format;
+            VkSampleCountFlagBits       samples;
+            const char*                 dedicatedName = nullptr;
+            const char*                 scopeName = nullptr;
         };
         Image(const ConstructParam_Wrap& param);
 
@@ -259,11 +261,11 @@ namespace Coust::Render::VK
         void ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout);
 
         // return or create the required image view
-        std::shared_ptr<View> GetView(VkImageSubresourceRange subRange);
+        const View* GetView(VkImageSubresourceRange subRange);
 
         // helper function related to primary subresource range
         VkImageLayout GetPrimaryLayout() const;
-        std::shared_ptr<View> GetPrimaryView();
+        const View* GetPrimaryView();
         VkImageSubresourceRange GetPrimarySubRange() const;
         void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel);
 
@@ -279,7 +281,7 @@ namespace Coust::Render::VK
         void SetMASSImage(std::shared_ptr<Image> massImage);
 
     private:
-        std::unordered_map<VkImageSubresourceRange, std::shared_ptr<View>, 
+        std::unordered_map<VkImageSubresourceRange, View, 
             Hash::HashFn<VkImageSubresourceRange>, Hash::EqualFn<VkImageSubresourceRange>>  m_CachedImageView;
 
         // (layer << 16) | level => image layout of this pair of array layer and mipmap level
@@ -294,7 +296,7 @@ namespace Coust::Render::VK
 
         VkFormat m_Format;
 
-        VmaAllocation m_Allocation;
+        VmaAllocation m_Allocation = VK_NULL_HANDLE;
 
         // the default layout is determined by the type when the image is created
         VkImageLayout m_DefaultLayout;

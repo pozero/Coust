@@ -49,7 +49,7 @@ namespace Coust::Render::VK
 			VkSampleCountFlagBits 		sample = VK_SAMPLE_COUNT_1_BIT;
 			uint8_t 					resolveMask = 0u;					// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
 			uint8_t 					inputAttachmentMask = 0u;			// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
-			uint8_t 					presentMask = 0u;					// if the color attachment is gonna be presented
+			// uint8_t 					presentMask = 0u;					// if the color attachment is gonna be presented
 			const char*                 dedicatedName = nullptr;
 			const char*					scopeName = nullptr;
 
@@ -76,8 +76,7 @@ namespace Coust::Render::VK
 						AttachmentFlags discardEndMask,
 						VkSampleCountFlagBits sample,
 						uint8_t resolveMask,
-						uint8_t inputAttachmentMask,
-						uint8_t presentMask);
+						uint8_t inputAttachmentMask);
 	};
 
 	class Framebuffer : public Resource<VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER>,
