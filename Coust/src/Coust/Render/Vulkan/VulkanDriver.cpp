@@ -466,45 +466,95 @@ namespace Coust::Render::VK
 
     void Driver::InitializationTest()
     {
-        ShaderSource source(FileSystem::GetFullPathFrom({ "Coust", "shaders", "test.vert.glsl" }));
-        ShaderModule::ConstructParm smp 
+        RenderPass::ConstructParam rpp 
+        {
+			.ctx = m_Context,
+			.colorFormat = { m_Swapchain.SurfaceFormat.format },
+			.depthFormat = m_Swapchain.DepthFormat,
+			.clearMask = 0u,
+			.discardStartMask = COLOR0 | DEPTH,
+			.discardEndMask = COLOR0 | DEPTH,
+			.sample = VK_SAMPLE_COUNT_1_BIT,
+			.resolveMask = 0u,
+			.inputAttachmentMask = 0u,
+			.dedicatedName = "Test render pass",
+        };
+        RenderPass rp{ rpp };
+        if (!RenderPass::CheckValidation(rp))
+            return;
+        
+        ShaderSource vs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.vert"}) };
+        ShaderSource fs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.frag"}) };
+
+        ShaderModule::ConstructParm vssmp 
         {
             .ctx = m_Context,
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .source = source,
-            .dedicatedName = "test shader module",
+            .source = vs,
+            .dedicatedName = "Test vertex shader module",
         };
-        ShaderModule sm{ smp };
-        if (ShaderModule::CheckValidation(sm))
+        ShaderModule vssm{ vssmp };
+        if (!ShaderModule::CheckValidation(vssm))
+            return;
+
+        ShaderModule::ConstructParm fssmp
         {
-            const auto resources = sm.GetResource();
-            for (const auto& res : resources)
-            {
-                COUST_CORE_INFO(ToString(res));
-            }
-
-            std::vector<VkVertexInputBindingDescription> bindings{};
-            std::vector<VkVertexInputAttributeDescription> attribs{};
-            ShaderModule::CollectShaderInputs(resources, 0, bindings, attribs);
-            for (const auto& b : bindings)
-            {
-                COUST_CORE_INFO("binding: {}, stride: {}, inputRate: {}", b.binding, b.stride, b.inputRate);
-            }
-            for (const auto& a : attribs)
-            {
-                COUST_CORE_INFO("location: {}, binding: {}, format: {}, offset: {}", a.location, a.binding, ToString(a.format), a.offset);
-            }
-        }
-
-
-        PipelineLayout::ConstructParam plp
+            .ctx = m_Context,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .source = fs,
+            .dedicatedName = "Test fragment shader module",
+        };
+        ShaderModule fssm { fssmp };
+        if (!ShaderModule::CheckValidation(fssm))
+            return;
+        
+        PipelineLayout::ConstructParam plp 
         {
             .ctx = m_Context,
             .dedicatedName = "Test pipeline layout",
         };
-        plp.shaderModules.push_back(&sm);
-        PipelineLayout pl{ plp };
-        COUST_CORE_INFO(PipelineLayout::CheckValidation(pl));
+        plp.shaderModules.push_back(&vssm);
+        plp.shaderModules.push_back(&fssm);
+        PipelineLayout pl { plp };
+        if (!PipelineLayout::CheckValidation(pl))
+            return;
+        
+        GraphicsPipeline::ConstructParam gpp 
+        {
+            .ctx = m_Context,
+            .specializationConstantInfo = nullptr,
+            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            .polygonMode = VK_POLYGON_MODE_FILL,
+            .cullMode = VK_CULL_MODE_BACK_BIT,
+            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            .depthBiasEnable = VK_FALSE,
+            .depthBiasConstantFactor = 0.0f,
+            .depthBiasClamp = 0.0f,
+            .depthBiasSlopeFactor = 0.0f,
+            .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+            .depthWriteEnable = VK_TRUE,
+            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+            .colorTargetCount = 1,
+            .blendEnable = VK_FALSE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .colorBlendOp = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .alphaBlendOp = VK_BLEND_OP_ADD,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            .layout = pl,
+            .renderPass = rp,
+            .subpassIdx = 0,
+            .cache = VK_NULL_HANDLE,
+            .dedicatedName = "Test graphics pipeline",
+        };
+        GraphicsPipeline gp { gpp };
+        if (!GraphicsPipeline::CheckValidation(gp))
+            return;
+        
+        m_Context.CmdBufCacheGraphics->Flush();
+        m_Context.CmdBufCacheGraphics->Wait();
     }
 
     void Driver::LoopTest()

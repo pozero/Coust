@@ -115,8 +115,8 @@ namespace Coust::Render::VK
         {
             const Context&                                                  ctx;
             DescriptorSetAllocator&                                         allocator;      // Free list of descriptor pool, it contains the descriptor layout and MANAGES the lifecycle of this object
-            const std::vector<BoundArray<Buffer>>                           bufferInfos;    // Bound buffer infos, they're bound in arrays
-            const std::vector<BoundArray<Image>>                            imageInfos;     // Bound image infos, they're bound in arrays
+            std::vector<BoundArray<Buffer>>                                 bufferInfos;    // Bound buffer infos, they're bound in arrays
+            std::vector<BoundArray<Image>>                                  imageInfos;     // Bound image infos, they're bound in arrays
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 

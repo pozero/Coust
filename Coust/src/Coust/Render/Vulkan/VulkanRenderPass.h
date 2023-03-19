@@ -40,18 +40,18 @@ namespace Coust::Render::VK
 		// TODO: use VkCreateRenderPass2 to support automatic depth desolve
 		struct ConstructParam
 		{
-			const Context& 				ctx;
-			VkFormat 					colorFormat[MAX_ATTACHMENT_COUNT];	// specifying the format for the attachment, `VK_FORMAT_UNDEFINED` means we don't use this attachment
-			VkFormat 					depthFormat;
-			AttachmentFlags 			clearMask = 0u;						// `(clear & COLOR0) != 0` means `COLOR0` needs clear operation while loading
-			AttachmentFlags 			discardStartMask = 0u;				// `(discardStartMask & COLOR0) != 0` means `COLOR0` should be discarded while loading (loading operation will be clear if set)
-			AttachmentFlags 			discardEndMask = 0u;				// `(discardEndMask & COLOR0) != 0` means `COLOR0` should be discarded whil storing
-			VkSampleCountFlagBits 		sample = VK_SAMPLE_COUNT_1_BIT;
-			uint8_t 					resolveMask = 0u;					// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
-			uint8_t 					inputAttachmentMask = 0u;			// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
+			const Context&              ctx;
+			VkFormat                    colorFormat[MAX_ATTACHMENT_COUNT];	// specifying the format for the attachment, `VK_FORMAT_UNDEFINED` means we don't use this attachment
+			VkFormat                    depthFormat;
+			AttachmentFlags             clearMask = 0u;						// `(clear & COLOR0) != 0` means `COLOR0` needs clear operation while loading
+			AttachmentFlags             discardStartMask = 0u;				// `(discardStartMask & COLOR0) != 0` means `COLOR0` should be discarded while loading (loading operation will be clear if set)
+			AttachmentFlags             discardEndMask = 0u;				// `(discardEndMask & COLOR0) != 0` means `COLOR0` should be discarded whil storing
+			VkSampleCountFlagBits       sample = VK_SAMPLE_COUNT_1_BIT;
+			uint8_t                     resolveMask = 0u;					// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
+			uint8_t                     inputAttachmentMask = 0u;			// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
 			// uint8_t 					presentMask = 0u;					// if the color attachment is gonna be presented
 			const char*                 dedicatedName = nullptr;
-			const char*					scopeName = nullptr;
+			const char*                 scopeName = nullptr;
 
 			size_t GetHash() const;
 		};
