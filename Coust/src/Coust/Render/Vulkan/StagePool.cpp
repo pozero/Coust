@@ -31,7 +31,6 @@ namespace Coust::Render::VK
             .size = numBytes,
             .bufferFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             .usage = Buffer::Usage::Staging,
-            .relatedQueue = nullptr,
             .scopeName = "VK::StagePool",
         };
         if (Buffer::Base::Create(buf.buf, param))

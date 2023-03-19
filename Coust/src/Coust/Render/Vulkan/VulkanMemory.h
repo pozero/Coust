@@ -26,6 +26,8 @@ namespace Coust::Render::VK
         HostAndDevice,
     };
 
+    constexpr uint32_t COMMAND_QUEUE_COUNT = 3;
+
     class Buffer : public Resource<VkBuffer, VK_OBJECT_TYPE_BUFFER>
     {
     public:
@@ -70,9 +72,14 @@ namespace Coust::Render::VK
         {
             const Context&                      ctx;
             VkDeviceSize                        size;
-            VkBufferUsageFlags                  bufferFlags;            // Specify usage for optimal memory allocation
-            Usage                               usage;                  // Tell vulkan memory allocator how to allocate the memory bound to this buffer
-            const std::vector<uint32_t>*        relatedQueue = nullptr; // Optional. The queues that will get access to this buffer
+            VkBufferUsageFlags                  bufferFlags;                            // Specify usage for optimal memory allocation
+            Usage                               usage;                                  // Tell vulkan memory allocator how to allocate the memory bound to this buffer
+            const uint32_t                      relatedQueue[COMMAND_QUEUE_COUNT]       // Optional. The queues that will get access to this buffer
+            {
+                VK_QUEUE_FAMILY_IGNORED, 
+                VK_QUEUE_FAMILY_IGNORED, 
+                VK_QUEUE_FAMILY_IGNORED, 
+            }; 
             const char*                         scopeName = nullptr;
             const char*                         dedicatedName = nullptr;
         };
@@ -132,7 +139,7 @@ namespace Coust::Render::VK
         /**
          * @brief Actual construction happens here
          */
-        bool Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const std::vector<uint32_t>* relatedQueues);
+        bool Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const uint32_t* relatedQueues);
 
     private:
         VkDeviceSize m_Size;
@@ -155,7 +162,7 @@ namespace Coust::Render::VK
     public:
         using Base = Resource<VkImage, VK_OBJECT_TYPE_IMAGE>;
 
-        enum class Type 
+        enum class Usage 
         {
             CubeMap,
             Texture2D,
@@ -204,14 +211,19 @@ namespace Coust::Render::VK
             uint32_t                        width;
             uint32_t                        height;
             VkFormat                        format;
-            Type                            type;
+            Usage                           usage;                                          // High level usage
             VkImageUsageFlags               usageFlags = 0;
             VkImageCreateFlags              createFlags = 0;
             uint32_t                        mipLevels = 1;
             VkSampleCountFlagBits           samples = VK_SAMPLE_COUNT_1_BIT;
             VkImageTiling                   tiling = VK_IMAGE_TILING_OPTIMAL;
             VkImageLayout                   initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            const std::vector<uint32_t>*    relatedQueues = nullptr;
+            const uint32_t                  relatedQueues[COMMAND_QUEUE_COUNT]               // Optional. The queues that will get access to this buffer
+            {
+                VK_QUEUE_FAMILY_IGNORED, 
+                VK_QUEUE_FAMILY_IGNORED, 
+                VK_QUEUE_FAMILY_IGNORED, 
+            }; 
             const char*                     dedicatedName = nullptr;
             const char*                     scopeName = nullptr;
         };

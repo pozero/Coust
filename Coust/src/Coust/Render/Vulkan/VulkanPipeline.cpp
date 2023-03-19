@@ -4,130 +4,136 @@
 #include "Coust/Render/Vulkan/VulkanShader.h"
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
-
-#include <stdint.h>
+#include "Coust/Render/Vulkan/VulkanDescriptor.h"
 
 namespace Coust::Render::VK
 {
-	void PipelineState::Reset()
+	PipelineLayout::PipelineLayout(const ConstructParam& param)
+		: Base(param.ctx, VK_NULL_HANDLE),
+		  Hashable(param.GetHash()),
+		  m_ShaderModules(param.shaderModules)
 	{
-		m_InputAssembleState = InputAssemblyState{};
-		
-		m_RasterizationState = RasterizationState{};
-		
-		m_MultisampleState = MultisampleState{};
-		
-		m_DepthStencilState = DepthStencilState{};
-		
-		m_ColorBlendState = ColorBlendState{};
+		ShaderModule::CollectShaderResources(param.shaderModules, m_ShaderResources, m_SetToResourceIdxLookup);
 
-		m_PipelineLayout = nullptr;
-		
-		m_RenderPass = nullptr;
-		
-		m_SubpassIndex = 0;
-	}
-	
-	void PipelineState::SetInputAssemblyState(const InputAssemblyState& inputAssembleState)
-	{
-		if (m_InputAssembleState != inputAssembleState)
+		for (auto& pair : m_SetToResourceIdxLookup)
 		{
-			m_InputAssembleState = inputAssembleState;
-			m_Dirty = true;
-		}
-	}
-	
-	void PipelineState::SetRasterizationState(const RasterizationState& rasterizationState)
-	{
-		if (m_RasterizationState != rasterizationState)
-		{
-			m_RasterizationState = rasterizationState;
-			m_Dirty = true;
-		}
-	}
-		
-	
-	void PipelineState::SetMultisampleState(const MultisampleState& multisampleState)
-	{
-		if (m_MultisampleState != multisampleState)
-		{
-			m_MultisampleState = multisampleState;
-			m_Dirty = true;
-		}
-	}
-	
-	void PipelineState::SetDepthStencilState(const DepthStencilState& depthStencilState)
-	{
-		if (m_DepthStencilState != depthStencilState)
-		{
-			m_DepthStencilState = depthStencilState;
-			m_Dirty = true;
-		}
-	}
-	
-	void PipelineState::SetColorBlendState(const ColorBlendState& colorBlendState)
-	{
-		if (m_ColorBlendState != colorBlendState)
-		{
-			m_ColorBlendState = colorBlendState;
-			m_Dirty = true;
-		}
-	}
+			uint32_t set = pair.first;
+			std::vector<ShaderResource> resources{};
+			for (uint64_t i = 0; i < sizeof(pair.second); ++ i)
+			{
+				if (((uint64_t(1) << i) & pair.second) != 0)
+					resources.push_back(m_ShaderResources[i]);
+			}
+			
+			std::string debugName{};
+			for (const auto& res : resources)
+			{
+				debugName += res.Name;
+				debugName += ' ';
+			}
+			debugName += std::to_string(set);
 
-	void PipelineState::SetPipelineLayout(const PipelineLayout& pipelineLayout)
-	{
-		if (m_PipelineLayout && m_PipelineLayout->GetHandle() != pipelineLayout.GetHandle())
-		{
-			m_PipelineLayout = &pipelineLayout;
-			m_Dirty = true;
+			DescriptorSetLayout::ConstructParam p 
+			{
+            	.ctx = param.ctx,
+            	.set = set,
+            	.shaderModules = param.shaderModules,
+            	.shaderResources = resources,
+            	.dedicatedName = debugName.c_str(),
+			};
+			m_DescriptorLayouts.emplace_back(p);
+
+			if (!DescriptorSetLayout::CheckValidation(m_DescriptorLayouts.back()))
+			{
+				COUST_CORE_ERROR("Can't create descriptor set layout for shader resources: {}", debugName);
+				m_DescriptorLayouts.pop_back();
+				return;
+			}
 		}
-		else // `m_PipelineLayout` is nullptr
+		std::vector<VkDescriptorSetLayout> setLayouts{};
+		setLayouts.reserve(m_DescriptorLayouts.size());
+		for (const auto& l : m_DescriptorLayouts)
 		{
-			m_PipelineLayout = &pipelineLayout;
-			m_Dirty = true;
+			setLayouts.push_back(l.GetHandle());
 		}
-	}
-	
-	void PipelineState::SetRenderPass(const RenderPass& renderPass)
-	{
-		if (m_RenderPass && m_RenderPass->GetHandle() != renderPass.GetHandle())
+
+    	std::vector<VkPushConstantRange> pushConstantRanges{};
+		for (const auto& res : m_ShaderResources)
 		{
-			m_RenderPass = &renderPass;
-			m_Dirty = true;
+			if (res.Type == ShaderResourceType::PushConstant)
+			{
+				VkPushConstantRange r 
+				{
+    				.stageFlags = res.Stage,
+    				.offset = res.Offset,
+    				.size = res.Size,
+				};
+				pushConstantRanges.push_back(r);
+			}
 		}
-		else // `m_RenderPass` is nullptr
+
+		VkPipelineLayoutCreateInfo CI 
 		{
-			m_RenderPass = &renderPass;
-			m_Dirty = true;
-		}
-	}
-	
-	void PipelineState::SetSubpass(const uint32_t subpassIndex)
-	{
-		if (m_SubpassIndex != subpassIndex)
+    		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    		.setLayoutCount = (uint32_t) m_DescriptorLayouts.size(),
+    		.pSetLayouts = setLayouts.data(),
+    		.pushConstantRangeCount = (uint32_t) pushConstantRanges.size(),
+    		.pPushConstantRanges = pushConstantRanges.data(),
+		};
+		bool success = false;
+		VK_REPORT(vkCreatePipelineLayout(m_Ctx.Device, &CI, nullptr, &m_Handle), success);
+		if (success)
 		{
-			m_SubpassIndex = subpassIndex;
-			m_Dirty = true;
+			if (param.dedicatedName)
+				SetDedicatedDebugName(param.dedicatedName);
+			else if (param.scopeName)
+				SetDefaultDebugName(param.scopeName, nullptr);
 		}
+		else  
+			m_Handle = VK_NULL_HANDLE;
 	}
 
-	const InputAssemblyState& PipelineState::GetInputAssemblyState() const { return m_InputAssembleState; }
-	
-	const RasterizationState& PipelineState::GetRasterizationState() const { return m_RasterizationState; }
-	
-	const MultisampleState& PipelineState::GetMultisampleState() const { return m_MultisampleState; }
-	
-	const DepthStencilState& PipelineState::GetDepthStencilState() const { return m_DepthStencilState; }
-	
-	const ColorBlendState& PipelineState::GetColorBlendState() const { return m_ColorBlendState; }
-	
-	const PipelineLayout* PipelineState::GetPipelineLayout() const { return m_PipelineLayout; }
-	
-	const RenderPass* PipelineState::GetRenderPass() const { return m_RenderPass; }
-	
-	const uint32_t PipelineState::GetSubpassIndex() const { return m_SubpassIndex; }
+	PipelineLayout::PipelineLayout(PipelineLayout&& other)
+		: Base(std::forward<Base>(other)),
+		  Hashable(std::forward<Hashable>(other)),
+          m_ShaderModules(std::move(other.m_ShaderModules)),
+		  m_DescriptorLayouts(std::move(other.m_DescriptorLayouts)),
+		  m_ShaderResources(std::move(other.m_ShaderResources)),
+		  m_SetToResourceIdxLookup(std::move(other.m_SetToResourceIdxLookup))
+	{}
 
-	bool PipelineState::IsDirty() const { return m_Dirty; }
+	PipelineLayout::~PipelineLayout()
+	{
+		if (m_Handle != VK_NULL_HANDLE)
+			vkDestroyPipelineLayout(m_Ctx.Device, m_Handle, nullptr);
+	}
 
-	void PipelineState::Flush() { m_Dirty = false; }
+	const std::vector<ShaderModule*>& PipelineLayout::GetShaderModules() const { return m_ShaderModules; }
+
+	const std::vector<DescriptorSetLayout>& PipelineLayout::GetDescriptorSetLayouts() const { return m_DescriptorLayouts; }
+
+	const std::vector<ShaderResource>& PipelineLayout::GetShaderResources() const { return m_ShaderResources; }
+
+	// GraphicsPipeline::GraphicsPipeline(const ConstructParam& param)
+	// 	: Base(param.ctx, VK_NULL_HANDLE),
+	// 	  Hashable(param.GetHash())
+	// {
+	// 
+	// }
+
+	// GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& other);
+
+	// GraphicsPipeline::~GraphicsPipeline();
+
+	size_t PipelineLayout::ConstructParam::GetHash() const 
+	{
+		size_t h = 0;
+		return h;
+	}
+
+	size_t GraphicsPipeline::ConstructParam::GetHash() const 
+	{
+		size_t h = 0;
+		return h;
+	}
 }

@@ -49,6 +49,7 @@ namespace Coust::Render::VK
         uint32_t bindingIdx;
     };
 
+    // Usually, this class is managed by the pipeline layout
     class DescriptorSetLayout : public Resource<VkDescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT>,
                                 public Hashable
     {
@@ -113,10 +114,9 @@ namespace Coust::Render::VK
         struct ConstructParam 
         {
             const Context&                                                  ctx;
-            const DescriptorSetLayout&                                      layout;         // Template to create this descriptor set
-            DescriptorSetAllocator&                                         allocator;      // Free list of descriptor pool, it MANAGES the lifecycle of this object
-            const std::vector<BoundArray<Buffer>>&                          bufferInfos;    // Bound buffer infos, they're bound in arrays
-            const std::vector<BoundArray<Image>>&                           imageInfos;     // Bound image infos, they're bound in arrays
+            DescriptorSetAllocator&                                         allocator;      // Free list of descriptor pool, it contains the descriptor layout and MANAGES the lifecycle of this object
+            const std::vector<BoundArray<Buffer>>                           bufferInfos;    // Bound buffer infos, they're bound in arrays
+            const std::vector<BoundArray<Image>>                            imageInfos;     // Bound image infos, they're bound in arrays
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 

@@ -4,7 +4,8 @@
 
 namespace Coust::Random 
 {
-    static std::mt19937 s_RNG{};
+    // This random generator could be accessed by multiple threads
+    static thread_local std::mt19937 s_RNG{};
     
     void Seed()
     {

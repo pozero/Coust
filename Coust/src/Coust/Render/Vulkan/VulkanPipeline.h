@@ -8,200 +8,128 @@
 
 namespace Coust::Render::VK
 {
-	class RenderPass;
-	class ShaderModule;
-	class DescriptorSetLayout;
+    class RenderPass;
+    class ShaderModule;
+    struct ShaderResource;
+    class DescriptorSetLayout;
 
-	class PipelineState;
-	class PipelineLayout;
+    class PipelineState;
+    class PipelineLayout;
+    
+    class PipelineLayout : public Resource<VkPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT>,
+                           public Hashable
+    {
+    public:
+        using Base = Resource<VkPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT>;
 
-	struct InputAssemblyState 
-	{
-    	VkPrimitiveTopology 	Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		VkBool32 				PrimitiveRestartEnable = VK_FALSE;
-		
-		auto operator<=>(const InputAssemblyState&) const = default;
-	};
-	
-	struct RasterizationState 
-	{
-    	VkBool32              DepthClampEnable = VK_FALSE;
-   		VkBool32              RasterizerDiscardEnable = VK_FALSE;
-   		VkPolygonMode         PolygonMode = VK_POLYGON_MODE_FILL;
-   		VkCullModeFlags       CullMode = VK_CULL_MODE_BACK_BIT;
-		// Note: We will use Assimp as our model library, whose default face winding is CCW
-   		VkFrontFace           FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-   		VkBool32              DepthBiasEnable = VK_FALSE;
-   		float                 LineWidth = 1.0f;
-		
-		auto operator<=>(const RasterizationState&) const = default;
-	};
-	
-	struct MultisampleState 
-	{
-		// Can be set by `Context.MSAASampleCount`
-    	VkSampleCountFlagBits		RasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-   		VkBool32                    SampleShadingEnable = VK_FALSE;
-   		float                       MinSampleShading = 0.0f;
-   		VkSampleMask				PSampleMask = 0;
-   		VkBool32                    AlphaToCoverageEnable = VK_FALSE;
-   		VkBool32                    AlphaToOneEnable = VK_FALSE;
-		
-		auto operator<=>(const MultisampleState&) const = default;
-	};
-	
-	struct StencilOpState 
-	{
-   		VkStencilOp    failOp = VK_STENCIL_OP_REPLACE;
-   		VkStencilOp    passOp = VK_STENCIL_OP_REPLACE;
-		// Action when samples pass the stencil test but fail the depth test
-   		VkStencilOp    depthFailOp = VK_STENCIL_OP_REPLACE;
-   		VkCompareOp    compareOp = VK_COMPARE_OP_NEVER;
-   		uint32_t       compareMask;
-   		uint32_t       writeMask;
-   		uint32_t       reference;
-		
-		auto operator<=>(const StencilOpState&) const = default;
-	};
-	
-	struct DepthStencilState 
-	{
-		VkBool32            DepthTestEnable = VK_TRUE;
-		VkBool32            DepthWriteEnable = VK_TRUE;
-		// https://github.com/KhronosGroup/Vulkan-Samples/pull/25
-		// TODO: Use Reversed depth-buffer get more even distribution of precision
-		VkCompareOp         DepthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		VkBool32            DepthBoundsTestEnable = VK_FALSE;
-		VkBool32            StencilTestEnable = VK_FALSE;
-		StencilOpState 		Front;
-		StencilOpState    	Back;
-		// float               MinDepthBounds;
-		// float               MaxDepthBounds;
-		
-		auto operator<=>(const DepthStencilState&) const = default;
-	};
-	
-	struct ColorBlendAttachment 
-	{
-   		VkBool32                 blendEnable = VK_FALSE;
-   		VkBlendFactor            srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-   		VkBlendFactor            dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-   		VkBlendOp                colorBlendOp = VK_BLEND_OP_ADD;
-   		VkBlendFactor            srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-   		VkBlendFactor            dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-   		VkBlendOp                alphaBlendOp = VK_BLEND_OP_ADD;
-   		VkColorComponentFlags    colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		
-		auto operator<=>(const ColorBlendAttachment&) const = default;
-	};
-	
-	struct ColorBlendState
-	{
-   		VkBool32                            logicOpEnable = VK_FALSE;
-   		VkLogicOp                           logicOp = VK_LOGIC_OP_COPY;
-   		std::vector<ColorBlendAttachment>	pAttachments;
-   		float                               blendConstants[4] { 0.0f, 0.0f, 0.0f, 0.0f };
-		
-		auto operator<=>(const ColorBlendState&) const = default;
-	};
+        PipelineLayout() = delete;
+        PipelineLayout(const PipelineLayout&) = delete;
+        PipelineLayout& operator=(PipelineLayout&&) = delete;
+        PipelineLayout& operator=(const PipelineLayout&) = delete;
 
-	// TODO: Add specialization constant support
-	
-	/**
-	 * @brief Basically a wrapper class of `VkGraphicsPipelineCreateInfo`
-	 */
-	class PipelineState
-	{
-	public:
-		PipelineState() = default;
-		~PipelineState() = default;
+    public:
+        struct ConstructParam 
+        {
+            const Context&                      ctx;
+            std::vector<ShaderModule*>          shaderModules;
+            const char*                         scopeName = nullptr;
+            const char*                         dedicatedName = nullptr;
 
-		void Reset();
-		
-		/* Setter */
+            size_t GetHash() const;
+        };
+        PipelineLayout(const ConstructParam& param);
 
-		void SetInputAssemblyState(const InputAssemblyState& inputAssembleState);
-		
-		void SetRasterizationState(const RasterizationState& rasterizationState);
-		
-		void SetMultisampleState(const MultisampleState& multisampleState);
-		
-		void SetDepthStencilState(const DepthStencilState& depthStencilState);
-		
-		void SetColorBlendState(const ColorBlendState& colorBlendState);
+        PipelineLayout(PipelineLayout&& other);
 
-		void SetPipelineLayout(const PipelineLayout& pipelineLayout);
-		
-		void SetRenderPass(const RenderPass& renderPass);
-		
-		void SetSubpass(const uint32_t subpassIndex);
-		
-		/* Getter */
+        ~PipelineLayout();
 
-		const InputAssemblyState& GetInputAssemblyState() const;
-		
-		const RasterizationState& GetRasterizationState() const;
-		
-		const MultisampleState& GetMultisampleState() const;
-		
-		const DepthStencilState& GetDepthStencilState() const;
-		
-		const ColorBlendState& GetColorBlendState() const;
-		
-		const PipelineLayout* GetPipelineLayout() const;
-		
-		const RenderPass* GetRenderPass() const;
-		
-		const uint32_t GetSubpassIndex() const;
+        const std::vector<ShaderModule*>& GetShaderModules() const;
 
-		/* Getter */
-		
-		/**
-		 * @brief PipelienState gets dirty when its changes not being applied yet.
-		 * @return 
-		 */
-		bool IsDirty() const;
+        const std::vector<DescriptorSetLayout>& GetDescriptorSetLayouts() const;
 
-		/**
-		 * @brief The changes have been applied, so flush the dirt.
-		 */
-		void Flush();
+        const std::vector<ShaderResource>& GetShaderResources() const;
 
-	private:
-		bool m_Dirty = false;
-		
-		InputAssemblyState m_InputAssembleState{};
-		
-		RasterizationState m_RasterizationState{};
-		
-		MultisampleState m_MultisampleState{};
-		
-		DepthStencilState m_DepthStencilState{};
-		
-		ColorBlendState m_ColorBlendState{};
+    private:
+        std::vector<ShaderModule*> m_ShaderModules;
 
-		const PipelineLayout* m_PipelineLayout = nullptr;
-		
-		const RenderPass* m_RenderPass = nullptr;
-		
-		uint32_t m_SubpassIndex = 0;
-	};
-	
-	class PipelineLayout : public Resource<VkPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT>
-	{
-	public:
-		using Base = Resource<VkPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT>;
+        // A group of shader module corresponds to a  group of descriptor set layouts, it doesn't make much sense to cache these layout because of this multi to multi correlation.
+        // So here we let the pipeline layout MANAGES these descriptor set layouts.
+        std::vector<DescriptorSetLayout> m_DescriptorLayouts;
+        
+        std::vector<ShaderResource> m_ShaderResources;
+        // set -> mask of indice in `out_AllShaderResources` of all resources in this set
+        std::unordered_map<uint32_t, uint64_t> m_SetToResourceIdxLookup;
+    };
 
-	public:
+    // post processing
+    // https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/using-compute-post-processing-in-vulkan-on-mali
 
-	private:
-		std::vector<ShaderModule*> m_Shaders;
+    class GraphicsPipeline : public Resource<VkPipeline, VK_OBJECT_TYPE_PIPELINE>,
+                             public Hashable
+    {
+    public:
+        using Base = Resource<VkPipeline, VK_OBJECT_TYPE_PIPELINE>;
+        GraphicsPipeline() = delete;
+        GraphicsPipeline(const GraphicsPipeline&) = delete;
+        GraphicsPipeline& operator=(GraphicsPipeline&&) = delete;
+        GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 
-		std::vector<DescriptorSetLayout*> m_DescriptorLayouts;
+    public:
+        struct ConstructParam 
+        {
+            const Context&                                      ctx;
+            std::vector<VkVertexInputBindingDescription>        vertexBindingDescriptions;
+            std::vector<VkVertexInputAttributeDescription>      vertexAttributeDescriptions;
+            // We don't use primitive restart since most of the time we will use the triangle list, as the spec says:
+            // primitiveRestartEnable controls whether a special vertex index value is treated as restarting the
+            // assembly of primitives. This enable only applies to indexed draws (vkCmdDrawIndexed, and
+            // vkCmdDrawIndexedIndirect), and the special index value is either 0xFFFFFFFF when the
+            // indexType parameter of vkCmdBindIndexBuffer is equal to VK_INDEX_TYPE_UINT32, or 0xFFFF when
+            // indexType is equal to VK_INDEX_TYPE_UINT16. Primitive restart is not allowed for list topologies.
+            // const VkPipelineInputAssemblyStateCreateInfo*    pInputAssemblyState;
+            VkPrimitiveTopology                                 topology;
+            // We don't support tesselletion now
+            // Viewport & scissor are dynamic states, their setting is postponed until actual drawing
+            // We don't use depth clamp & rasterizer discard, and lineWidth is always 1.0f
+            VkPolygonMode                                       polygonMode;
+            VkCullModeFlags                                     cullMode;
+            VkFrontFace                                         frontFace;
+            VkBool32                                            depthBiasEnable;
+            float                                               depthBiasConstantFactor;
+            float                                               depthBiasClamp;
+            float                                               depthBiasSlopeFactor;
+            // We don't use sample shading or multisample coverage
+            VkSampleCountFlagBits                               rasterizationSamples;
+            // We don't use depth bounds test and stencil test, and the depth test is always enabled
+            VkBool32                                            depthWriteEnable;
+            // https://github.com/KhronosGroup/Vulkan-Samples/pull/25
+            // TODO: Use Reversed depth-buffer get more even distribution of precision
+            VkCompareOp                                         depthCompareOp;
+            // We don't use logical operation and constant blend value
+            // Also, we use consistent color blend across all the render targets
+            VkBool32                                            blendEnable;
+            VkBlendFactor                                       srcColorBlendFactor;
+            VkBlendFactor                                       dstColorBlendFactor;
+            VkBlendOp                                           colorBlendOp;
+            VkBlendFactor                                       srcAlphaBlendFactor;
+            VkBlendFactor                                       dstAlphaBlendFactor;
+            VkBlendOp                                           alphaBlendOp;
+            VkColorComponentFlags                               colorWriteMask;
+            // We use fixed dynamic state which contains viewport and scissor
+            PipelineLayout&                                     layout;
+            RenderPass&                                         renderPass;
+            uint32_t                                            subpassIdx;
+            const char*                                         scopeName = nullptr;
+            const char*                                         dedicatedName = nullptr;
 
-	};
+            size_t GetHash() const;
+        };
+        GraphicsPipeline(const ConstructParam& param);
 
-	// post processing
-	// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/using-compute-post-processing-in-vulkan-on-mali
+        GraphicsPipeline(GraphicsPipeline&& other);
 
+        ~GraphicsPipeline();
+
+    private:
+    };
 }

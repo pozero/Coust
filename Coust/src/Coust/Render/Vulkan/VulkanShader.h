@@ -221,6 +221,12 @@ namespace Coust::Render::VK
                                            std::vector<ShaderResource>& out_AllShaderResources, 
                                            std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup);
         
+        static void CollectShaderInputs(const std::vector<ShaderResource>& shaderResources,
+            uint32_t perInstanceInputMask,  // (1 << l) & perInstanceInputMask != 0 means the input rate of data in location l is per instance
+                                            // Also, the maxVertexInputAttributes for 1050 is just 32, so a uint32_t mask is just fine
+            std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
+            std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions);
+        
     public:
         struct ConstructParm
         {

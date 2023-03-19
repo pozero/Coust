@@ -43,7 +43,7 @@ namespace Coust::Render::VK
         }
     }
 
-    inline void GetImageConfig(Image::Type type, VkImageCreateInfo& CI, VmaAllocationCreateInfo& AI, VkImageViewType& viewType, VkImageLayout& defaultLayout, bool blitable)
+    inline void GetImageConfig(Image::Usage usage, VkImageCreateInfo& CI, VmaAllocationCreateInfo& AI, VkImageViewType& viewType, VkImageLayout& defaultLayout, bool blitable)
     {
         // For the convenience of copying data between image (debug for example), the image can be blitable
         const VkImageUsageFlags blit = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -62,9 +62,9 @@ namespace Coust::Render::VK
             AI.preferredFlags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
         }
         
-        switch (type)
+        switch (usage)
         {
-            case Image::Type::CubeMap:
+            case Image::Usage::CubeMap:
                 CI.arrayLayers = 6;
                 CI.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                 CI.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -73,7 +73,7 @@ namespace Coust::Render::VK
                 viewType = VK_IMAGE_VIEW_TYPE_CUBE;
                 defaultLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
                 return;
-            case Image::Type::Texture2D:
+            case Image::Usage::Texture2D:
                 CI.arrayLayers = 1;
                 CI.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
                 CI.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -81,21 +81,21 @@ namespace Coust::Render::VK
                 viewType = VK_IMAGE_VIEW_TYPE_2D;
                 defaultLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
                 return;
-            case Image::Type::DepthStencilAttachment:
+            case Image::Usage::DepthStencilAttachment:
                 CI.arrayLayers = 1;
                 CI.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
                 viewType = VK_IMAGE_VIEW_TYPE_2D;
                 defaultLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
                 return;
-            case Image::Type::ColorAttachment:
+            case Image::Usage::ColorAttachment:
                 CI.arrayLayers = 1;
                 CI.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 AI.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
                 viewType = VK_IMAGE_VIEW_TYPE_2D;
                 defaultLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
                 return;
-            case Image::Type::InputAttachment:
+            case Image::Usage::InputAttachment:
                 CI.arrayLayers = 1;
                 // Commonly, input attachment is also the color attachment for the previous subpass
                 CI.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -110,15 +110,15 @@ namespace Coust::Render::VK
         }
     }
 
-    const char* ToString(Image::Type type)
+    const char* ToString(Image::Usage usage)
     {
-        switch (type)
+        switch (usage)
         {
-            case Image::Type::CubeMap: return "CubeMap";
-            case Image::Type::Texture2D: return "Texture2D";
-            case Image::Type::InputAttachment: return "InputAttachment";
-            case Image::Type::ColorAttachment: return "ColorAttachment";
-            case Image::Type::DepthStencilAttachment: return "DepthStencilAttachment";
+            case Image::Usage::CubeMap: return "CubeMap";
+            case Image::Usage::Texture2D: return "Texture2D";
+            case Image::Usage::InputAttachment: return "InputAttachment";
+            case Image::Usage::ColorAttachment: return "ColorAttachment";
+            case Image::Usage::DepthStencilAttachment: return "DepthStencilAttachment";
             default: return "None";
         }
     }
@@ -310,7 +310,7 @@ namespace Coust::Render::VK
     
     bool Buffer::IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
 
-    bool Buffer::Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const std::vector<uint32_t>* relatedQueues)
+    bool Buffer::Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const uint32_t* relatedQueues)
     {
         VmaMemoryUsage vmaMemoryUsage = VMA_MEMORY_USAGE_AUTO;
         VmaAllocationCreateFlags allocationFlags = 0;
@@ -323,11 +323,19 @@ namespace Coust::Render::VK
             .size = m_Size,
             .usage = bufferFlags,
         };
-        if (relatedQueues && relatedQueues->size() > 1)
         {
-            bci.sharingMode = VK_SHARING_MODE_CONCURRENT;
-            bci.queueFamilyIndexCount = (uint32_t) relatedQueues->size();
-            bci.pQueueFamilyIndices = relatedQueues->data();
+            std::unordered_set<uint32_t> allQueues;
+            for (uint32_t i = 0; i < COMMAND_QUEUE_COUNT; ++ i)
+            {
+                allQueues.insert(relatedQueues[i]);
+            }
+            if (allQueues.size() > 1)
+            {
+                std::vector<uint32_t> queue(allQueues.begin(), allQueues.end());
+                bci.sharingMode = VK_SHARING_MODE_CONCURRENT;
+                bci.queueFamilyIndexCount = (uint32_t) queue.size();
+                bci.pQueueFamilyIndices = queue.data();
+            }
         }
         
         VmaAllocationCreateInfo aci 
@@ -391,18 +399,25 @@ namespace Coust::Render::VK
             .usage = param.usageFlags,
             .initialLayout = param.initialLayout
         };
-
-        if (param.relatedQueues && param.relatedQueues->size() > 1)
         {
-            CI.sharingMode = VK_SHARING_MODE_CONCURRENT;
-            CI.queueFamilyIndexCount = (uint32_t) param.relatedQueues->size();
-            CI.pQueueFamilyIndices = param.relatedQueues->data();
+            std::unordered_set<uint32_t> allQueues;
+            for (uint32_t i = 0; i < COMMAND_QUEUE_COUNT; ++ i)
+            {
+                allQueues.insert(param.relatedQueues[i]);
+            }
+            if (allQueues.size() > 1)
+            {
+                std::vector<uint32_t> queue(allQueues.begin(), allQueues.end());
+                CI.sharingMode = VK_SHARING_MODE_CONCURRENT;
+                CI.queueFamilyIndexCount = (uint32_t) queue.size();
+                CI.pQueueFamilyIndices = queue.data();
+            }
         }
 
         VmaAllocationCreateInfo AI{};
 
         // TODO: for now we hard coded the blitable var as true
-        GetImageConfig(param.type, CI, AI, m_ViewType, m_DefaultLayout, true);
+        GetImageConfig(param.usage, CI, AI, m_ViewType, m_DefaultLayout, true);
 
         m_PrimarySubRange.aspectMask = IsDepthStencilFormat(param.format) ? 
             VK_IMAGE_ASPECT_DEPTH_BIT : 
@@ -420,8 +435,8 @@ namespace Coust::Render::VK
         GetView(m_PrimarySubRange);
 
         // the layout transition for texture is deferred until upload
-        if (param.type == Type::ColorAttachment || param.type == Type::DepthStencilAttachment ||
-            param.type == Type::InputAttachment)
+        if (param.usage == Usage::ColorAttachment || param.usage == Usage::DepthStencilAttachment ||
+            param.usage == Usage::InputAttachment)
             TransitionLayout(m_Ctx.CmdBufCacheGraphics->Get(), m_DefaultLayout, m_PrimarySubRange);
 
         if (success)
@@ -429,7 +444,7 @@ namespace Coust::Render::VK
             if (param.dedicatedName)
                 SetDedicatedDebugName(param.dedicatedName);
             else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, ToString(param.type));
+                SetDefaultDebugName(param.scopeName, ToString(param.usage));
             else  
                 COUST_CORE_WARN("Image created without a debug name");
         }

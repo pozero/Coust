@@ -266,7 +266,7 @@ namespace Coust::Render::VK
         : Base(param.ctx, VK_NULL_HANDLE),
           Hashable(param.GetHash()),
           m_GPUProerpties(*param.ctx.GPUProperties),
-          m_Layout(param.layout),
+          m_Layout(param.allocator.GetLayout()),
           m_Allocator(param.allocator),
           m_BufferInfos(param.bufferInfos),
           m_ImageInfos(param.imageInfos)
@@ -504,7 +504,7 @@ namespace Coust::Render::VK
     {
         size_t h = 0;
 
-        Hash::Combine(h, layout);
+        Hash::Combine(h, allocator.GetLayout());
 
         for (const auto& b : bufferInfos)
         {

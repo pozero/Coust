@@ -5,8 +5,9 @@
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "Coust/Render/Vulkan/VulkanShader.h"
 
-#include "Coust/Utils/FileSystem.h"
 #include "Coust/Utils/Hash.h"
+#include "Coust/Utils/Macro.h"
+#include "Coust/Utils/FileSystem.h"
 
 namespace Coust::Render::VK 
 {
@@ -106,7 +107,7 @@ namespace Coust::Render::VK
 		}
 	}
 	
-	ShaderResourceBaseType GetShaderResourceBastType(spirv_cross::SPIRType::BaseType baseType)
+	inline ShaderResourceBaseType GetShaderResourceBastType(spirv_cross::SPIRType::BaseType baseType)
     {
         switch (baseType)
         {
@@ -126,8 +127,33 @@ namespace Coust::Render::VK
             default:                                        return ShaderResourceBaseType::All;
         }
     }
+
+    inline uint32_t GetShaderResourceBaseTypeSize(ShaderResourceBaseType baseType)
+    {
+        switch (baseType)
+        {
+            case ShaderResourceBaseType::Int8:
+            case ShaderResourceBaseType::UInt8:
+                return 1;
+            case ShaderResourceBaseType::Int16:
+            case ShaderResourceBaseType::UInt16:
+            case ShaderResourceBaseType::Half:
+                return 2;
+            case ShaderResourceBaseType::Bool:
+            case ShaderResourceBaseType::Int32:
+            case ShaderResourceBaseType::UInt32:
+            case ShaderResourceBaseType::Float:
+                return 4;
+            case ShaderResourceBaseType::Int64:
+            case ShaderResourceBaseType::UInt64:
+            case ShaderResourceBaseType::Double:
+                return 8;
+            default:
+                return 0;
+        }
+    }
     
-    uint32_t GetShaderResourceBaseTypeSize(spirv_cross::SPIRType::BaseType baseType)
+    inline uint32_t GetShaderResourceBaseTypeSize(spirv_cross::SPIRType::BaseType baseType)
     {
         switch (baseType)
         {
@@ -187,7 +213,7 @@ namespace Coust::Render::VK
         return pFirstMember;
     }
     
-    void CleanResourceMembersInfo(ShaderResourceMember* pMemberInfo)
+    inline void CleanResourceMembersInfo(ShaderResourceMember* pMemberInfo)
     {
         if (!pMemberInfo)
             return;
@@ -740,6 +766,196 @@ namespace Coust::Render::VK
                 iter->second |= (1ll << i);
             else 
                 out_SetToResourceIdxLookup[r.Set] = (1ll << i);
+        }
+    }
+
+#define GENERATE_VK_FORMAT_1(baseType, baseTypeSize) CONCAT(VK_FORMAT_, R, baseTypeSize, _, baseType)
+#define GENERATE_VK_FORMAT_2(baseType, baseTypeSize) CONCAT(VK_FORMAT_, R, baseTypeSize, G, baseTypeSize, _, baseType)
+#define GENERATE_VK_FORMAT_3(baseType, baseTypeSize) CONCAT(VK_FORMAT_, R, baseTypeSize, G, baseTypeSize, B, baseTypeSize, _, baseType)
+#define GENERATE_VK_FORMAT_4(baseType, baseTypeSize) CONCAT(VK_FORMAT_, R, baseTypeSize, G, baseTypeSize, B, baseTypeSize, A, baseTypeSize, _, baseType)
+#pragma warning( push )
+#pragma warning( disable : 4003 )
+
+    inline VkFormat GetInputResourceFormat(uint32_t vecSize, ShaderResourceBaseType baseType)
+    {
+        if (vecSize == 4)
+        {
+            switch (baseType)
+            {
+                case ShaderResourceBaseType::Int8:      return GENERATE_VK_FORMAT_4(SINT,   8);
+                case ShaderResourceBaseType::UInt8:     return GENERATE_VK_FORMAT_4(UINT,   8);
+                case ShaderResourceBaseType::Int16:     return GENERATE_VK_FORMAT_4(SINT,   16);
+                case ShaderResourceBaseType::UInt16:    return GENERATE_VK_FORMAT_4(UINT,   16);
+                case ShaderResourceBaseType::Half:      return GENERATE_VK_FORMAT_4(SFLOAT, 16);
+                case ShaderResourceBaseType::Bool:      return GENERATE_VK_FORMAT_4(UINT,   32);
+                case ShaderResourceBaseType::Int32:     return GENERATE_VK_FORMAT_4(SINT,   32);
+                case ShaderResourceBaseType::UInt32:    return GENERATE_VK_FORMAT_4(UINT,   32);
+                case ShaderResourceBaseType::Float:     return GENERATE_VK_FORMAT_4(SFLOAT, 32);
+                case ShaderResourceBaseType::Int64:     return GENERATE_VK_FORMAT_4(SINT,   64);
+                case ShaderResourceBaseType::UInt64:    return GENERATE_VK_FORMAT_4(UINT,   64);
+                case ShaderResourceBaseType::Double:    return GENERATE_VK_FORMAT_4(SFLOAT, 64);
+                default:                                return VK_FORMAT_UNDEFINED;
+            }
+        }
+        else if (vecSize == 3)
+        {
+            switch (baseType)
+            {
+                case ShaderResourceBaseType::Int8:      return GENERATE_VK_FORMAT_3(SINT,   8);
+                case ShaderResourceBaseType::UInt8:     return GENERATE_VK_FORMAT_3(UINT,   8);
+                case ShaderResourceBaseType::Int16:     return GENERATE_VK_FORMAT_3(SINT,   16);
+                case ShaderResourceBaseType::UInt16:    return GENERATE_VK_FORMAT_3(UINT,   16);
+                case ShaderResourceBaseType::Half:      return GENERATE_VK_FORMAT_3(SFLOAT, 16);
+                case ShaderResourceBaseType::Bool:      return GENERATE_VK_FORMAT_3(UINT,   32);
+                case ShaderResourceBaseType::Int32:     return GENERATE_VK_FORMAT_3(SINT,   32);
+                case ShaderResourceBaseType::UInt32:    return GENERATE_VK_FORMAT_3(UINT,   32);
+                case ShaderResourceBaseType::Float:     return GENERATE_VK_FORMAT_3(SFLOAT, 32);
+                case ShaderResourceBaseType::Int64:     return GENERATE_VK_FORMAT_3(SINT,   64);
+                case ShaderResourceBaseType::UInt64:    return GENERATE_VK_FORMAT_3(UINT,   64);
+                case ShaderResourceBaseType::Double:    return GENERATE_VK_FORMAT_3(SFLOAT, 64);
+                default:                                return VK_FORMAT_UNDEFINED;
+            }
+        }
+        else if (vecSize == 2)
+        {
+            switch (baseType)
+            {
+                case ShaderResourceBaseType::Int8:      return GENERATE_VK_FORMAT_2(SINT,   8);
+                case ShaderResourceBaseType::UInt8:     return GENERATE_VK_FORMAT_2(UINT,   8);
+                case ShaderResourceBaseType::Int16:     return GENERATE_VK_FORMAT_2(SINT,   16);
+                case ShaderResourceBaseType::UInt16:    return GENERATE_VK_FORMAT_2(UINT,   16);
+                case ShaderResourceBaseType::Half:      return GENERATE_VK_FORMAT_2(SFLOAT, 16);
+                case ShaderResourceBaseType::Bool:      return GENERATE_VK_FORMAT_2(UINT,   32);
+                case ShaderResourceBaseType::Int32:     return GENERATE_VK_FORMAT_2(SINT,   32);
+                case ShaderResourceBaseType::UInt32:    return GENERATE_VK_FORMAT_2(UINT,   32);
+                case ShaderResourceBaseType::Float:     return GENERATE_VK_FORMAT_2(SFLOAT, 32);
+                case ShaderResourceBaseType::Int64:     return GENERATE_VK_FORMAT_2(SINT,   64);
+                case ShaderResourceBaseType::UInt64:    return GENERATE_VK_FORMAT_2(UINT,   64);
+                case ShaderResourceBaseType::Double:    return GENERATE_VK_FORMAT_2(SFLOAT, 64);
+                default:                                return VK_FORMAT_UNDEFINED;
+            }
+        }
+        else // vecSize == 1
+        {
+            switch (baseType)
+            {
+                case ShaderResourceBaseType::Int8:      return GENERATE_VK_FORMAT_1(SINT,   8);
+                case ShaderResourceBaseType::UInt8:     return GENERATE_VK_FORMAT_1(UINT,   8);
+                case ShaderResourceBaseType::Int16:     return GENERATE_VK_FORMAT_1(SINT,   16);
+                case ShaderResourceBaseType::UInt16:    return GENERATE_VK_FORMAT_1(UINT,   16);
+                case ShaderResourceBaseType::Half:      return GENERATE_VK_FORMAT_1(SFLOAT, 16);
+                case ShaderResourceBaseType::Bool:      return GENERATE_VK_FORMAT_1(UINT,   32);
+                case ShaderResourceBaseType::Int32:     return GENERATE_VK_FORMAT_1(SINT,   32);
+                case ShaderResourceBaseType::UInt32:    return GENERATE_VK_FORMAT_1(UINT,   32);
+                case ShaderResourceBaseType::Float:     return GENERATE_VK_FORMAT_1(SFLOAT, 32);
+                case ShaderResourceBaseType::Int64:     return GENERATE_VK_FORMAT_1(SINT,   64);
+                case ShaderResourceBaseType::UInt64:    return GENERATE_VK_FORMAT_1(UINT,   64);
+                case ShaderResourceBaseType::Double:    return GENERATE_VK_FORMAT_1(SFLOAT, 64);
+                default:                                return VK_FORMAT_UNDEFINED;
+            }
+        }
+    }
+
+#undef GENERATE_COMPONENT_1
+#undef GENERATE_COMPONENT_2
+#undef GENERATE_COMPONENT_3
+#undef GENERATE_COMPONENT_4
+#undef GENERATE_VK_FORMAT_1
+#undef GENERATE_VK_FORMAT_2
+#undef GENERATE_VK_FORMAT_3
+#undef GENERATE_VK_FORMAT_4
+#pragma warning( pop )
+
+    void ShaderModule::CollectShaderInputs(const std::vector<ShaderResource>& shaderResources,
+        uint32_t perInstanceInputMask,  
+        std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
+        std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions)
+    {
+        // For question related to the "binding" of vertex input, the mannual for `vkCmdBindVertexBuffers` says:
+        // The values taken from elements i of pBuffers and pOffsets replace the current state for the vertex
+        // input binding firstBinding + i, for i in [0, bindingCount). The vertex input binding is updated to start
+        // at the offset indicated by pOffsets[i] from the start of the buffer pBuffers[i]. All vertex input
+        // attributes that use each of these bindings will use these updated addresses in their address
+        // calculations for subsequent drawing commands.
+
+        // And the spec also describes the old-fashion way of binding vertex buffer:
+        // Applications can store multiple vertex input attributes interleaved in a single
+        // buffer, and use a single vertex input binding to access those attributes.
+
+        // So the binding is just how we gonna bind the vertex buffer. Here we will specify a **UNIQUE** binding for each individual location,
+        // which means we will use multiple buffers to store these attribute. This design is very convenient for our caching system,
+        // because then we can store these attribute sperately, and reuse them no matter how the vertex shader changes its input format.
+        
+        // Also, we must take the existence of **component** qualifier into consideration, the OpenGL wiki says:
+        // https://www.khronos.org/opengl/wiki/Layout_Qualifier_(GLSL)#Interface_components
+        // There are limits on the locations of input and output variables (of all kinds). 
+        // These limits are based on an implicit assumption in the API that the resources being passed around are done so as groups of 4-element vectors of data. 
+        // This is why a mat2 takes up 2 locations, while a vec4 only takes up 1, even though they both are 4 floats in size. 
+        // The mat2 is considered to be passed as two vec4s; the last two components of each vector simply go unused.
+        // It is possible to reclaim some of this unused space. To do this, you declare two (or more) variables that use the same location, 
+        // but use different components within that location.
+
+        // GLSL code example:
+        // layout(location = 0) out vec2 arr1[5];
+        // layout(location = 0, component = 2) out vec2 arr2[4]; //Different sizes are fine.
+        // layout(location = 4, component = 2) out float val;    //A non-array takes the last two fields from location 4.
+
+        std::vector<ShaderResource> inputResource{};
+        std::unordered_set<uint32_t> allLocations{};
+        inputResource.reserve(sizeof(perInstanceInputMask));
+        for (const auto& res : shaderResources)
+        {
+            if (res.Type == ShaderResourceType::Input)
+            {
+                inputResource.push_back(res);
+                allLocations.insert(res.Location);
+            }
+        }
+        std::sort(inputResource.begin(), inputResource.end(), 
+            [](const ShaderResource& left, const ShaderResource& right) -> bool
+            {
+                return left.Location < right.Location;
+            });
+
+        for (const auto location : allLocations)
+        {
+            auto begin = std::find_if(inputResource.begin(), inputResource.end(), 
+                [location](decltype(inputResource[0]) r) -> bool
+                {
+                    return r.Location == location;
+                });
+            auto end = std::find_if_not(begin, inputResource.end(), 
+                [location](decltype(inputResource[0]) r) -> bool
+                {
+                    return r.Location == location;
+                });
+            
+            uint32_t totalSizeInLocation = 0;
+            for (auto iter = begin; iter != end; ++iter)
+            {
+                const auto& res = *iter;
+                out_VertexAttributeDescriptions.push_back(
+                VkVertexInputAttributeDescription
+                {
+                    .location = location,
+                    .binding = location,
+                    // Here we assume all the type of 1 byte is integer, since we can't get information about whether the data is normalized through spir-v reflection
+                    // because the normalized byte isn't part of the standard glsl.
+                    .format = GetInputResourceFormat(res.VecSize, res.BaseType),
+                    .offset = totalSizeInLocation,
+                });
+                uint32_t componentSize = res.ArraySize * res.Columns * res.VecSize * GetShaderResourceBaseTypeSize(res.BaseType);
+                totalSizeInLocation += componentSize;
+            }
+            out_VertexBindingDescriptions.push_back(
+            VkVertexInputBindingDescription
+            {
+                .binding = location,
+                .stride = totalSizeInLocation,
+                .inputRate = ((1u << location) & perInstanceInputMask) == 0 ?
+                    VK_VERTEX_INPUT_RATE_VERTEX :
+                    VK_VERTEX_INPUT_RATE_INSTANCE,
+            });
         }
     }
 

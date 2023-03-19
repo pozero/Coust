@@ -7,6 +7,7 @@
 #include "Coust/Render/Vulkan/VulkanMemory.h"
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
 #include "Coust/Render/Vulkan/VulkanCommand.h"
+#include "Coust/Render/Vulkan/VulkanPipeline.h"
 
 #include "Coust/Core/Window.h"
 #include "Coust/Utils/FileSystem.h"
@@ -465,60 +466,45 @@ namespace Coust::Render::VK
 
     void Driver::InitializationTest()
     {
-        const std::vector<uint32_t> dummyData(65535, 0);
-        const size_t size = dummyData.size() * sizeof(dummyData[0]);
-        Buffer::ConstructParam bp 
-        {   
-            .ctx = m_Context,
-            .size = size,
-            .bufferFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            .usage = Buffer::Usage::GPUOnly,
-            .dedicatedName = "GPUBuffer",
-        };
-        Buffer b{ bp };
-        if (!Buffer::Base::CheckValidation(b)) return;
-        b.Update(m_StagePool, dummyData, 0);
-        
-        m_Context.CmdBufCacheGraphics->Flush();
-        m_Context.CmdBufCacheGraphics->Wait();
-
-        int dataWidth = 0, dataHeight = 0;
-        auto path = FileSystem::GetFullPathFrom({"Coust", "asset", "orange-cat-face-pixabay.jpg"});
-        auto imgData = stbi_load(path.string().c_str(), &dataWidth, &dataHeight, nullptr, STBI_rgb_alpha);
-
-        Image::ConstructParam_Create ip 
+        ShaderSource source(FileSystem::GetFullPathFrom({ "Coust", "shaders", "test.vert.glsl" }));
+        ShaderModule::ConstructParm smp 
         {
             .ctx = m_Context,
-            .width = 800,
-            .height = 600,
-            .format = VK_FORMAT_R8G8B8A8_SRGB,
-            .type = Image::Type::Texture2D,
-            .usageFlags = 0,
-            .createFlags = 0,
-            .mipLevels = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .dedicatedName = "GPUImage",
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .source = source,
+            .dedicatedName = "test shader module",
         };
-        Image i { ip };
-        if (!Image::Base::CheckValidation(i)) return;
-        Image::UpdateParam up 
+        ShaderModule sm{ smp };
+        if (ShaderModule::CheckValidation(sm))
         {
-            .dataFormat = VK_FORMAT_R8G8B8A8_UNORM,
-            .width = (uint32_t) dataWidth,
-            .height = (uint32_t) dataHeight,
-            .data = imgData,
-            .dstImageLayer = 0,
-            .dstImageLayerCount = 1,
-            .dstImageMipmapLevel = 0,
-        };
-        i.Update(m_StagePool, up);
+            const auto resources = sm.GetResource();
+            for (const auto& res : resources)
+            {
+                COUST_CORE_INFO(ToString(res));
+            }
 
-        stbi_image_free(imgData);
-        
-        m_Context.CmdBufCacheGraphics->Flush();
-        m_Context.CmdBufCacheGraphics->Wait();
+            std::vector<VkVertexInputBindingDescription> bindings{};
+            std::vector<VkVertexInputAttributeDescription> attribs{};
+            ShaderModule::CollectShaderInputs(resources, 0, bindings, attribs);
+            for (const auto& b : bindings)
+            {
+                COUST_CORE_INFO("binding: {}, stride: {}, inputRate: {}", b.binding, b.stride, b.inputRate);
+            }
+            for (const auto& a : attribs)
+            {
+                COUST_CORE_INFO("location: {}, binding: {}, format: {}, offset: {}", a.location, a.binding, ToString(a.format), a.offset);
+            }
+        }
+
+
+        PipelineLayout::ConstructParam plp
+        {
+            .ctx = m_Context,
+            .dedicatedName = "Test pipeline layout",
+        };
+        plp.shaderModules.push_back(&sm);
+        PipelineLayout pl{ plp };
+        COUST_CORE_INFO(PipelineLayout::CheckValidation(pl));
     }
 
     void Driver::LoopTest()

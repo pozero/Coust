@@ -41,6 +41,8 @@ namespace Coust::Render::VK
         return static_cast<uint32_t>(value);
     }
 
+    VkFormat GetNomalizedFormat(VkFormat singleByteFormat);
+
     // Converting the vulkan srgb format to its corresponding unsigned normalized byte format, as the spec says:
     // VK_FORMAT_R8G8B8_SRGB specifies a three-component, 24-bit unsigned normalized format ...
     VkFormat UnpackSRGBFormat(VkFormat srgbFormat);
@@ -70,6 +72,8 @@ namespace Coust::Render::VK
     const char* ToString(VkBufferUsageFlagBits bit);
 
     const char* ToString(VkImageUsageFlagBits bit);
+
+    const char* ToString(VkFormat format);
     
     template <typename Flag, typename FlagBit>
     inline std::string ToString(Flag flags)

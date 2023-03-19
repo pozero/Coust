@@ -38,13 +38,15 @@ end
 set_allowedarchs("windows|x64")
 set_languages("c++20")
 
-
 target("Coust")
     set_kind("static")
 
     set_warnings("all", "error")
 
     add_syslinks("user32", "gdi32", "shell32", "opengl32")
+
+    -- It seems MSVC didn't support __VA_OPT__ yet, we must use the conformance option /Zc
+    add_cxxflags("/Zc:preprocessor", {tools = {"clang_cl", "cl"}})
 
     add_includedirs("Coust/src")
     set_pcxxheader("Coust/src/pch.h") -- it seems that xmake's precompiled header has some bugs that sometimes it can't find pch.h

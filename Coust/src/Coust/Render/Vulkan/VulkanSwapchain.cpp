@@ -180,7 +180,7 @@ namespace Coust::Render::VK
             .width = Extent.width,
             .height = Extent.height,
             .format = DepthFormat,
-            .type = Image::Type::DepthStencilAttachment,
+            .usage = Image::Usage::DepthStencilAttachment,
             .usageFlags = 0,
             .createFlags = 0,
             .mipLevels = 1,
