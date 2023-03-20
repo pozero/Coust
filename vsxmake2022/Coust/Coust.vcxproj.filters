@@ -36,6 +36,7 @@ xmake version 2.7.6+master.882cb4e03
     <Filter Include="Coust\src\Coust\Utils">
       <UniqueIdentifier>{D8C314A1-2A21-4183-81C6-723A9EBF6868}</UniqueIdentifier>
     </Filter>
+
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildProjectDirectory)\Xmake.Custom.props">
@@ -48,6 +49,9 @@ xmake version 2.7.6+master.882cb4e03
       <Filter>Properties</Filter>
     </None>
     <None Include="$(MSBuildProjectDirectory)\Xmake.Custom.items.filters">
+      <Filter>Properties</Filter>
+    </None>
+    <None Include="$(XmakeScriptDir)\xmake.lua">
       <Filter>Properties</Filter>
     </None>
   </ItemGroup>
@@ -148,8 +152,11 @@ xmake version 2.7.6+master.882cb4e03
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h">
       <Filter>Coust\src</Filter>
     </ClInclude>
+
+
   </ItemGroup>
   <ItemGroup>
+
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Core\Application.cpp">
       <Filter>Coust\src\Coust\Core</Filter>
     </ClCompile>
@@ -222,10 +229,17 @@ xmake version 2.7.6+master.882cb4e03
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\pch.cpp">
       <Filter>Coust\src</Filter>
     </ClCompile>
+
+
+
   </ItemGroup>
   <ItemGroup>
+
   </ItemGroup>
   <ItemGroup>
+
+
   </ItemGroup>
-  <Import Condition="Exists('$(MSBuildThisFileDirectory)\Xmake.Custom.files.filters')" Project="$(MSBuildThisFileDirectory)\Xmake.Custom.files.filters" />
+  <Import Condition="Exists('$(MSBuildThisFileDirectory)\Xmake.Custom.files.filters')"
+    Project="$(MSBuildThisFileDirectory)\Xmake.Custom.files.filters" />
 </Project>

@@ -41,15 +41,15 @@ namespace Coust::Render::VK
 		struct ConstructParam
 		{
 			const Context&              ctx;
-			VkFormat                    colorFormat[MAX_ATTACHMENT_COUNT];	// specifying the format for the attachment, `VK_FORMAT_UNDEFINED` means we don't use this attachment
-			VkFormat                    depthFormat;
-			AttachmentFlags             clearMask = 0u;						// `(clear & COLOR0) != 0` means `COLOR0` needs clear operation while loading
-			AttachmentFlags             discardStartMask = 0u;				// `(discardStartMask & COLOR0) != 0` means `COLOR0` should be discarded while loading (loading operation will be clear if set)
-			AttachmentFlags             discardEndMask = 0u;				// `(discardEndMask & COLOR0) != 0` means `COLOR0` should be discarded whil storing
+			VkFormat                    colorFormat[MAX_ATTACHMENT_COUNT]{};	// specifying the format for the attachment, `VK_FORMAT_UNDEFINED` means we don't use this attachment
+			VkFormat                    depthFormat = VK_FORMAT_UNDEFINED;		// `VK_FORMAT_UNDEFINED` means we don't use depth attachment
+			AttachmentFlags             clearMask = 0u;							// `(clear & COLOR0) != 0` means `COLOR0` needs clear operation while loading
+			AttachmentFlags             discardStartMask = 0u;					// `(discardStartMask & COLOR0) != 0` means `COLOR0` should be discarded while loading (loading operation will be clear if set)
+			AttachmentFlags             discardEndMask = 0u;					// `(discardEndMask & COLOR0) != 0` means `COLOR0` should be discarded whil storing
 			VkSampleCountFlagBits       sample = VK_SAMPLE_COUNT_1_BIT;
-			uint8_t                     resolveMask = 0u;					// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
-			uint8_t                     inputAttachmentMask = 0u;			// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
-			// uint8_t 					presentMask = 0u;					// if the color attachment is gonna be presented
+			uint8_t                     resolveMask = 0u;						// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
+			uint8_t                     inputAttachmentMask = 0u;				// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
+			bool 						depthResolve = false;					// use resolve for depth attachment or not
 			const char*                 dedicatedName = nullptr;
 			const char*                 scopeName = nullptr;
 
@@ -76,7 +76,8 @@ namespace Coust::Render::VK
 						AttachmentFlags discardEndMask,
 						VkSampleCountFlagBits sample,
 						uint8_t resolveMask,
-						uint8_t inputAttachmentMask);
+						uint8_t inputAttachmentMask,
+						bool depthResolve);
 	};
 
 	class Framebuffer : public Resource<VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER>,
@@ -93,9 +94,10 @@ namespace Coust::Render::VK
 			uint32_t 					width;
 			uint32_t 					height;
 			uint32_t 					layers = 1u;
-			Image::View* 				color[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
-			Image::View* 				resolve[MAX_ATTACHMENT_COUNT];	// the unused attachment slot should be nulled out
-			Image::View* 				depth;
+			Image::View*				color[MAX_ATTACHMENT_COUNT]{};		// the unused attachment slot should be nulled out
+			Image::View*				resolve[MAX_ATTACHMENT_COUNT]{};		// the unused attachment slot should be nulled out
+			Image::View* 				depth = nullptr;
+			Image::View* 				depthResolve = nullptr;
 			const char*                 dedicatedName = nullptr;
 			const char*					scopeName = nullptr;
 
@@ -111,15 +113,5 @@ namespace Coust::Render::VK
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = delete;
-
-	private:
-		bool Construction(const Context& ctx, 
-						  const RenderPass& renderPass, 
-						  uint32_t width, 
-						  uint32_t height, 
-						  uint32_t layers, 
-						  Image::View * const (&color)[MAX_ATTACHMENT_COUNT],
-						  Image::View * const (&resolve)[MAX_ATTACHMENT_COUNT],
-						  Image::View* depth);
 	};
 }

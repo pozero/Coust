@@ -193,6 +193,17 @@ namespace Coust::Render::VK
 
         ~GraphicsPipeline();
 
+        const PipelineLayout& GetLayout() const;
+
+        const RenderPass& GetRenderPass() const;
+
+        uint32_t GetSubpassIndex() const;
+
     private:
+        const PipelineLayout& m_Layout;
+
+        const RenderPass& m_RenderPass;
+
+        const uint32_t m_SubpassIdx;
     };
 }

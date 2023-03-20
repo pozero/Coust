@@ -141,7 +141,10 @@ namespace Coust::Render::VK
 
 	GraphicsPipeline::GraphicsPipeline(const ConstructParam& param)
 		: Base(param.ctx, VK_NULL_HANDLE),
-		  Hashable(param.GetHash())
+		  Hashable(param.GetHash()),
+		  m_Layout(param.layout),
+		  m_RenderPass(param.renderPass),
+		  m_SubpassIdx(param.subpassIdx)
 	{
 		bool noFragmentShader = true;
 		std::vector<VkPipelineShaderStageCreateInfo> stageInfos{};
@@ -317,7 +320,10 @@ namespace Coust::Render::VK
 
 	GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& other)
 		: Base(std::forward<Base>(other)),
-		  Hashable(std::forward<Hashable>(other))
+		  Hashable(std::forward<Hashable>(other)),
+		  m_Layout(other.m_Layout),
+		  m_RenderPass(other.m_RenderPass),
+		  m_SubpassIdx(other.m_SubpassIdx)
 	{}
 
 	GraphicsPipeline::~GraphicsPipeline()
@@ -325,6 +331,13 @@ namespace Coust::Render::VK
 		if (m_Handle != VK_NULL_HANDLE)
 			vkDestroyPipeline(m_Ctx.Device, m_Handle, nullptr);
 	}
+
+	const PipelineLayout& GraphicsPipeline::GetLayout() const { return m_Layout; }
+
+	const RenderPass& GraphicsPipeline::GetRenderPass() const { return m_RenderPass; }
+
+	uint32_t GraphicsPipeline::GetSubpassIndex() const { return m_SubpassIdx; }
+
 
 	size_t PipelineLayout::ConstructParam::GetHash() const 
 	{

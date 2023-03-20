@@ -250,6 +250,7 @@ namespace Coust::Render::VK
         std::vector <const char*> requiredDeviceExtensions
         {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
         };
         {
             uint32_t physicalDeviceCount = 0;
@@ -399,6 +400,7 @@ namespace Coust::Render::VK
             }
 
             {
+                // Enable features
                 VkPhysicalDeviceFeatures physicalDeviceFeatures
                 {
                     .samplerAnisotropy = VK_TRUE
@@ -477,6 +479,7 @@ namespace Coust::Render::VK
 			.sample = VK_SAMPLE_COUNT_1_BIT,
 			.resolveMask = 0u,
 			.inputAttachmentMask = 0u,
+            .depthResolve = false,
 			.dedicatedName = "Test render pass",
         };
         RenderPass rp{ rpp };

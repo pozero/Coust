@@ -12,7 +12,7 @@ namespace Coust::Render::VK
         : Base(p.ctx, VK_NULL_HANDLE),
           Hashable(p.GetHash())
     {
-        if (Construct(&p.colorFormat[0], p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask))
+        if (Construct(&p.colorFormat[0], p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask, p.depthResolve))
         {
             if (p.dedicatedName)
                 SetDedicatedDebugName(p.dedicatedName);
@@ -44,49 +44,56 @@ namespace Coust::Render::VK
                                 AttachmentFlags discardEndMask,
                                 VkSampleCountFlagBits sample,
                                 uint8_t resolveMask,
-                                uint8_t inputAttachmentMask)
+                                uint8_t inputAttachmentMask,
+                                bool depthResolve)
     {
         const bool hasSubpasses = (inputAttachmentMask != 0);
         const bool hasDepth = (depthFormat != VK_FORMAT_UNDEFINED);
 
-        VkAttachmentReference inputAttachmentRef[MAX_ATTACHMENT_COUNT];
-        VkAttachmentReference colorAttachmentRef[2][MAX_ATTACHMENT_COUNT];
-        VkAttachmentReference resolveAttachmentRef[MAX_ATTACHMENT_COUNT];
-        VkAttachmentReference depthAttachmentRef[MAX_ATTACHMENT_COUNT];
+        VkAttachmentReference2 inputAttachmentRef[MAX_ATTACHMENT_COUNT]{};
+        VkAttachmentReference2 colorAttachmentRef[2][MAX_ATTACHMENT_COUNT]{};
+        VkAttachmentReference2 resolveAttachmentRef[MAX_ATTACHMENT_COUNT]{};
+        VkAttachmentReference2 depthAttachmentRef{};
+        VkAttachmentReference2 depthResolveAttachmentRef{};
+        VkSubpassDescriptionDepthStencilResolve depthResolveDesc{};
 
-        VkSubpassDescription subpasses[2] = 
+        VkSubpassDescription2 subpasses[2] = 
         {
-            VkSubpassDescription
+            VkSubpassDescription2
             {
+                .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
                 .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
                 .inputAttachmentCount = 0,
                 .pInputAttachments = nullptr,
                 .colorAttachmentCount = 0,
                 .pColorAttachments = colorAttachmentRef[0],
                 .pResolveAttachments = resolveAttachmentRef,
-                .pDepthStencilAttachment = hasDepth ? depthAttachmentRef : nullptr,
+                .pDepthStencilAttachment = hasDepth ? &depthAttachmentRef : nullptr,
             },
-            VkSubpassDescription
+            VkSubpassDescription2
             {
+                .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
                 .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
                 .inputAttachmentCount = 0,
                 .pInputAttachments = inputAttachmentRef,
                 .colorAttachmentCount = 0,
                 .pColorAttachments = colorAttachmentRef[1],
                 .pResolveAttachments = resolveAttachmentRef,
-                .pDepthStencilAttachment = hasDepth ? depthAttachmentRef : nullptr,
+                .pDepthStencilAttachment = hasDepth ? &depthAttachmentRef : nullptr,
             }
         };
 
-        // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
+        // All the attachment descriptions live here, color first, then resolve, followed by depth, finally depth resolve.
+        // At most 8 color attachment + 8 resolve attachment + depth attachment + depth resolve attachment
         // Note: this array has the same order as the framebuffer attached to this render pass
-        VkAttachmentDescription attachements[MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1];
+        VkAttachmentDescription2 attachements[MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1 + 1];
 
         // there're at most 2 subpasses, so one dependency is enough
-        VkSubpassDependency dependency[1]
+        VkSubpassDependency2 dependency[1]
         {
-            VkSubpassDependency
+            VkSubpassDependency2
             {
+                .sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
                 .srcSubpass = 0,
                 .dstSubpass = 1,
                 .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -99,9 +106,9 @@ namespace Coust::Render::VK
             }
         };
 
-        VkRenderPassCreateInfo renderPassCI 
+        VkRenderPassCreateInfo2 renderPassCI 
         {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
             .attachmentCount = 0,
             .pAttachments = attachements,
             .subpassCount = hasSubpasses ? 2u : 1u,
@@ -124,7 +131,8 @@ namespace Coust::Render::VK
             if (!hasSubpasses)
             {
                 refIdx = subpasses[0].colorAttachmentCount++;
-                colorAttachmentRef[0][refIdx].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                colorAttachmentRef[0][refIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                colorAttachmentRef[0][refIdx].layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
                 colorAttachmentRef[0][refIdx].attachment = curAttachmentIdx;
             }
             else 
@@ -133,24 +141,32 @@ namespace Coust::Render::VK
                 if (inputAttachmentMask & (1 << i))
                 {
                     refIdx = subpasses[0].colorAttachmentCount++;
-                    colorAttachmentRef[0][refIdx].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    colorAttachmentRef[0][refIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                    colorAttachmentRef[0][refIdx].layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
                     colorAttachmentRef[0][refIdx].attachment = curAttachmentIdx;
 
                     refIdx = subpasses[1].inputAttachmentCount++;
-                    inputAttachmentRef[refIdx].layout = IsDepthOnlyFormat(colorFormat[i]) ? 
-                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : 
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    inputAttachmentRef[refIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                    inputAttachmentRef[refIdx].layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
                     inputAttachmentRef[refIdx].attachment = curAttachmentIdx;
+                    // Spec:
+                    // aspectMask is a mask of which aspect(s) can be accessed within the specified subpass as an input attachment.
+                    inputAttachmentRef[refIdx].aspectMask = IsDepthStencilFormat(colorFormat[i]) ?
+                        VK_IMAGE_ASPECT_DEPTH_BIT :
+                        VK_IMAGE_ASPECT_COLOR_BIT;
                 }
 
                 refIdx = subpasses[1].colorAttachmentCount++;
-                colorAttachmentRef[1][refIdx].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                colorAttachmentRef[1][refIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                colorAttachmentRef[1][refIdx].layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
                 colorAttachmentRef[1][refIdx].attachment = curAttachmentIdx;
             }
 
             const bool clear = (clearMask & (1 << i)) != 0;
             const bool discard = (discardStartMask & (1 << i)) != 0;
 
+            attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+            attachements[curAttachmentIdx].pNext = nullptr;
             attachements[curAttachmentIdx].flags = 0;
             attachements[curAttachmentIdx].format = colorFormat[i];
             attachements[curAttachmentIdx].samples = sample;
@@ -167,7 +183,7 @@ namespace Coust::Render::VK
             attachements[curAttachmentIdx].initialLayout = discard ? 
                 VK_IMAGE_LAYOUT_UNDEFINED :
                 VK_IMAGE_LAYOUT_GENERAL;
-            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             ++ curAttachmentIdx;
         }
 
@@ -179,23 +195,27 @@ namespace Coust::Render::VK
             
             if ((resolveMask & (1 << i)) == 0)
             {
+                resolveAttachmentRef[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
                 resolveAttachmentRef[i].attachment = VK_ATTACHMENT_UNUSED;
                 continue;
             }
 
-            resolveAttachmentRef[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            resolveAttachmentRef[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            resolveAttachmentRef[i].layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             resolveAttachmentRef[i].attachment = curAttachmentIdx;
 
+            attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+            attachements[curAttachmentIdx].pNext = nullptr;
             attachements[curAttachmentIdx].flags = 0;
             attachements[curAttachmentIdx].format = colorFormat[i];
-            attachements[curAttachmentIdx].samples = sample;
+            attachements[curAttachmentIdx].samples = VK_SAMPLE_COUNT_1_BIT;
             attachements[curAttachmentIdx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachements[curAttachmentIdx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             // we don't use stencil attachment
             attachements[curAttachmentIdx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachements[curAttachmentIdx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachements[curAttachmentIdx].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             ++ curAttachmentIdx;
         }
 
@@ -205,9 +225,12 @@ namespace Coust::Render::VK
             const bool discardStart = (discardStartMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
             const bool discardEnd = (discardEndMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
 
-            depthAttachmentRef->layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachmentRef->attachment = curAttachmentIdx;
+            depthAttachmentRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            depthAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+            depthAttachmentRef.attachment = curAttachmentIdx;
 
+            attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+            attachements[curAttachmentIdx].pNext = nullptr;
             attachements[curAttachmentIdx].flags = 0;
             attachements[curAttachmentIdx].format = depthFormat;
             attachements[curAttachmentIdx].samples = sample;
@@ -221,12 +244,41 @@ namespace Coust::Render::VK
             attachements[curAttachmentIdx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachements[curAttachmentIdx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachements[curAttachmentIdx].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             ++ curAttachmentIdx;
+
+            if (depthResolve)
+            {
+                depthResolveAttachmentRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                depthResolveAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+                depthResolveAttachmentRef.attachment = curAttachmentIdx;
+
+                attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+                attachements[curAttachmentIdx].pNext = nullptr;
+                attachements[curAttachmentIdx].flags = 0;
+                attachements[curAttachmentIdx].format = depthFormat;
+                attachements[curAttachmentIdx].samples = VK_SAMPLE_COUNT_1_BIT;
+                attachements[curAttachmentIdx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                attachements[curAttachmentIdx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                attachements[curAttachmentIdx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                attachements[curAttachmentIdx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                attachements[curAttachmentIdx].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+                ++ curAttachmentIdx;
+
+                depthResolveDesc.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+                // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_depth_stencil_resolve.html
+                // The VK_RESOLVE_MODE_SAMPLE_ZERO_BIT mode is the only mode that is required of all implementations (that support the extension or support Vulkan 1.2 or higher).
+                depthResolveDesc.depthResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+                depthResolveDesc.stencilResolveMode = VK_RESOLVE_MODE_NONE;
+                depthResolveDesc.pDepthStencilResolveAttachment = &depthResolveAttachmentRef;
+                subpasses[0].pNext = &depthResolveDesc;
+                subpasses[1].pNext = &depthResolveDesc;
+            }
         }
 
         renderPassCI.attachmentCount = curAttachmentIdx;
-        VK_CHECK(vkCreateRenderPass(m_Ctx.Device, &renderPassCI, nullptr, &m_Handle));
+        VK_CHECK(vkCreateRenderPass2(m_Ctx.Device, &renderPassCI, nullptr, &m_Handle));
         return true;
     }
 
@@ -234,7 +286,44 @@ namespace Coust::Render::VK
         : Base(p.ctx, VK_NULL_HANDLE), 
           Hashable(p.GetHash())
     {
-        if (Construction(p.ctx, p.renderPass, p.width, p.height, p.layers, p.color, p.resolve, p.depth))
+        // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
+        // Note: this array has the same order as the render pass it attaches to
+        VkImageView attachments[MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1 + 1];
+        uint32_t curAttachmentIdx = 0;
+
+        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
+        {
+            if (p.color[i])
+                attachments[curAttachmentIdx++] = p.color[i]->GetHandle();
+        }
+
+        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
+        {
+            if (p.resolve[i])
+                attachments[curAttachmentIdx++] = p.resolve[i]->GetHandle();
+        }
+
+        if (p.depth)
+            attachments[curAttachmentIdx++] = p.depth->GetHandle();
+        
+        if (p.depthResolve)
+            attachments[curAttachmentIdx++] = p.depthResolve->GetHandle();
+        
+        VkFramebufferCreateInfo ci 
+        {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .renderPass = p.renderPass.GetHandle(),
+            .attachmentCount = curAttachmentIdx,
+            .pAttachments = attachments,
+            .width = p.width,
+            .height = p.height,
+            .layers = p.layers,
+        };
+
+        bool success = false;
+        VK_REPORT(vkCreateFramebuffer(m_Ctx.Device, &ci, nullptr, &m_Handle), success);
+
+        if (success)
         {
             if (p.dedicatedName)
                 SetDedicatedDebugName(p.dedicatedName);
@@ -257,50 +346,6 @@ namespace Coust::Render::VK
     {
         if (m_Handle != VK_NULL_HANDLE)
             vkDestroyFramebuffer(m_Ctx.Device, m_Handle, nullptr);
-    }
-
-    bool Framebuffer::Construction(const Context& ctx, 
-                                   const RenderPass& renderPass, 
-                                   uint32_t width, 
-                                   uint32_t height, 
-                                   uint32_t layers, 
-						           Image::View * const (&color)[MAX_ATTACHMENT_COUNT],
-						           Image::View * const (&resolve)[MAX_ATTACHMENT_COUNT],
-                                   Image::View* depth)
-    {
-        // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
-        // Note: this array has the same order as the render pass it attaches to
-        VkImageView attachments[MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1];
-        uint32_t curAttachmentIdx = 0;
-
-        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
-        {
-            if (color[i])
-                attachments[curAttachmentIdx++] = color[i]->GetHandle();
-        }
-
-        for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
-        {
-            if (resolve[i])
-                attachments[curAttachmentIdx++] = resolve[i]->GetHandle();
-        }
-
-        if (depth)
-            attachments[curAttachmentIdx++] = depth->GetHandle();
-        
-        VkFramebufferCreateInfo ci 
-        {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = renderPass.GetHandle(),
-            .attachmentCount = curAttachmentIdx,
-            .pAttachments = attachments,
-            .width = width,
-            .height = height,
-            .layers = layers,
-        };
-
-        VK_CHECK(vkCreateFramebuffer(m_Ctx.Device, &ci, nullptr, &m_Handle));
-        return true;
     }
 
 	size_t Framebuffer::ConstructParam::GetHash() const
