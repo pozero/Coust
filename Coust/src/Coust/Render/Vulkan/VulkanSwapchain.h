@@ -19,7 +19,7 @@ namespace Coust::Render::VK
 		Swapchain& operator=(const Swapchain&) = delete;
 
 	public:
-		Swapchain(const Context &ctx);
+		explicit Swapchain(const Context &ctx) noexcept;
 
 		~Swapchain() = default;
 
@@ -27,21 +27,21 @@ namespace Coust::Render::VK
 
 		bool Create();
 
-		void Destroy();
+		void Destroy() noexcept;
 
 		// acquire next swapchain image
-		bool Acquire();
+		bool Acquire() noexcept;
 
 		// Manually query the change
-		bool HasResized();
+		bool HasResized() const noexcept;
 
 		// TODO: we let swapchain responsible for presentable layout transition for now 
 		// (it should be much slower than transition inside renderpass), it will be changed later
 		void MakePresentable();
 
-		Image& GetColorAttachment();
-		Image& GetDepthAttachment();
-		uint32_t GetImageIndex() const;
+		Image& GetColorAttachment() const noexcept;
+		Image& GetDepthAttachment() const noexcept;
+		uint32_t GetImageIndex() const noexcept;
 
 	public:
 		// We pass Swapchain through `const Swapchain&` most of the time, 

@@ -68,7 +68,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        DescriptorSetLayout(const ConstructParam& param);
+        explicit DescriptorSetLayout(const ConstructParam& param);
 
         ~DescriptorSetLayout();
         
@@ -79,13 +79,13 @@ namespace Coust::Render::VK
         DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
         DescriptorSetLayout& operator=(DescriptorSetLayout&& other) = delete;
         
-        uint32_t GetSetIndex() const;
+        uint32_t GetSetIndex() const noexcept;
         
-        const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& GetBindings() const;
+        const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& GetBindings() const noexcept;
         
-        std::optional<VkDescriptorSetLayoutBinding> GetBinding(uint32_t bindingIdx) const;
+        std::optional<VkDescriptorSetLayoutBinding> GetBinding(uint32_t bindingIdx) const noexcept;
 
-        std::optional<VkDescriptorSetLayoutBinding> GetBinding(const std::string& name) const;
+        std::optional<VkDescriptorSetLayoutBinding> GetBinding(const std::string& name) const noexcept;
         
     private:
         bool Construct(const Context& ctx, const std::vector<ShaderResource>& shaderResources);
@@ -122,7 +122,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        DescriptorSet(const ConstructParam& param);
+        explicit DescriptorSet(const ConstructParam& param);
 
         // Lifecycle of descriptor set is managed by descriptor set allocator
         ~DescriptorSet() = default;
@@ -156,11 +156,11 @@ namespace Coust::Render::VK
          */
         void ApplyWrite(bool overwrite = false);
 
-        const DescriptorSetLayout& GetLayout() const;
+        const DescriptorSetLayout& GetLayout() const noexcept;
 
-        const std::vector<BoundArray<Buffer>>& GetBufferInfo() const;
+        const std::vector<BoundArray<Buffer>>& GetBufferInfo() const noexcept;
 
-        const std::vector<BoundArray<Image>>& GetImageInfo() const;
+        const std::vector<BoundArray<Image>>& GetImageInfo() const noexcept;
 
     private:
         /**
@@ -168,7 +168,7 @@ namespace Coust::Render::VK
          */
         void Prepare();
 
-        bool HasBeenApplied(const VkWriteDescriptorSet& write);
+        bool HasBeenApplied(const VkWriteDescriptorSet& write) const noexcept;
 
     private:
         const VkPhysicalDeviceProperties& m_GPUProerpties;
@@ -205,7 +205,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        DescriptorSetAllocator(const ConstructParam& param);
+        explicit DescriptorSetAllocator(const ConstructParam& param);
         
         ~DescriptorSetAllocator();
         
@@ -226,7 +226,7 @@ namespace Coust::Render::VK
         /**
          * @brief Reset the whole pools of descriptor pool
          */
-        void Reset();
+        void Reset() noexcept;
         
     private:
         /**

@@ -93,7 +93,7 @@ namespace Coust::Render::VK
 			m_Handle = VK_NULL_HANDLE;
 	}
 
-	PipelineLayout::PipelineLayout(PipelineLayout&& other)
+	PipelineLayout::PipelineLayout(PipelineLayout&& other) noexcept
 		: Base(std::forward<Base>(other)),
 		  Hashable(std::forward<Hashable>(other)),
           m_ShaderModules(std::move(other.m_ShaderModules)),
@@ -108,13 +108,13 @@ namespace Coust::Render::VK
 			vkDestroyPipelineLayout(m_Ctx.Device, m_Handle, nullptr);
 	}
 
-	const std::vector<ShaderModule*>& PipelineLayout::GetShaderModules() const { return m_ShaderModules; }
+	const std::vector<ShaderModule*>& PipelineLayout::GetShaderModules() const noexcept { return m_ShaderModules; }
 
-	const std::vector<DescriptorSetLayout>& PipelineLayout::GetDescriptorSetLayouts() const { return m_DescriptorLayouts; }
+	const std::vector<DescriptorSetLayout>& PipelineLayout::GetDescriptorSetLayouts() const noexcept { return m_DescriptorLayouts; }
 
-	const std::vector<ShaderResource>& PipelineLayout::GetShaderResources() const { return m_ShaderResources; }
+	const std::vector<ShaderResource>& PipelineLayout::GetShaderResources() const noexcept { return m_ShaderResources; }
 
-	VkSpecializationInfo SpecializationConstantInfo::Get() const
+	VkSpecializationInfo SpecializationConstantInfo::Get() const noexcept
 	{
 		return VkSpecializationInfo
 		{
@@ -125,7 +125,7 @@ namespace Coust::Render::VK
 		};
 	}
 
-	size_t SpecializationConstantInfo::GetHash() const
+	size_t SpecializationConstantInfo::GetHash() const noexcept
 	{
 		size_t h = 0;
 		for (const auto& e : m_Entry)
@@ -318,7 +318,7 @@ namespace Coust::Render::VK
 			m_Handle = VK_NULL_HANDLE;
 	}
 
-	GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& other)
+	GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& other) noexcept
 		: Base(std::forward<Base>(other)),
 		  Hashable(std::forward<Hashable>(other)),
 		  m_Layout(other.m_Layout),
@@ -332,11 +332,11 @@ namespace Coust::Render::VK
 			vkDestroyPipeline(m_Ctx.Device, m_Handle, nullptr);
 	}
 
-	const PipelineLayout& GraphicsPipeline::GetLayout() const { return m_Layout; }
+	const PipelineLayout& GraphicsPipeline::GetLayout() const noexcept { return m_Layout; }
 
-	const RenderPass& GraphicsPipeline::GetRenderPass() const { return m_RenderPass; }
+	const RenderPass& GraphicsPipeline::GetRenderPass() const noexcept { return m_RenderPass; }
 
-	uint32_t GraphicsPipeline::GetSubpassIndex() const { return m_SubpassIdx; }
+	uint32_t GraphicsPipeline::GetSubpassIndex() const noexcept { return m_SubpassIdx; }
 
 
 	size_t PipelineLayout::ConstructParam::GetHash() const 

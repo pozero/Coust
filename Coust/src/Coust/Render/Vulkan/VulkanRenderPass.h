@@ -55,9 +55,9 @@ namespace Coust::Render::VK
 
 			size_t GetHash() const;
 		};
-		RenderPass(const ConstructParam& p);
+		explicit RenderPass(const ConstructParam& p);
 
-		RenderPass(RenderPass&& other);
+		RenderPass(RenderPass&& other) noexcept;
 
 		~RenderPass();
 
@@ -66,7 +66,7 @@ namespace Coust::Render::VK
 		RenderPass& operator=(const RenderPass&) = delete;
 		RenderPass& operator=(RenderPass&&) = delete;
 
-		const VkExtent2D GetRenderAreaGranularity() const;
+		const VkExtent2D GetRenderAreaGranularity() const noexcept;
 
 	private:
 		bool Construct( const VkFormat* colorFormat,
@@ -78,6 +78,10 @@ namespace Coust::Render::VK
 						uint8_t resolveMask,
 						uint8_t inputAttachmentMask,
 						bool depthResolve);
+		
+		// Fake constructor, the constructed object is used for searching
+		friend class FBOCache;
+		explicit RenderPass(const ConstructParam* p, int) noexcept;
 	};
 
 	class Framebuffer : public Resource<VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER>,
@@ -103,7 +107,7 @@ namespace Coust::Render::VK
 
 			size_t GetHash() const;
 		};
-		Framebuffer(const ConstructParam& p);
+		explicit Framebuffer(const ConstructParam& p);
 
 		Framebuffer(Framebuffer&& other) noexcept;
 
@@ -113,5 +117,48 @@ namespace Coust::Render::VK
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = delete;
+
+		const RenderPass& GetRenderPass() const noexcept;
+
+	private:
+		// Fake constructor, the constructed object is used for searching
+		friend class FBOCache;
+		explicit Framebuffer(const ConstructParam* p, int) noexcept;
+
+	private:
+		const RenderPass& m_RenderPass;
+	};
+
+	// Cache class for both render pass and framebuffer (aka frame buffer object)
+	class FBOCache
+	{
+	public:
+		FBOCache(FBOCache&&) = delete;
+		FBOCache(const FBOCache&) = delete;
+		FBOCache& operator=(FBOCache&&) = delete;
+		FBOCache& operator=(const FBOCache&) = delete;
+
+	public:
+		FBOCache();
+
+		const RenderPass* GetRenderPass(const RenderPass::ConstructParam& p);
+
+		const Framebuffer* GetFramebuffer(const Framebuffer::ConstructParam& p);
+
+		void GC();
+
+		void Reset() noexcept;
+
+	private:
+		// render pass -> last time it's accessed
+		std::unordered_map<RenderPass, uint32_t, Hash::HashFn<RenderPass>, Hash::EqualFn<RenderPass>> m_CachedRenderPasses;
+
+		// framebuffer -> last time it's accessed
+		std::unordered_map<Framebuffer, uint32_t, Hash::HashFn<Framebuffer>, Hash::EqualFn<Framebuffer>> m_CachedFramebuffers;
+
+		// pointer to the render pass -> the reference count (aka the number of framebuffer attached to it) of the render pass
+		std::unordered_map<const RenderPass*, uint32_t> m_RenderPassReferenceCount;
+
+		EvictTimer m_Timer;
 	};
 }

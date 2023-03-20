@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Coust/Render/Driver.h"
-#include "Coust/Render/Vulkan/VulkanContext.h"
 #include "Coust/Render/Vulkan/StagePool.h"
+#include "Coust/Render/Vulkan/VulkanContext.h"
 #include "Coust/Render/Vulkan/VulkanSwapchain.h"
+#include "Coust/Render/Vulkan/VulkanRenderPass.h"
 
 namespace Coust::Render::VK
 {
@@ -37,5 +38,7 @@ namespace Coust::Render::VK
 		StagePool m_StagePool;
 
 		Swapchain m_Swapchain;
+
+		FBOCache m_FBOCache;
     };
 }

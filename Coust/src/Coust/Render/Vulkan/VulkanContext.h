@@ -78,7 +78,7 @@ namespace Coust::Render::VK
     class Resource
     {
     public:
-        Resource(const Context& ctx, VkHandle handle)
+        Resource(const Context& ctx, VkHandle handle) noexcept
             : m_Ctx(ctx), m_Handle(handle)
 		{
 		}
@@ -86,7 +86,7 @@ namespace Coust::Render::VK
         Resource() = default;
 		~Resource() = default;
 		
-		Resource(Resource&& other)
+		Resource(Resource&& other) noexcept
 			: m_Ctx(other.m_Ctx), m_Handle(other.m_Handle), m_DebugName(other.m_DebugName)
 		{
 			other.m_Handle = VK_NULL_HANDLE;
@@ -96,11 +96,11 @@ namespace Coust::Render::VK
 		Resource& operator=(Resource&& other) = delete;
 		Resource& operator=(const Resource& other) = delete;
 		
-		VkDevice GetDevice() const { return m_Ctx.Device; }
+		VkDevice GetDevice() const noexcept { return m_Ctx.Device; }
         
-        VkHandle GetHandle() const { return m_Handle; }
+        VkHandle GetHandle() const noexcept { return m_Handle; }
 
-        const std::string& GetDebugName() const { return m_DebugName; }
+        const std::string& GetDebugName() const noexcept { return m_DebugName; }
 
 		/**
 		 * @brief Set Dedicated Debug Name
@@ -108,7 +108,7 @@ namespace Coust::Render::VK
 		 * @param name 
 		 * @return
 		 */
-		bool SetDedicatedDebugName(const char* dedicatedName)
+		bool SetDedicatedDebugName(const char* dedicatedName) noexcept
 		{
 			m_DebugName = dedicatedName;
 #ifndef COUST_FULL_RELEASE
@@ -143,7 +143,7 @@ namespace Coust::Render::VK
 #endif
 		}
         
-        static VkObjectType GetObjectType() { return ObjectType; }
+        static VkObjectType GetObjectType() noexcept { return ObjectType; }
 		
 		/**
 		 * @brief Helper function to check if a vulkan resource is valid. 
@@ -241,7 +241,7 @@ namespace Coust::Render::VK
 
     private:
 
-        bool RegisterDebugName(const VkDevice device, VkObjectType type, VkHandle handle, const char* name)
+        bool RegisterDebugName(const VkDevice device, VkObjectType type, VkHandle handle, const char* name) noexcept
         {
 			// In case we move from an empty resource
 			if (m_Handle == VK_NULL_HANDLE)
@@ -271,12 +271,12 @@ namespace Coust::Render::VK
 	class Hashable 
 	{
 	public:
-		Hashable(size_t originValue) : m_Hash(originValue) {}
+		explicit Hashable(size_t originValue) : m_Hash(originValue) {}
 		
 		// To remind there's something to be initialized
 		Hashable() = delete;
 
-		size_t GetHash() const { return m_Hash; }
+		size_t GetHash() const noexcept { return m_Hash; }
 		
 	protected: 
 		size_t m_Hash;
@@ -286,19 +286,19 @@ namespace Coust::Render::VK
 	class EvictTimer
 	{
 	public:
-		EvictTimer(uint32_t evictionInterval)
+		explicit EvictTimer(uint32_t evictionInterval)
 		// We start count from eviction interval so we don't have to deal with wrapping unsigned integer stuff (pretty annoying)
 			: m_EvictionInterval(evictionInterval), m_Count(evictionInterval)
 		{}
 
-		void Tick() { m_Count ++; }
+		void Tick() noexcept { m_Count ++; }
 
-		bool ShouldEvict(uint32_t lastAccessed) const
+		bool ShouldEvict(uint32_t lastAccessed) const noexcept
 		{
 			return (m_Count - m_EvictionInterval) > lastAccessed;
 		}
 
-		uint32_t CurrentCount() const { return m_Count; }
+		uint32_t CurrentCount() const noexcept { return m_Count; }
 	
 	private:
 		const uint32_t m_EvictionInterval;

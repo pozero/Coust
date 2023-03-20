@@ -58,7 +58,7 @@ namespace Coust::Render::VK
 		};
 	};
 
-    size_t ShaderSource::GetHash() const
+    size_t ShaderSource::GetHash() const noexcept
     {
         Hash::HashFn<std::string> sHasher{};
         size_t hash = sHasher(m_SourceFilePath.string());
@@ -80,11 +80,11 @@ namespace Coust::Render::VK
         return m_SourceCode;
     }
 
-    const std::filesystem::path& ShaderSource::GetPath() const { return m_SourceFilePath; }
+    const std::filesystem::path& ShaderSource::GetPath() const noexcept { return m_SourceFilePath; }
     
-    const std::unordered_map<std::string, std::string>& ShaderSource::GetMacros() const { return m_Macros; }
+    const std::unordered_map<std::string, std::string>& ShaderSource::GetMacros() const noexcept { return m_Macros; }
     
-    const std::unordered_map<std::string, size_t>& ShaderSource::GetDesiredDynamicBufferSize() const { return m_DesiredDynamicBufferSize; }
+    const std::unordered_map<std::string, size_t>& ShaderSource::GetDesiredDynamicBufferSize() const noexcept { return m_DesiredDynamicBufferSize; }
     
     void ShaderSource::AddMacro(const std::string& name, const std::string& value) { m_Macros[name] = value; }
     
@@ -1064,13 +1064,13 @@ namespace Coust::Render::VK
             COUST_CORE_ERROR("Can't find resource {} in shader module {}", resoureceName, m_DebugName);
     }
 
-    VkShaderStageFlagBits ShaderModule::GetStage() const { return m_Stage; }
+    VkShaderStageFlagBits ShaderModule::GetStage() const noexcept { return m_Stage; }
 
-    const std::vector<uint32_t>& ShaderModule::GetByteCode() const { return m_ByteCode.ByteCode; }
+    const std::vector<uint32_t>& ShaderModule::GetByteCode() const noexcept { return m_ByteCode.ByteCode; }
 
-    const std::vector<ShaderResource>& ShaderModule::GetResource() const { return m_Resources; }
+    const std::vector<ShaderResource>& ShaderModule::GetResource() const noexcept { return m_Resources; }
     
-    bool ShaderModule::IsValid() const 
+    bool ShaderModule::IsValid() const noexcept
     { 
         return m_ByteCode.ByteCode.size() > 0 && 
                m_Resources.size() > 0 && 

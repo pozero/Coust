@@ -71,7 +71,7 @@ namespace Coust::Render::VK
         static constexpr uint32_t COMMAND_BUFFER_COUNT = 10u;
 
     public:
-        CommandBufferCache(const Context& ctx, bool isCompute = false);
+        CommandBufferCache(const Context& ctx, bool isCompute = false) noexcept;
 
         ~CommandBufferCache();
 
@@ -82,27 +82,27 @@ namespace Coust::Render::VK
         CommandBufferCache& operator=(const CommandBufferCache&) = delete;
 
         // Get command buffer from cache or create a new one
-        VkCommandBuffer Get();
+        VkCommandBuffer Get() noexcept;
 
         // Commit current command buffer and clear all the status, if there isn't current command buffer, then do nothing.
-        bool Flush();
+        bool Flush() noexcept;
 
         // Get the finish signal for current command buffer and get rid of it from the internal dependency. 
         // It's useful for setting up the dependency between rendering and presenting, e.g. `vkQueuePresentKHR`
         // By default, the submission of the next command buffer has to wait for the previous one.
-        VkSemaphore GetLastSubmissionSingal();
+        VkSemaphore GetLastSubmissionSingal() noexcept;
 
         // Add new dependency for the submission of the current command buffer.
         // It's useful for calling `vkAcquireNextImageKHR`
-        void InjectDependency(VkSemaphore dependency);
+        void InjectDependency(VkSemaphore dependency) noexcept;
 
         // Delete all command buffers that haven't been used for a while
-        void GC();
+        void GC() noexcept;
 
         // Wait for all the command buffers in the cache
-        void Wait();
+        void Wait() noexcept;
 
-        void SetCommandBufferChangedCallback(CommandBufferChangedCallback&& callback);
+        void SetCommandBufferChangedCallback(CommandBufferChangedCallback&& callback) noexcept;
 
     private:
         VkDevice m_Device;

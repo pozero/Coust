@@ -109,6 +109,12 @@ namespace Coust
                 }
                 return true;
             }
+
+            bool operator()(const T& lhs, const T& rhs) const noexcept
+                requires (!Comparable<T> && !Murmur3Hashable<T> && ImplementedGetHash<T>)
+            {
+                return lhs.GetHash() == rhs.GetHash();
+            }
             
         };
 

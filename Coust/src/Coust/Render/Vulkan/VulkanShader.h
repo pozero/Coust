@@ -123,7 +123,7 @@ namespace Coust::Render::VK
     class ShaderSource 
     {
     public:
-        ShaderSource(std::filesystem::path&& sourceFilePath)
+        explicit ShaderSource(std::filesystem::path&& sourceFilePath) noexcept
             : m_SourceFilePath(sourceFilePath)
         {}
 
@@ -134,15 +134,15 @@ namespace Coust::Render::VK
         
         ShaderSource() = delete;
         
-        size_t GetHash() const;
+        size_t GetHash() const noexcept;
 
         const std::string& GetCode();
 
-        const std::filesystem::path& GetPath() const;
+        const std::filesystem::path& GetPath() const noexcept;
         
-        const std::unordered_map<std::string, std::string>& GetMacros() const;
+        const std::unordered_map<std::string, std::string>& GetMacros() const noexcept;
         
-        const std::unordered_map<std::string, size_t>& GetDesiredDynamicBufferSize() const;
+        const std::unordered_map<std::string, size_t>& GetDesiredDynamicBufferSize() const noexcept;
         
         void AddMacro(const std::string& name, const std::string& value);
         
@@ -238,7 +238,7 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        ShaderModule(const ConstructParm& param);
+        explicit ShaderModule(const ConstructParm& param);
 
         ShaderModule(ShaderModule&& other) noexcept;
         
@@ -254,13 +254,13 @@ namespace Coust::Render::VK
         
         void SetShaderResourceUpdateMode(const std::string& resoureceName, ShaderResourceUpdateMode mode);
         
-        VkShaderStageFlagBits GetStage() const;
+        VkShaderStageFlagBits GetStage() const noexcept;
 
-        const std::vector<uint32_t>& GetByteCode() const;
+        const std::vector<uint32_t>& GetByteCode() const noexcept;
 
-        const std::vector<ShaderResource>& GetResource() const;
+        const std::vector<ShaderResource>& GetResource() const noexcept;
         
-        bool IsValid() const;
+        bool IsValid() const noexcept;
         
     private:
         /**

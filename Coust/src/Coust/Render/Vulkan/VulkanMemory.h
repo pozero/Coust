@@ -83,7 +83,7 @@ namespace Coust::Render::VK
             const char*                         scopeName = nullptr;
             const char*                         dedicatedName = nullptr;
         };
-        Buffer(const ConstructParam& param);
+        explicit Buffer(const ConstructParam& param);
 
         ~Buffer();
 
@@ -94,7 +94,7 @@ namespace Coust::Render::VK
         Buffer& operator=(Buffer&&) = delete;
         Buffer& operator=(const Buffer&) = delete;
 
-        void SetAlwaysFlush(bool shouldAlwaysFlush);
+        void SetAlwaysFlush(bool shouldAlwaysFlush) noexcept;
         
         /**
          * @brief Flush memory if it's `HOST_VISIBLE` but not `HOST_COHERENT`
@@ -125,15 +125,15 @@ namespace Coust::Render::VK
         // the update will check the memory domain and decide whether to use a staging buffer to update its content
         void Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset = 0);
 
-        const uint8_t* GetMappedData() const;
+        const uint8_t* GetMappedData() const noexcept;
 
-		VkDeviceSize GetSize() const;
+		VkDeviceSize GetSize() const noexcept;
 		
-		VmaAllocation GetAllocation() const;
+		VmaAllocation GetAllocation() const noexcept;
 
-        MemoryDomain GetMemoryDomain() const;
+        MemoryDomain GetMemoryDomain() const noexcept;
         
-        bool IsValid() const;
+        bool IsValid() const noexcept;
         
     private:
         /**
@@ -193,9 +193,9 @@ namespace Coust::Render::VK
                 const char*             dedicatedName = nullptr;
                 const char*             scopeName = nullptr;
             };
-            View(const ConstructParam& param);
+            explicit View(const ConstructParam& param) noexcept;
 
-            View(View&& other);
+            View(View&& other) noexcept;
 
             ~View();
 
@@ -227,7 +227,7 @@ namespace Coust::Render::VK
             const char*                     dedicatedName = nullptr;
             const char*                     scopeName = nullptr;
         };
-        Image(const ConstructParam_Create& param);
+        explicit Image(const ConstructParam_Create& param);
 
         struct ConstructParam_Wrap
         {
@@ -240,7 +240,7 @@ namespace Coust::Render::VK
             const char*                 dedicatedName = nullptr;
             const char*                 scopeName = nullptr;
         };
-        Image(const ConstructParam_Wrap& param);
+        explicit Image(const ConstructParam_Wrap& param);
 
         ~Image();
 
@@ -266,7 +266,7 @@ namespace Coust::Render::VK
 
         void TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange);
 
-        VkImageLayout GetLayout(uint32_t layer, uint32_t level) const;
+        VkImageLayout GetLayout(uint32_t layer, uint32_t level) const noexcept;
 
         // If the class is just a wrapper around a `VkImage` handle, like a swapchain image, then its layout might be changed during renderpass.
         // We can use this method to keep track of the actual layout
@@ -276,21 +276,21 @@ namespace Coust::Render::VK
         const View* GetView(VkImageSubresourceRange subRange);
 
         // helper function related to primary subresource range
-        VkImageLayout GetPrimaryLayout() const;
+        VkImageLayout GetPrimaryLayout() const noexcept;
         const View* GetPrimaryView();
-        VkImageSubresourceRange GetPrimarySubRange() const;
+        VkImageSubresourceRange GetPrimarySubRange() const noexcept;
         void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel);
 
-        VkExtent3D GetExtent() const;
+        VkExtent3D GetExtent() const noexcept;
 
-        VkFormat GetFormat() const;
+        VkFormat GetFormat() const noexcept;
 
-        VmaAllocation GetAllocation() const;
+        VmaAllocation GetAllocation() const noexcept;
 
-        VkSampleCountFlagBits GetSampleCount() const;
+        VkSampleCountFlagBits GetSampleCount() const noexcept;
 
-        std::shared_ptr<Image> GetMSAAImage() const;
-        void SetMASSImage(std::shared_ptr<Image> massImage);
+        std::shared_ptr<Image> GetMSAAImage() const noexcept;
+        void SetMASSImage(std::shared_ptr<Image> massImage) noexcept;
 
     private:
         std::unordered_map<VkImageSubresourceRange, View, 
@@ -337,19 +337,19 @@ namespace Coust::Render::VK
             uint32_t height;
 
         };
-        HostImage(const ConstructParam& param);
+        explicit HostImage(const ConstructParam& param);
 
         ~HostImage();
 
         void Update(const void* data, size_t size);
 
-        VkImageAspectFlags GetAspect() const;
+        VkImageAspectFlags GetAspect() const noexcept;
 
-        VkFormat GetFormat() const;
+        VkFormat GetFormat() const noexcept;
 
-        uint32_t GetWidth() const;
+        uint32_t GetWidth() const noexcept;
 
-        uint32_t GetHeight() const;
+        uint32_t GetHeight() const noexcept;
 
     private:
         VmaAllocation m_Allocation = VK_NULL_HANDLE;

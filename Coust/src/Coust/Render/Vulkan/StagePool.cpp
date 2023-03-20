@@ -5,9 +5,9 @@
 
 namespace Coust::Render::VK 
 {
-    static uint32_t TIME_BEFORE_RELEASE = CommandBufferCache::COMMAND_BUFFER_COUNT;
+    static constexpr uint32_t TIME_BEFORE_RELEASE = CommandBufferCache::COMMAND_BUFFER_COUNT;
 
-    StagePool::StagePool(const Context& ctx)
+    StagePool::StagePool(const Context& ctx) noexcept
         : m_Ctx(ctx), m_Timer(TIME_BEFORE_RELEASE)
     {
     }
@@ -135,7 +135,7 @@ namespace Coust::Render::VK
         }
     }
     
-    void StagePool::Reset()
+    void StagePool::Reset() noexcept
     {
         m_FreeStagingBuf.clear();
         m_UsedStagingBuf.clear();

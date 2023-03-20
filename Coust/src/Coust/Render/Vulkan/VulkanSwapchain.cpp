@@ -11,7 +11,7 @@
 
 namespace Coust::Render::VK
 {
-	Swapchain::Swapchain(const Context &ctx)
+	Swapchain::Swapchain(const Context &ctx) noexcept
 		: Base(ctx, VK_NULL_HANDLE),
 		  IsFirstRenderPass(true)
 	{}
@@ -202,7 +202,7 @@ namespace Coust::Render::VK
 		return true;
 	}
 
-	void Swapchain::Destroy()
+	void Swapchain::Destroy() noexcept
 	{
 		// clear the state of command buffers before destroy swapchain
 		m_Ctx.CmdBufCacheGraphics->Flush();
@@ -218,7 +218,7 @@ namespace Coust::Render::VK
 		vkDestroySemaphore(m_Ctx.Device, ImgAvaiSignal, nullptr);
 	}
 
-	bool Swapchain::Acquire()
+	bool Swapchain::Acquire() noexcept
 	{
 		VkResult res = vkAcquireNextImageKHR(m_Ctx.Device, m_Handle, 
 			std::numeric_limits<uint64_t>::max(), ImgAvaiSignal, VK_NULL_HANDLE, &m_CurImgIdx);
@@ -241,7 +241,7 @@ namespace Coust::Render::VK
 		return true;
 	}
 
-	bool Swapchain::HasResized()
+	bool Swapchain::HasResized() const noexcept
 	{
 		VkSurfaceCapabilitiesKHR capabilities;
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &capabilities);
@@ -261,9 +261,9 @@ namespace Coust::Render::VK
 			});
 	}
 
-	Image& Swapchain::GetColorAttachment() { return *m_Images[m_CurImgIdx]; }
+	Image& Swapchain::GetColorAttachment() const noexcept { return *m_Images[m_CurImgIdx]; }
 
-	Image& Swapchain::GetDepthAttachment() { return *m_Depth; }
+	Image& Swapchain::GetDepthAttachment() const noexcept { return *m_Depth; }
 
-	uint32_t Swapchain::GetImageIndex() const { return m_CurImgIdx; }
+	uint32_t Swapchain::GetImageIndex() const noexcept { return m_CurImgIdx; }
 }

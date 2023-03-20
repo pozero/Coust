@@ -15,9 +15,14 @@ namespace Coust::Render::VK
     class StagePool
     {
     public:
+        StagePool() = delete;
+        StagePool(StagePool&&) = delete;
+        StagePool(const StagePool&) = delete;
+        StagePool& operator=(StagePool&&) = delete;
+        StagePool& operator=(const StagePool&) = delete;
         
     public:
-        explicit StagePool(const Context& ctx);
+        explicit StagePool(const Context& ctx) noexcept;
 
         std::shared_ptr<Buffer> AcquireStagingBuffer(VkDeviceSize numBytes);
 
@@ -27,7 +32,7 @@ namespace Coust::Render::VK
         void GC();
         
         // Reset all the internal states of this pool. It's dangerous to call it when there're still staging objects in use.
-        void Reset();
+        void Reset() noexcept;
 
     private:
         // Ideally, the life cycle of staging buffer & staging image should be managed by stage pool completely.

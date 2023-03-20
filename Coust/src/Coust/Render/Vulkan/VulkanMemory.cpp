@@ -293,7 +293,7 @@ namespace Coust::Render::VK
         }
     }
 
-    const uint8_t* Buffer::GetMappedData() const 
+    const uint8_t* Buffer::GetMappedData() const noexcept
     { 
         if (m_UpdateMode == UpdateMode::ReadOnly)
             return m_MappedData; 
@@ -302,13 +302,13 @@ namespace Coust::Render::VK
         return nullptr;
     }
 
-    VkDeviceSize Buffer::GetSize() const { return m_Size; }
+    VkDeviceSize Buffer::GetSize() const noexcept { return m_Size; }
     
-    VmaAllocation Buffer::GetAllocation() const { return m_Allocation; }
+    VmaAllocation Buffer::GetAllocation() const noexcept { return m_Allocation; }
 
-    MemoryDomain Buffer::GetMemoryDomain() const { return m_Domain; }
+    MemoryDomain Buffer::GetMemoryDomain() const noexcept { return m_Domain; }
     
-    bool Buffer::IsValid() const { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
+    bool Buffer::IsValid() const noexcept { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
 
     bool Buffer::Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const uint32_t* relatedQueues)
     {
@@ -365,7 +365,7 @@ namespace Coust::Render::VK
         return true;
     }
     
-    void Buffer::SetAlwaysFlush(bool shouldAlwaysFlush)
+    void Buffer::SetAlwaysFlush(bool shouldAlwaysFlush) noexcept
     {
         if (m_UpdateMode == UpdateMode::AutoFlush || m_UpdateMode == UpdateMode::ReadOnly)
             return;
@@ -374,7 +374,7 @@ namespace Coust::Render::VK
 
     void Buffer::Flush() const
     {
-        vmaFlushAllocation(m_VMAAllocator, m_Allocation, 0, m_Size);
+        vmaFlushAllocation(m_VMAAllocator, m_Allocation, 0, VK_WHOLE_SIZE);
     }
 
     Image::Image(const ConstructParam_Create& param)
@@ -635,7 +635,7 @@ namespace Coust::Render::VK
         }
     }
 
-    VkImageLayout Image::GetLayout(uint32_t layer, uint32_t level) const
+    VkImageLayout Image::GetLayout(uint32_t layer, uint32_t level) const noexcept
     {
         const uint32_t key = (layer << 16) | level;
         auto iter = m_SubRangeLayouts.find(key);
@@ -682,7 +682,7 @@ namespace Coust::Render::VK
         return &m_CachedImageView.at(subRange);
     }
 
-    VkImageLayout Image::GetPrimaryLayout() const
+    VkImageLayout Image::GetPrimaryLayout() const noexcept
     {
         return GetLayout(m_PrimarySubRange.baseArrayLayer, m_PrimarySubRange.baseMipLevel);
     }
@@ -692,7 +692,7 @@ namespace Coust::Render::VK
         return &m_CachedImageView.at(m_PrimarySubRange);
     }
 
-    VkImageSubresourceRange Image::GetPrimarySubRange() const { return m_PrimarySubRange; }
+    VkImageSubresourceRange Image::GetPrimarySubRange() const noexcept { return m_PrimarySubRange; }
 
     void Image::SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel)
     {
@@ -702,19 +702,19 @@ namespace Coust::Render::VK
         GetView(m_PrimarySubRange);
     }
 
-    VkExtent3D Image::GetExtent() const { return m_Extent; }
+    VkExtent3D Image::GetExtent() const noexcept { return m_Extent; }
 
-    VkFormat Image::GetFormat() const { return m_Format; }
+    VkFormat Image::GetFormat() const noexcept { return m_Format; }
 
-    VmaAllocation Image::GetAllocation() const { return m_Allocation; }
+    VmaAllocation Image::GetAllocation() const noexcept { return m_Allocation; }
 
-    VkSampleCountFlagBits Image::GetSampleCount() const { return m_SampleCount; }
+    VkSampleCountFlagBits Image::GetSampleCount() const noexcept { return m_SampleCount; }
 
-    std::shared_ptr<Image> Image::GetMSAAImage() const { return m_MSAAImage; }
+    std::shared_ptr<Image> Image::GetMSAAImage() const noexcept { return m_MSAAImage; }
 
-    void Image::SetMASSImage(std::shared_ptr<Image> msaaImage) { m_MSAAImage = msaaImage; } 
+    void Image::SetMASSImage(std::shared_ptr<Image> msaaImage) noexcept { m_MSAAImage = msaaImage; } 
 
-    Image::View::View(const ConstructParam& param)
+    Image::View::View(const ConstructParam& param) noexcept
         : Base(param.ctx, VK_NULL_HANDLE), 
           m_Image(param.image)
     {
@@ -755,7 +755,7 @@ namespace Coust::Render::VK
             m_Handle = VK_NULL_HANDLE;
     }
 
-    Image::View::View(View&& other)
+    Image::View::View(View&& other) noexcept
         : Base(std::forward<Base>(other)),
           m_Image(other.m_Image)
     {
@@ -847,16 +847,16 @@ namespace Coust::Render::VK
         vmaFlushAllocation(m_Ctx.VmaAlloc, m_Allocation, 0, size);
     }
 
-    VkImageAspectFlags HostImage::GetAspect() const
+    VkImageAspectFlags HostImage::GetAspect() const noexcept
     {
         return IsDepthStencilFormat(m_Format) ? 
             VK_IMAGE_ASPECT_DEPTH_BIT : 
             VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
-    VkFormat HostImage::GetFormat() const { return m_Format; }
+    VkFormat HostImage::GetFormat() const noexcept { return m_Format; }
 
-    uint32_t HostImage::GetWidth() const { return m_Width; }
+    uint32_t HostImage::GetWidth() const noexcept { return m_Width; }
 
-    uint32_t HostImage::GetHeight() const { return m_Height; }
+    uint32_t HostImage::GetHeight() const noexcept { return m_Height; }
 }

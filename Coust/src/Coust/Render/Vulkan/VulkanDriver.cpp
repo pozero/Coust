@@ -114,6 +114,7 @@ namespace Coust::Render::VK
     {
         m_IsInitialized = false;
 
+        m_FBOCache.Reset();
         m_Swapchain.Destroy();
         delete m_Context.CmdBufCacheGraphics;
         m_StagePool.Reset();
@@ -482,8 +483,8 @@ namespace Coust::Render::VK
             .depthResolve = false,
 			.dedicatedName = "Test render pass",
         };
-        RenderPass rp{ rpp };
-        if (!RenderPass::CheckValidation(rp))
+        const RenderPass* rp = m_FBOCache.GetRenderPass(rpp);
+        if (!rp)
             return;
         
         ShaderSource vs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.vert"}) };
@@ -547,7 +548,7 @@ namespace Coust::Render::VK
             .alphaBlendOp = VK_BLEND_OP_ADD,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
             .layout = pl,
-            .renderPass = rp,
+            .renderPass = *rp,
             .subpassIdx = 0,
             .cache = VK_NULL_HANDLE,
             .dedicatedName = "Test graphics pipeline",
@@ -564,5 +565,6 @@ namespace Coust::Render::VK
     {
         m_Context.CmdBufCacheGraphics->GC();
         m_StagePool.GC();
+        m_FBOCache.GC();
     }
 }

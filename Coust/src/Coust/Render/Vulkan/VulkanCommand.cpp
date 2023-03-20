@@ -5,8 +5,8 @@
 
 namespace Coust::Render::VK
 {
-        CommandBufferCache::CommandBufferCache(const Context& ctx, bool isCompute)
-            : m_Device(ctx.Device), m_Queue(isCompute ? ctx.ComputeQueue : ctx.GraphicsQueue)   
+        CommandBufferCache::CommandBufferCache(const Context& ctx, bool isCompute) noexcept
+            : m_Device(ctx.Device), m_Queue(isCompute ? ctx.ComputeQueue : ctx.GraphicsQueue)
         {
             VkCommandPoolCreateInfo poolCI 
             {
@@ -35,7 +35,7 @@ namespace Coust::Render::VK
             }
         }
 
-        VkCommandBuffer CommandBufferCache::Get()
+        VkCommandBuffer CommandBufferCache::Get() noexcept
         {
             if (m_CurCmdBufIdx != INVALID_IDX)
             {
@@ -94,7 +94,7 @@ namespace Coust::Render::VK
             return m_AllCmdBuf[m_CurCmdBufIdx].Handle;
         }
 
-        bool CommandBufferCache::Flush()
+        bool CommandBufferCache::Flush() noexcept
         {
             if (m_CurCmdBufIdx == INVALID_IDX)
                 return false;
@@ -143,19 +143,19 @@ namespace Coust::Render::VK
             return true;
         }
 
-        VkSemaphore CommandBufferCache::GetLastSubmissionSingal()
+        VkSemaphore CommandBufferCache::GetLastSubmissionSingal() noexcept
         {
             VkSemaphore res = VK_NULL_HANDLE;
             std::swap(res, m_LastSubmissionSignal);
             return res;
         }
 
-        void CommandBufferCache::InjectDependency(VkSemaphore dependency)
+        void CommandBufferCache::InjectDependency(VkSemaphore dependency) noexcept
         {
             m_InjectedSignal = dependency;
         }
 
-        void CommandBufferCache::GC()
+        void CommandBufferCache::GC() noexcept
         {
             for (uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++ i)
             {
@@ -177,7 +177,7 @@ namespace Coust::Render::VK
             }
         }
 
-        void CommandBufferCache::Wait()
+        void CommandBufferCache::Wait() noexcept
         {
             VkFence fencesToWait[COMMAND_BUFFER_COUNT];
             uint32_t idx = 0;
@@ -194,7 +194,7 @@ namespace Coust::Render::VK
                 vkWaitForFences(m_Device, idx, fencesToWait, VK_TRUE, UINT64_MAX);
         }
 
-        void CommandBufferCache::SetCommandBufferChangedCallback(CommandBufferChangedCallback&& callback)
+        void CommandBufferCache::SetCommandBufferChangedCallback(CommandBufferChangedCallback&& callback) noexcept
         {
             m_CmdBufChangedCallback = callback;
         }

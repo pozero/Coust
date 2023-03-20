@@ -32,7 +32,7 @@ namespace Coust::Render::VK
         }
     }
 
-    DescriptorSetLayout::DescriptorSetLayout(const ConstructParam& param)
+    DescriptorSetLayout::DescriptorSetLayout(const ConstructParam& param) 
         : Base(param.ctx, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Set(param.set)
     {
         if (Construct(param.ctx, param.shaderResources))
@@ -62,9 +62,9 @@ namespace Coust::Render::VK
         vkDestroyDescriptorSetLayout(m_Ctx.Device, m_Handle, nullptr);
     }
 
-    uint32_t DescriptorSetLayout::GetSetIndex() const { return m_Set; }
+    uint32_t DescriptorSetLayout::GetSetIndex() const noexcept { return m_Set; }
     
-    const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& DescriptorSetLayout::GetBindings() const { return m_Bindings; }
+    const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& DescriptorSetLayout::GetBindings() const noexcept { return m_Bindings; }
 
     bool DescriptorSetLayout::Construct(const Context& ctx, 
                                         const std::vector<ShaderResource>& shaderResources)
@@ -120,7 +120,7 @@ namespace Coust::Render::VK
         return true;
     }
 
-    std::optional<VkDescriptorSetLayoutBinding> DescriptorSetLayout::GetBinding(uint32_t bindingIdx) const
+    std::optional<VkDescriptorSetLayoutBinding> DescriptorSetLayout::GetBinding(uint32_t bindingIdx) const noexcept
     {
         auto iter = m_Bindings.find(bindingIdx);
         if (iter != m_Bindings.end())
@@ -132,7 +132,7 @@ namespace Coust::Render::VK
         }
     }
     
-    std::optional<VkDescriptorSetLayoutBinding> DescriptorSetLayout::GetBinding(const std::string& name) const
+    std::optional<VkDescriptorSetLayoutBinding> DescriptorSetLayout::GetBinding(const std::string& name) const noexcept
     {
         auto nameIter = m_ResNameToBindingIdx.find(name);
         if (nameIter != m_ResNameToBindingIdx.end())
@@ -210,7 +210,7 @@ namespace Coust::Render::VK
         return set;
     }
 
-    void DescriptorSetAllocator::Reset()
+    void DescriptorSetAllocator::Reset() noexcept
     {
         m_CurrentFactoryIdx = 0;
         
@@ -380,11 +380,11 @@ namespace Coust::Render::VK
         }
     }
 
-    const DescriptorSetLayout& DescriptorSet::GetLayout() const { return m_Layout; }
+    const DescriptorSetLayout& DescriptorSet::GetLayout() const noexcept { return m_Layout; }
 
-    const std::vector<BoundArray<Buffer>>& DescriptorSet::GetBufferInfo() const { return m_BufferInfos; }
+    const std::vector<BoundArray<Buffer>>& DescriptorSet::GetBufferInfo() const noexcept { return m_BufferInfos; }
 
-    const std::vector<BoundArray<Image>>& DescriptorSet::GetImageInfo() const { return m_ImageInfos; }
+    const std::vector<BoundArray<Image>>& DescriptorSet::GetImageInfo() const noexcept { return m_ImageInfos; }
 
     void DescriptorSet::Prepare()
     {
@@ -477,7 +477,7 @@ namespace Coust::Render::VK
         }
     }
 
-    bool DescriptorSet::HasBeenApplied(const VkWriteDescriptorSet& write)
+    bool DescriptorSet::HasBeenApplied(const VkWriteDescriptorSet& write) const noexcept
     {
         if (auto iter = m_AppliedWrites.find(write.dstBinding); iter != m_AppliedWrites.end())
         {

@@ -37,17 +37,17 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        PipelineLayout(const ConstructParam& param);
+        explicit PipelineLayout(const ConstructParam& param);
 
-        PipelineLayout(PipelineLayout&& other);
+        PipelineLayout(PipelineLayout&& other) noexcept;
 
         ~PipelineLayout();
 
-        const std::vector<ShaderModule*>& GetShaderModules() const;
+        const std::vector<ShaderModule*>& GetShaderModules() const noexcept;
 
-        const std::vector<DescriptorSetLayout>& GetDescriptorSetLayouts() const;
+        const std::vector<DescriptorSetLayout>& GetDescriptorSetLayouts() const noexcept;
 
-        const std::vector<ShaderResource>& GetShaderResources() const;
+        const std::vector<ShaderResource>& GetShaderResources() const noexcept;
 
     private:
         std::vector<ShaderModule*> m_ShaderModules;
@@ -114,9 +114,9 @@ namespace Coust::Render::VK
             }
         }
 
-        VkSpecializationInfo Get() const;
+        VkSpecializationInfo Get() const noexcept;
 
-        size_t GetHash() const;
+        size_t GetHash() const noexcept;
 
     private:
         std::vector<VkSpecializationMapEntry> m_Entry;
@@ -178,8 +178,8 @@ namespace Coust::Render::VK
             VkBlendOp                                           alphaBlendOp = VK_BLEND_OP_ADD;
             VkColorComponentFlags                               colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             // We use fixed dynamic state which contains viewport and scissor
-            PipelineLayout&                                     layout;
-            RenderPass&                                         renderPass;
+            const PipelineLayout&                               layout;
+            const RenderPass&                                   renderPass;
             uint32_t                                            subpassIdx;
             VkPipelineCache                                     cache = VK_NULL_HANDLE;
             const char*                                         scopeName = nullptr;
@@ -187,17 +187,17 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        GraphicsPipeline(const ConstructParam& param);
+        explicit GraphicsPipeline(const ConstructParam& param);
 
-        GraphicsPipeline(GraphicsPipeline&& other);
+        GraphicsPipeline(GraphicsPipeline&& other) noexcept;
 
         ~GraphicsPipeline();
 
-        const PipelineLayout& GetLayout() const;
+        const PipelineLayout& GetLayout() const noexcept;
 
-        const RenderPass& GetRenderPass() const;
+        const RenderPass& GetRenderPass() const noexcept;
 
-        uint32_t GetSubpassIndex() const;
+        uint32_t GetSubpassIndex() const noexcept;
 
     private:
         const PipelineLayout& m_Layout;

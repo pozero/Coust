@@ -25,7 +25,7 @@ namespace Coust::Render::VK
             m_Handle = VK_NULL_HANDLE;
     }
 
-	RenderPass::RenderPass(RenderPass&& other)
+	RenderPass::RenderPass(RenderPass&& other) noexcept
         : Base(std::forward<Base>(other)),
           Hashable(std::forward<Hashable>(other))
     {
@@ -35,6 +35,15 @@ namespace Coust::Render::VK
     {
         if (m_Handle != VK_NULL_HANDLE)
             vkDestroyRenderPass(m_Ctx.Device, m_Handle, nullptr);
+    }
+
+
+	const VkExtent2D RenderPass::GetRenderAreaGranularity() const noexcept
+    { 
+        VkExtent2D res{};
+        if (m_Handle != VK_NULL_HANDLE)
+            vkGetRenderAreaGranularity(m_Ctx.Device, m_Handle, &res);
+        return res;
     }
 
     bool RenderPass::Construct( const VkFormat* colorFormat,
@@ -282,9 +291,15 @@ namespace Coust::Render::VK
         return true;
     }
 
+	RenderPass::RenderPass(const ConstructParam* p, int) noexcept
+        : Base(p->ctx, VK_NULL_HANDLE),
+          Hashable(p->GetHash())
+    {}
+
     Framebuffer::Framebuffer(const ConstructParam& p)
         : Base(p.ctx, VK_NULL_HANDLE), 
-          Hashable(p.GetHash())
+          Hashable(p.GetHash()),
+          m_RenderPass(p.renderPass)
     {
         // all the attachment descriptions live here, color first, then resolve, finally depth. At most 8 color attachment + 8 resolve attachment + depth attachment
         // Note: this array has the same order as the render pass it attaches to
@@ -338,7 +353,8 @@ namespace Coust::Render::VK
 
     Framebuffer::Framebuffer(Framebuffer&& other) noexcept
         : Base(std::forward<Base>(other)),
-          Hashable(std::forward<Hashable>(other))
+          Hashable(std::forward<Hashable>(other)),
+          m_RenderPass(other.m_RenderPass)
     {
     }
 
@@ -347,6 +363,14 @@ namespace Coust::Render::VK
         if (m_Handle != VK_NULL_HANDLE)
             vkDestroyFramebuffer(m_Ctx.Device, m_Handle, nullptr);
     }
+
+	const RenderPass& Framebuffer::GetRenderPass() const noexcept { return m_RenderPass; }
+
+	Framebuffer::Framebuffer(const ConstructParam* p, int) noexcept
+        : Base(p->ctx, VK_NULL_HANDLE),
+          Hashable(p->GetHash()),
+          m_RenderPass(p->renderPass)
+    {}
 
 	size_t Framebuffer::ConstructParam::GetHash() const
     {
@@ -395,4 +419,93 @@ namespace Coust::Render::VK
 
         return h;
     }
+
+    static constexpr uint32_t TIME_BEFORE_RELEASE = 10;
+
+	FBOCache::FBOCache()
+        : m_Timer(TIME_BEFORE_RELEASE)
+    {
+    }
+
+    const RenderPass* FBOCache::GetRenderPass(const RenderPass::ConstructParam& p)
+    {
+        // construct a temporary fake render pass object used for searching
+        RenderPass key{ &p, 42 };
+        if (auto iter = m_CachedRenderPasses.find(key); iter != m_CachedRenderPasses.end())
+        {
+            iter->second = m_Timer.CurrentCount();
+            return &iter->first;
+        }
+
+        RenderPass r{ p };
+        if (!RenderPass::CheckValidation(r))
+        {
+            COUST_CORE_ERROR("Failed to create render pass, null pointer returned");
+            return nullptr;
+        }
+        auto iter = m_CachedRenderPasses.emplace(std::move(r), m_Timer.CurrentCount());
+        if (!iter.second)
+        {
+            COUST_CORE_ERROR("Failed to insert render pass to the cache list, null pointer returned");
+            return nullptr;
+        }
+        m_RenderPassReferenceCount[&iter.first->first] = 0;
+        return &iter.first->first;
+    }
+
+    const Framebuffer* FBOCache::GetFramebuffer(const Framebuffer::ConstructParam& p)
+    {
+        // construct a temporary fake render pass object used for searching
+        Framebuffer key { &p, 42 };
+        if (auto iter = m_CachedFramebuffers.find(key); iter != m_CachedFramebuffers.end())
+        {
+            iter->second = m_Timer.CurrentCount();
+            return &iter->first;
+        }
+
+        Framebuffer f{ p };
+        if (!Framebuffer::CheckValidation(f))
+        {
+            COUST_CORE_ERROR("Failed to create frame buffer, null pointer returned");
+            return nullptr;
+        }
+        auto iter = m_CachedFramebuffers.emplace(std::move(f), m_Timer.CurrentCount());
+        if (!iter.second)
+        {
+            COUST_CORE_ERROR("Failed to insert the frame buffer to the cache list, null pointer returned");
+            return nullptr;
+        }
+        ++ m_RenderPassReferenceCount[&p.renderPass];
+        return &iter.first->first;
+    }
+
+    void FBOCache::GC()
+    {
+        m_Timer.Tick();
+        for (auto iter = m_CachedFramebuffers.begin(); iter != m_CachedFramebuffers.end();)
+        {
+            if (m_Timer.ShouldEvict(iter->second))
+            {
+                -- m_RenderPassReferenceCount[&iter->first.GetRenderPass()];
+                iter = m_CachedFramebuffers.erase(iter);
+            }
+            else  
+                ++ iter;
+        }
+        for (auto iter = m_CachedRenderPasses.begin(); iter != m_CachedRenderPasses.end();)
+        {
+            if (m_Timer.ShouldEvict(iter->second) && m_RenderPassReferenceCount.at(&iter->first) == 0)
+                iter = m_CachedRenderPasses.erase(iter);
+            else
+                ++ iter;
+        }
+    }
+
+    void FBOCache::Reset() noexcept
+    {
+        m_CachedFramebuffers.clear();
+        m_RenderPassReferenceCount.clear();
+        m_CachedRenderPasses.clear();
+    }
+
 }
