@@ -198,6 +198,13 @@ namespace Coust
             COUST_CORE_TRACE("Cache of {} Not Found (not flushed to disk yet)", originName);
             return CacheStatus::NO_FOUND;
         }
+        
+        // origin file deleted, log warning
+        if (!std::filesystem::exists(originName))
+        {
+            COUST_CORE_WARN("Origin file has been deleted!");
+            return CacheStatus::NO_FOUND;
+        }
 
         // origin file size changed
         if (header->originFileSizeInByte.has_value())

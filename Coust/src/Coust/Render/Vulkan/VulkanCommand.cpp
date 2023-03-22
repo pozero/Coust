@@ -140,6 +140,9 @@ namespace Coust::Render::VK
             m_InjectedSignal = VK_NULL_HANDLE;
             m_CurCmdBufIdx = INVALID_IDX;
 
+            if (m_CmdBufChangedCallback != nullptr)
+                m_CmdBufChangedCallback(m_AllCmdBuf[m_CurCmdBufIdx]);
+
             return true;
         }
 

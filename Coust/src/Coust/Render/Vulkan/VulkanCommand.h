@@ -118,6 +118,6 @@ namespace Coust::Render::VK
         CommandBuffer m_AllCmdBuf[COMMAND_BUFFER_COUNT];
         VkSemaphore m_AllSubmissionSignal[COMMAND_BUFFER_COUNT];
 
-        CommandBufferChangedCallback m_CmdBufChangedCallback;
+        CommandBufferChangedCallback m_CmdBufChangedCallback{};
     };
 }

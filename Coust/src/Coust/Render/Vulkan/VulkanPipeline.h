@@ -1,10 +1,17 @@
 #pragma once
 
 #include "Coust/Render/Vulkan/VulkanContext.h"
+#include "Coust/Render/Vulkan/VulkanShader.h"
+#include "Coust/Render/Vulkan/VulkanDescriptor.h"
+#include "Coust/Render/Vulkan/VulkanCommand.h"
 
+#include "Coust/Utils/Hash.h"
+
+#include <map>
+#include <list>
 #include <vector>
 #include <unordered_set>
-#include <compare>
+#include <unordered_map>
 
 namespace Coust::Render::VK
 {
@@ -30,10 +37,12 @@ namespace Coust::Render::VK
     public:
         struct ConstructParam 
         {
-            const Context&                      ctx;
-            std::vector<ShaderModule*>          shaderModules;
-            const char*                         scopeName = nullptr;
-            const char*                         dedicatedName = nullptr;
+            const Context*                              ctx = nullptr;              // Here we use poiter because we need to be able to clear this class in pipeline cache, which is prohibited by reference.
+            std::vector<ShaderModule*>                  shaderModules;              // Passed for hashing
+            std::vector<ShaderResource>                 shaderResources;
+            std::unordered_map<uint32_t, uint64_t>      setToResourceIdxLookup;
+            const char*                                 scopeName = nullptr;
+            const char*                                 dedicatedName = nullptr;
 
             size_t GetHash() const;
         };
@@ -65,6 +74,15 @@ namespace Coust::Render::VK
     // So all the shader modules inside one pipeline will share the same constant id.
     class SpecializationConstantInfo
     {
+    public:
+        SpecializationConstantInfo() = default;
+        ~SpecializationConstantInfo() = default;
+        SpecializationConstantInfo(SpecializationConstantInfo&&) = default;
+
+        SpecializationConstantInfo(const SpecializationConstantInfo&) = delete;
+        SpecializationConstantInfo& operator=(SpecializationConstantInfo&&) = delete;
+        SpecializationConstantInfo& operator=(const SpecializationConstantInfo&) = delete;
+
     public:
         template <typename T>
         bool AddConstant(uint32_t id, const T& data)
@@ -104,7 +122,7 @@ namespace Coust::Render::VK
             {
                 if (iter->size != sizeof(T))
                 {
-                    COUST_CORE_ERROR("The size of previous data for specialization constant doesn't match the size of new data");
+                    COUST_CORE_ERROR("The size of previous data for specialization constant doesn't match the size of the new data");
                     return false;
                 }
 
@@ -113,6 +131,8 @@ namespace Coust::Render::VK
                 return true;
             }
         }
+
+        void Reset() noexcept;
 
         VkSpecializationInfo Get() const noexcept;
 
@@ -137,10 +157,8 @@ namespace Coust::Render::VK
         GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 
     public:
-        struct ConstructParam 
+        struct RasterState
         {
-            const Context&                                      ctx;
-            const SpecializationConstantInfo*                   specializationConstantInfo = nullptr;
             // We don't use primitive restart since most of the time we will use the triangle list, as the spec says:
             // primitiveRestartEnable controls whether a special vertex index value is treated as restarting the
             // assembly of primitives. This enable only applies to indexed draws (vkCmdDrawIndexed, and
@@ -178,8 +196,16 @@ namespace Coust::Render::VK
             VkBlendOp                                           alphaBlendOp = VK_BLEND_OP_ADD;
             VkColorComponentFlags                               colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             // We use fixed dynamic state which contains viewport and scissor
-            const PipelineLayout&                               layout;
-            const RenderPass&                                   renderPass;
+        };
+
+        struct ConstructParam 
+        {   
+            const Context*                                      ctx = nullptr;                          // Here we use poiter because we need to be able to clear this class in pipeline cache, which is prohibited by reference.
+            const SpecializationConstantInfo*                   specializationConstantInfo = nullptr;
+            uint32_t                                            perInstanceInputMask = 0u;
+            RasterState                                         rasterState;
+            const PipelineLayout*                               layout = nullptr;
+            const RenderPass*                                   renderPass = nullptr;
             uint32_t                                            subpassIdx;
             VkPipelineCache                                     cache = VK_NULL_HANDLE;
             const char*                                         scopeName = nullptr;
@@ -205,5 +231,129 @@ namespace Coust::Render::VK
         const RenderPass& m_RenderPass;
 
         const uint32_t m_SubpassIdx;
+    };
+
+    // This cache class is reponsible for tracking the state of rendering, including shaders, pipelines, descriptors, shader resources, etc
+    class GraphicsPipelineCache
+    {
+    public:
+        GraphicsPipelineCache() = delete;
+        GraphicsPipelineCache(GraphicsPipelineCache&&) = delete;
+        GraphicsPipelineCache(const GraphicsPipelineCache&) = delete;
+        GraphicsPipelineCache& operator=(GraphicsPipelineCache&&) = delete;
+        GraphicsPipelineCache& operator=(const GraphicsPipelineCache&) = delete;
+
+    public:
+        explicit GraphicsPipelineCache(const Context& ctx) noexcept;
+
+        // Clean every thing that's been cached
+        void Reset() noexcept;
+
+        // This function will be called when the driver switches to a new command buffer, which means the old command buffer is submitted.
+        // We know that command buffer records all these bindings, so once it's submitted, all the old render states bound previously are gone.
+        // We would do some housekeeping here, clearing out all the old render states.
+        void GC(const CommandBuffer& buf);
+
+        // Internal clearing methods. They just set the corresponding requirements to default state.
+
+        void UnBindDescriptorSet() noexcept;
+
+        void UnBindPipeline() noexcept;
+
+        // Internal binding methods. They don't issue any vulkan call.
+        // Since we use reflection to manage our resource binding, some of the following functions require strict calling order.
+        // Basically, all function related to shader resoure binding should be called AFTER the binding of pipeline layout (which contains descriptor set layout) finished, 
+        // and actual vulkan binding should always happens at the very end.
+        // Ideally, the call order should be the same as the order they present below.
+
+        // Get the specialization constant info and modify it.
+        // Specialization constant info will get cleared when a new command buffer is activated.
+        SpecializationConstantInfo& BindSpecializationConstant() noexcept;
+
+        bool BindShader(const ShaderModule::ConstructParm& source);
+
+        // Tell the cache that's all the shader we need. ONLY after this function can we start to bind shader resources.
+        // This function will collect all the shader resources for pipeline layout construction,
+        // and clear the update mode of all the shader resources inside the current bound shader modules to `Static`.
+        void BindShaderFinished();
+
+        // Modify the update mode of sepcific buffer
+        void SetAsDynamic(std::string_view name);
+
+        // Tell the cache that's all the shader resource (with correct update mode) we need, and build or get the pipeline layout and corresponding descriptor set allocator.
+        bool BindPipelineLayout();
+
+        void BindRasterState(const GraphicsPipeline::RasterState& state);
+
+        void BindRenderPass(const RenderPass* renderPass, uint32_t subpassIdx);
+
+        // The following functions are responsible for configuring the construction parameter for descriptor sets
+
+        void BindBuffer(std::string_view name, const Buffer& buffer, uint64_t offset, uint64_t size, uint32_t arrayIdx);
+
+        void BindImage(std::string_view name, VkSampler sampler, const Image& image, uint32_t arrayIdx);
+
+        void BindInputAttachment(std::string_view name, const Image& attachment);
+
+        void SetInputRatePerInstance(uint32_t location);
+
+        // Actual binding
+        
+        bool BindDescriptorSet(VkCommandBuffer cmdBuf);
+
+        bool BindPipeline(VkCommandBuffer cmdBuf);
+
+    private:
+        void CreateDescriptorAllocator();
+
+        void FillDescriptorSetRequirements();
+
+    private:
+        // We won't recycle shader modules here, since they won't get much change during rendering and compile a shader from source takes huge amount of time.
+        // Also note that we can NOT change the update mode of uniform buffer or storage buffer inside the shader module. 
+        // Instead we give caller a chance to change the update mode BEFORE we actually get pipeline layout, and hash the update mode information in the pipeline layout class.
+        std::vector<ShaderModule> m_CachedShaderModules;
+
+        // pipeline layout, last accessed time
+        std::list<std::pair<PipelineLayout, uint32_t>> m_CachedPipelineLayouts;
+        // pipeline layout -> corresponding descriptor set allocators:
+        //      set index -> descriptor set allocator
+        std::unordered_map<const PipelineLayout*, std::vector<DescriptorSetAllocator>> m_DescriptorSetAllocators;
+
+        // The descriptor sets in the `m_CachedDescriptorSets` are filled with write info, which means they are bound to specific buffers & images,
+        // whilst the descriptor sets stored in the free list do not carry any write info.
+        // used decriptor sets, last accessed time
+        std::list<std::pair<DescriptorSet, uint32_t>> m_CachedDescriptorSets;
+
+        // graphics pipline, last accessed time
+        std::list<std::pair<GraphicsPipeline, uint32_t>> m_CachedGraphicsPipelines;
+
+        // Following are currently bound resources, which are basically index to the cache above.
+
+        SpecializationConstantInfo m_SpecializationConstantCurrent{};
+        std::unordered_set<uint32_t> m_CurrentBoundShaderModules{};
+        PipelineLayout* m_PipelineLayoutCurrent = nullptr;
+        GraphicsPipeline* m_GraphicsPipelineCurrent = nullptr;
+        std::vector<DescriptorSet*> m_DescriptorSetsCurrent{};
+        // set index -> dynamic offset
+        std::unordered_map<uint32_t, uint32_t> m_DynamicOffsets;
+
+        // Following are requirements for current drawing iteration, at stage where actual binding happens, the code will check if the current binding can fulfill these
+        // requirements, if so, then do nothing.
+
+        PipelineLayout::ConstructParam m_PipelineLayoutRequirement;
+        GraphicsPipeline::ConstructParam m_GraphicsPipelineRequirement;
+        std::vector<DescriptorSet::ConstructParam> m_DescriptorSetRequirement;
+
+        const Context& m_Ctx;
+
+        EvictTimer m_Timer;
+
+        CacheHitCounter m_PipelineLayoutHitCounter;
+        CacheHitCounter m_DescriptorSetHitCounter;
+        CacheHitCounter m_GraphicsPipelineHitCounter;
+
+        // TODO: load & save pipeline cache
+        VkPipelineCache m_Cache = VK_NULL_HANDLE;
     };
 }

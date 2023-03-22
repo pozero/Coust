@@ -8,7 +8,7 @@ namespace Coust::Render::VK
     static constexpr uint32_t TIME_BEFORE_RELEASE = CommandBufferCache::COMMAND_BUFFER_COUNT;
 
     StagePool::StagePool(const Context& ctx) noexcept
-        : m_Ctx(ctx), m_Timer(TIME_BEFORE_RELEASE)
+        : m_Ctx(ctx), m_Timer(TIME_BEFORE_RELEASE), m_BufferHitCounter("StagePool Buffer"), m_ImageHitCounter("StagePool Image")
     {
     }
 
@@ -17,12 +17,16 @@ namespace Coust::Render::VK
         // Find the buffer meeting the size requirement with the smallest capcacity
         if (auto iter = m_FreeStagingBuf.lower_bound(numBytes); iter != m_FreeStagingBuf.end())
         {
+            m_BufferHitCounter.Hit();
+
             auto stage = iter->second;  
             m_FreeStagingBuf.erase(iter);
             stage.lastAccessed = m_Timer.CurrentCount(),
             m_UsedStagingBuf.push_back(stage);
             return stage.buf;
         }
+
+        m_ImageHitCounter.Miss();
 
         StagingBuffer buf{};
         Buffer::ConstructParam param
@@ -50,6 +54,8 @@ namespace Coust::Render::VK
             const auto& i = *iter->image;
             if (i.GetFormat() == format && i.GetWidth() == width && i.GetHeight() == height)
             {
+                m_ImageHitCounter.Hit();
+
                 auto stage = *iter;
                 m_FreeStagingImage.erase(iter);
                 stage.lastAccessed = m_Timer.CurrentCount(),
@@ -57,6 +63,8 @@ namespace Coust::Render::VK
                 return stage.image;
             }
         }
+
+        m_ImageHitCounter.Miss();
 
         StagingImage image{};
         HostImage::ConstructParam param

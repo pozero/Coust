@@ -61,5 +61,8 @@ namespace Coust::Render::VK
 
         // storing current frame count, used for recycling memory
         EvictTimer m_Timer;
+
+        CacheHitCounter m_BufferHitCounter;
+        CacheHitCounter m_ImageHitCounter;
     };
 }

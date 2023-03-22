@@ -3,6 +3,7 @@
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 #include "Coust/Render/Vulkan/VulkanMemory.h"
+#include "Coust/Render/Vulkan/VulkanCommand.h"
 
 #include "Coust/Utils/Hash.h"
 
@@ -291,11 +292,6 @@ namespace Coust::Render::VK
         return true;
     }
 
-	RenderPass::RenderPass(const ConstructParam* p, int) noexcept
-        : Base(p->ctx, VK_NULL_HANDLE),
-          Hashable(p->GetHash())
-    {}
-
     Framebuffer::Framebuffer(const ConstructParam& p)
         : Base(p.ctx, VK_NULL_HANDLE), 
           Hashable(p.GetHash()),
@@ -366,12 +362,6 @@ namespace Coust::Render::VK
 
 	const RenderPass& Framebuffer::GetRenderPass() const noexcept { return m_RenderPass; }
 
-	Framebuffer::Framebuffer(const ConstructParam* p, int) noexcept
-        : Base(p->ctx, VK_NULL_HANDLE),
-          Hashable(p->GetHash()),
-          m_RenderPass(p->renderPass)
-    {}
-
 	size_t Framebuffer::ConstructParam::GetHash() const
     {
         size_t h = 0;
@@ -420,22 +410,29 @@ namespace Coust::Render::VK
         return h;
     }
 
-    static constexpr uint32_t TIME_BEFORE_RELEASE = 10;
+    static constexpr uint32_t TIME_BEFORE_RELEASE = CommandBufferCache::COMMAND_BUFFER_COUNT;
 
 	FBOCache::FBOCache()
-        : m_Timer(TIME_BEFORE_RELEASE)
+        : m_Timer(TIME_BEFORE_RELEASE), m_RenderPassHitCounter("FBOCache RenderPass"), m_FramebufferHitCounter("FBOCache Framebuffer")
     {
     }
 
     const RenderPass* FBOCache::GetRenderPass(const RenderPass::ConstructParam& p)
     {
-        // construct a temporary fake render pass object used for searching
-        RenderPass key{ &p, 42 };
-        if (auto iter = m_CachedRenderPasses.find(key); iter != m_CachedRenderPasses.end())
+        size_t h = p.GetHash();
+        if (auto iter = std::find_if(m_CachedRenderPasses.begin(), m_CachedRenderPasses.end(),
+            [h](decltype(*m_CachedRenderPasses.begin()) pair) -> bool
+            {
+                return pair.first.GetHash() == h;
+            }); iter != m_CachedRenderPasses.end())
         {
+            m_RenderPassHitCounter.Hit();
+
             iter->second = m_Timer.CurrentCount();
             return &iter->first;
         }
+
+        m_RenderPassHitCounter.Miss();
 
         RenderPass r{ p };
         if (!RenderPass::CheckValidation(r))
@@ -455,13 +452,20 @@ namespace Coust::Render::VK
 
     const Framebuffer* FBOCache::GetFramebuffer(const Framebuffer::ConstructParam& p)
     {
-        // construct a temporary fake render pass object used for searching
-        Framebuffer key { &p, 42 };
-        if (auto iter = m_CachedFramebuffers.find(key); iter != m_CachedFramebuffers.end())
+        size_t h = p.GetHash();
+        if (auto iter = std::find_if(m_CachedFramebuffers.begin(), m_CachedFramebuffers.end(),
+            [h](decltype(*m_CachedFramebuffers.begin()) pair) -> bool 
+            {
+                return pair.first.GetHash() == h;
+            }); iter != m_CachedFramebuffers.end())
         {
+            m_FramebufferHitCounter.Hit();
+
             iter->second = m_Timer.CurrentCount();
             return &iter->first;
         }
+
+        m_FramebufferHitCounter.Miss();
 
         Framebuffer f{ p };
         if (!Framebuffer::CheckValidation(f))

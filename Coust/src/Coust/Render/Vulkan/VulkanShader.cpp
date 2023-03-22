@@ -94,9 +94,9 @@ namespace Coust::Render::VK
         m_Macros.erase(iter);
     }
     
-    void ShaderSource::SetDynamicBufferSize(const std::string& name, size_t size) 
+    void ShaderSource::SetDynamicBufferSize(std::string_view name, size_t size) 
     { 
-        m_DesiredDynamicBufferSize[name] = size; 
+        m_DesiredDynamicBufferSize[std::string{ name }] = size; 
     }
 	
 	ShaderByteCode::~ShaderByteCode()
@@ -720,7 +720,7 @@ namespace Coust::Render::VK
         }
     }
 
-    void ShaderModule::CollectShaderResources(const std::vector<ShaderModule*> modules, 
+    void ShaderModule::CollectShaderResources(const std::vector<ShaderModule*>& modules, 
                                               std::vector<ShaderResource>& out_AllShaderResources, 
                                               std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup)
     {
@@ -732,11 +732,11 @@ namespace Coust::Render::VK
                 auto iter = std::find_if(out_AllShaderResources.begin(), out_AllShaderResources.end(), 
                     [&r](const ShaderResource& a) -> bool 
                     { 
-                        const bool IsNotIO = !(a.Type == ShaderResourceType::Input || a.Type == ShaderResourceType::Output);
+                        const bool IsNotIOOrConstant = !(a.Type == ShaderResourceType::Input || a.Type == ShaderResourceType::Output || a.Type == ShaderResourceType::SpecializationConstant);
                         const bool HasSameName = a.Name == r.Name;
                         // seems that glsl just 
                         const bool IsSameType = a.Type == r.Type;
-                        return IsNotIO && HasSameName && IsSameType;
+                        return IsNotIOOrConstant && HasSameName && IsSameType;
                     });
                 // the same resource can be referenced by different shaders, just logical or the stage flag
                 if (iter != out_AllShaderResources.end())
@@ -746,7 +746,7 @@ namespace Coust::Render::VK
             }
         }
 
-        if (out_AllShaderResources.size() > sizeof(decltype(out_SetToResourceIdxLookup[0])))
+        if (out_AllShaderResources.size() > sizeof(decltype(out_SetToResourceIdxLookup.at(0))))
         {
             COUST_CORE_ERROR("There're {} shader resources presenting in this group of shader modules. The value type of `out_SetToResourceIdxLookup` should upscale", out_AllShaderResources.size());
             return;
@@ -866,7 +866,7 @@ namespace Coust::Render::VK
 #undef GENERATE_VK_FORMAT_4
 #pragma warning( pop )
 
-    void ShaderModule::CollectShaderInputs(const std::vector<ShaderResource>& shaderResources,
+    void ShaderModule::CollectShaderInputs(const std::vector<ShaderModule*>& modules,
         uint32_t perInstanceInputMask,  
         std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
         std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions)
@@ -903,12 +903,15 @@ namespace Coust::Render::VK
         std::vector<ShaderResource> inputResource{};
         std::unordered_set<uint32_t> allLocations{};
         inputResource.reserve(sizeof(perInstanceInputMask));
-        for (const auto& res : shaderResources)
+        for (auto m : modules)
         {
-            if (res.Type == ShaderResourceType::Input)
+            for (const auto& res : m->GetResource())
             {
-                inputResource.push_back(res);
-                allLocations.insert(res.Location);
+                if (res.Type == ShaderResourceType::Input && res.Stage == VK_SHADER_STAGE_VERTEX_BIT)
+                {
+                    inputResource.push_back(res);
+                    allLocations.insert(res.Location);
+                }
             }
         }
         std::sort(inputResource.begin(), inputResource.end(), 
@@ -1046,22 +1049,6 @@ namespace Coust::Render::VK
     {
         std::unique_ptr<spirv_cross::CompilerGLSL> compiler = std::make_unique<spirv_cross::CompilerGLSL>(m_ByteCode.ByteCode);
         return compiler->compile();
-    }
-
-    void ShaderModule::SetShaderResourceUpdateMode(const std::string& resoureceName, ShaderResourceUpdateMode mode)
-    {
-        auto iter = std::find_if(m_Resources.begin(), m_Resources.end(), 
-            [&](const ShaderResource& res) { return res.Name == resoureceName; });
-        
-        if (iter != m_Resources.end())
-        {
-            if (iter->Type == ShaderResourceType::StorageBuffer || iter->Type == ShaderResourceType::UniformBuffer)
-                iter->UpdateMode = ShaderResourceUpdateMode::Dynamic;
-            else
-                COUST_CORE_ERROR("Resource {} in shader module {} is not a buffer", resoureceName, m_DebugName);
-        }
-        else
-            COUST_CORE_ERROR("Can't find resource {} in shader module {}", resoureceName, m_DebugName);
     }
 
     VkShaderStageFlagBits ShaderModule::GetStage() const noexcept { return m_Stage; }

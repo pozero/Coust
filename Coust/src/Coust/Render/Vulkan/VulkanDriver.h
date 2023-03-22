@@ -5,11 +5,10 @@
 #include "Coust/Render/Vulkan/VulkanContext.h"
 #include "Coust/Render/Vulkan/VulkanSwapchain.h"
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
+#include "Coust/Render/Vulkan/VulkanPipeline.h"
 
 namespace Coust::Render::VK
 {
-	class CommandBufferList;
-
     class Driver : public Coust::Render::Driver
     {
 	public:
@@ -40,5 +39,7 @@ namespace Coust::Render::VK
 		Swapchain m_Swapchain;
 
 		FBOCache m_FBOCache;
+
+		GraphicsPipelineCache m_GraphicsPipeCache;
     };
 }

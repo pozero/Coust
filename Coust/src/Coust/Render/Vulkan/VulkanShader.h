@@ -49,6 +49,7 @@ namespace Coust::Render::VK
         All,
     };
     
+    // These shader resource update mode can't be configured in shader module class, their modification is deferred until the cosntruction of pipeline layout
     enum class ShaderResourceUpdateMode
     {
         Static,
@@ -85,7 +86,7 @@ namespace Coust::Render::VK
         ShaderResourceType Type = ShaderResourceType::All;
         
         // Fields of decoration
-        ShaderResourceUpdateMode UpdateMode;
+        ShaderResourceUpdateMode UpdateMode = ShaderResourceUpdateMode::Static;
         VkAccessFlags Access = 0;
         ShaderResourceMember* pMembers = nullptr;
         ShaderResourceBaseType BaseType = ShaderResourceBaseType::All;
@@ -148,7 +149,7 @@ namespace Coust::Render::VK
         
         void DeleteMacroByName(const std::string& name);
         
-        void SetDynamicBufferSize(const std::string& name, size_t size);
+        void SetDynamicBufferSize(std::string_view name, size_t size);
         
     private:
         std::filesystem::path m_SourceFilePath;
@@ -217,11 +218,11 @@ namespace Coust::Render::VK
          * @param out_AllShaderResources 
          * @param out_SetToResourceIdxLookup    set -> mask of indice in `out_AllShaderResources` of all resources in this set
          */
-        static void CollectShaderResources(const std::vector<ShaderModule*> modules, 
+        static void CollectShaderResources(const std::vector<ShaderModule*>& modules, 
                                            std::vector<ShaderResource>& out_AllShaderResources, 
                                            std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup);
         
-        static void CollectShaderInputs(const std::vector<ShaderResource>& shaderResources,
+        static void CollectShaderInputs(const std::vector<ShaderModule*>& modules,
             uint32_t perInstanceInputMask,  // (1 << l) & perInstanceInputMask != 0 means the input rate of data in location l is per instance
                                             // Also, the maxVertexInputAttributes for 1050 is just 32, so a uint32_t mask is just fine
             std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
@@ -251,9 +252,7 @@ namespace Coust::Render::VK
         
         // get disassembled glsl code, this might be useful if we want to check the including and optimization state.
         std::string GetDisassembledSPIRV();
-        
-        void SetShaderResourceUpdateMode(const std::string& resoureceName, ShaderResourceUpdateMode mode);
-        
+
         VkShaderStageFlagBits GetStage() const noexcept;
 
         const std::vector<uint32_t>& GetByteCode() const noexcept;

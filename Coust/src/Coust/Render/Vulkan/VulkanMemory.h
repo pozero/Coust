@@ -275,9 +275,11 @@ namespace Coust::Render::VK
         // return or create the required image view
         const View* GetView(VkImageSubresourceRange subRange);
 
+        const View* GetSingleLayerView(VkImageAspectFlags aspect, uint32_t layer, uint32_t mipLevel);
+
         // helper function related to primary subresource range
         VkImageLayout GetPrimaryLayout() const noexcept;
-        const View* GetPrimaryView();
+        const View* GetPrimaryView() const;
         VkImageSubresourceRange GetPrimarySubRange() const noexcept;
         void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel);
 

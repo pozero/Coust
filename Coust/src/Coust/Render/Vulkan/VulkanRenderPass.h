@@ -7,6 +7,7 @@ namespace Coust::Render::VK
 {
 	class RenderPass;
 	class Framebuffer;
+	class FBOCache;
 
 	constexpr uint32_t MAX_ATTACHMENT_COUNT = 8;
 	enum AttachmentFlagBits : uint32_t
@@ -49,7 +50,7 @@ namespace Coust::Render::VK
 			VkSampleCountFlagBits       sample = VK_SAMPLE_COUNT_1_BIT;
 			uint8_t                     resolveMask = 0u;						// `(resolveMask & COLOR0) != 0` means `COLOR0` has a coorsponding color resolve attachment
 			uint8_t                     inputAttachmentMask = 0u;				// `(inputAttachmentMask & COLOR0) != 0` means `COLOR0` should be used as input attachment for the second subpass
-			bool 						depthResolve = false;					// use resolve for depth attachment or not
+			bool                        depthResolve = false;					// use resolve for depth attachment or not
 			const char*                 dedicatedName = nullptr;
 			const char*                 scopeName = nullptr;
 
@@ -78,10 +79,6 @@ namespace Coust::Render::VK
 						uint8_t resolveMask,
 						uint8_t inputAttachmentMask,
 						bool depthResolve);
-		
-		// Fake constructor, the constructed object is used for searching
-		friend class FBOCache;
-		explicit RenderPass(const ConstructParam* p, int) noexcept;
 	};
 
 	class Framebuffer : public Resource<VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER>,
@@ -93,17 +90,17 @@ namespace Coust::Render::VK
 	public:
 		struct ConstructParam 
 		{
-			const Context& 				ctx;
-			const RenderPass& 			renderPass;
-			uint32_t 					width;
-			uint32_t 					height;
-			uint32_t 					layers = 1u;
-			Image::View*				color[MAX_ATTACHMENT_COUNT]{};		// the unused attachment slot should be nulled out
-			Image::View*				resolve[MAX_ATTACHMENT_COUNT]{};		// the unused attachment slot should be nulled out
-			Image::View* 				depth = nullptr;
-			Image::View* 				depthResolve = nullptr;
-			const char*                 dedicatedName = nullptr;
-			const char*					scopeName = nullptr;
+			const Context&             	      ctx;
+			const RenderPass&          	      renderPass;
+			uint32_t                   	      width;
+			uint32_t                   	      height;
+			uint32_t                   	      layers = 1u;
+			const Image::View*                color[MAX_ATTACHMENT_COUNT]{};		// the unused attachment slot should be nulled out
+			const Image::View*                resolve[MAX_ATTACHMENT_COUNT]{};		// the unused attachment slot should be nulled out
+			const Image::View*                depth = nullptr;
+			const Image::View*                depthResolve = nullptr;
+			const char*                       dedicatedName = nullptr;
+			const char*                       scopeName = nullptr;
 
 			size_t GetHash() const;
 		};
@@ -119,11 +116,6 @@ namespace Coust::Render::VK
 		Framebuffer& operator=(Framebuffer&&) = delete;
 
 		const RenderPass& GetRenderPass() const noexcept;
-
-	private:
-		// Fake constructor, the constructed object is used for searching
-		friend class FBOCache;
-		explicit Framebuffer(const ConstructParam* p, int) noexcept;
 
 	private:
 		const RenderPass& m_RenderPass;
@@ -160,5 +152,8 @@ namespace Coust::Render::VK
 		std::unordered_map<const RenderPass*, uint32_t> m_RenderPassReferenceCount;
 
 		EvictTimer m_Timer;
+
+		CacheHitCounter m_RenderPassHitCounter;
+		CacheHitCounter m_FramebufferHitCounter;
 	};
 }

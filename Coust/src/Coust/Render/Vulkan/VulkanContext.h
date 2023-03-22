@@ -306,4 +306,38 @@ namespace Coust::Render::VK
 		// If still feel unsafe, just use `uint64_t`, which takes 9 trillion years to overflow :)
 		uint32_t m_Count = 0;
 	};
+
+	class CacheHitCounter
+	{
+	public:
+		CacheHitCounter() = delete;
+		CacheHitCounter(CacheHitCounter&&) = delete;
+		CacheHitCounter(const CacheHitCounter&) = delete;
+		CacheHitCounter& operator=(CacheHitCounter&&) = delete;
+		CacheHitCounter& operator=(const CacheHitCounter&) = delete;
+	
+	public:
+		CacheHitCounter(const char* name)
+			: m_DebugName(name)
+		{}
+
+		~CacheHitCounter()
+		{
+			if (m_HitCount + m_MissCount == 0)
+				return;
+
+			double hitPercentage = (double(m_HitCount) / double(m_HitCount + m_MissCount)) * 100.0;
+			COUST_CORE_INFO("{} Hit Percentage: {}%", m_DebugName, hitPercentage);
+		}
+
+		void Hit() { ++ m_HitCount; }
+
+		void Miss() { ++ m_MissCount; }
+
+	private:
+		std::string m_DebugName;
+
+		uint64_t m_HitCount = 0u;
+		uint64_t m_MissCount = 0u;
+	};
 }

@@ -94,7 +94,8 @@ namespace Coust::Render::VK
 
     Driver::Driver()
         : m_StagePool(m_Context),
-          m_Swapchain(m_Context)
+          m_Swapchain(m_Context),
+          m_GraphicsPipeCache(m_Context)
     {
         VK_REPORT(volkInitialize(), m_IsInitialized);
 
@@ -108,6 +109,12 @@ namespace Coust::Render::VK
         m_Context.CmdBufCacheGraphics = new CommandBufferCache{ m_Context, false };
         m_Swapchain.Prepare();
         m_IsInitialized = m_Swapchain.Create() && m_IsInitialized;
+
+        m_Context.CmdBufCacheGraphics->SetCommandBufferChangedCallback(
+            [this](const CommandBuffer& buf)
+            { 
+                m_GraphicsPipeCache.GC(buf); 
+            });
     }
 
     Driver::~Driver()
@@ -117,6 +124,7 @@ namespace Coust::Render::VK
         m_FBOCache.Reset();
         m_Swapchain.Destroy();
         delete m_Context.CmdBufCacheGraphics;
+        m_GraphicsPipeCache.Reset();
         m_StagePool.Reset();
 
         vmaDestroyAllocator(m_Context.VmaAlloc);
@@ -466,99 +474,14 @@ namespace Coust::Render::VK
         }
         return true;
     }
+    
+
+//////////////////////////////////////
+/////           TEST             /////
+//////////////////////////////////////
 
     void Driver::InitializationTest()
     {
-        RenderPass::ConstructParam rpp 
-        {
-			.ctx = m_Context,
-			.colorFormat = { m_Swapchain.SurfaceFormat.format },
-			.depthFormat = m_Swapchain.DepthFormat,
-			.clearMask = 0u,
-			.discardStartMask = COLOR0 | DEPTH,
-			.discardEndMask = COLOR0 | DEPTH,
-			.sample = VK_SAMPLE_COUNT_1_BIT,
-			.resolveMask = 0u,
-			.inputAttachmentMask = 0u,
-            .depthResolve = false,
-			.dedicatedName = "Test render pass",
-        };
-        const RenderPass* rp = m_FBOCache.GetRenderPass(rpp);
-        if (!rp)
-            return;
-        
-        ShaderSource vs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.vert"}) };
-        ShaderSource fs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.frag"}) };
-
-        ShaderModule::ConstructParm vssmp 
-        {
-            .ctx = m_Context,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .source = vs,
-            .dedicatedName = "Test vertex shader module",
-        };
-        ShaderModule vssm{ vssmp };
-        if (!ShaderModule::CheckValidation(vssm))
-            return;
-
-        ShaderModule::ConstructParm fssmp
-        {
-            .ctx = m_Context,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .source = fs,
-            .dedicatedName = "Test fragment shader module",
-        };
-        ShaderModule fssm { fssmp };
-        if (!ShaderModule::CheckValidation(fssm))
-            return;
-        
-        PipelineLayout::ConstructParam plp 
-        {
-            .ctx = m_Context,
-            .dedicatedName = "Test pipeline layout",
-        };
-        plp.shaderModules.push_back(&vssm);
-        plp.shaderModules.push_back(&fssm);
-        PipelineLayout pl { plp };
-        if (!PipelineLayout::CheckValidation(pl))
-            return;
-        
-        GraphicsPipeline::ConstructParam gpp 
-        {
-            .ctx = m_Context,
-            .specializationConstantInfo = nullptr,
-            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            .polygonMode = VK_POLYGON_MODE_FILL,
-            .cullMode = VK_CULL_MODE_BACK_BIT,
-            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            .depthBiasEnable = VK_FALSE,
-            .depthBiasConstantFactor = 0.0f,
-            .depthBiasClamp = 0.0f,
-            .depthBiasSlopeFactor = 0.0f,
-            .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-            .depthWriteEnable = VK_TRUE,
-            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-            .colorTargetCount = 1,
-            .blendEnable = VK_FALSE,
-            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
-            .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-            .alphaBlendOp = VK_BLEND_OP_ADD,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-            .layout = pl,
-            .renderPass = *rp,
-            .subpassIdx = 0,
-            .cache = VK_NULL_HANDLE,
-            .dedicatedName = "Test graphics pipeline",
-        };
-        GraphicsPipeline gp { gpp };
-        if (!GraphicsPipeline::CheckValidation(gp))
-            return;
-        
-        m_Context.CmdBufCacheGraphics->Flush();
-        m_Context.CmdBufCacheGraphics->Wait();
     }
 
     void Driver::LoopTest()
@@ -566,5 +489,75 @@ namespace Coust::Render::VK
         m_Context.CmdBufCacheGraphics->GC();
         m_StagePool.GC();
         m_FBOCache.GC();
-    }
+
+        RenderPass::ConstructParam rp 
+        {
+			.ctx = m_Context,
+			.depthFormat = m_Swapchain.DepthFormat,
+			.clearMask = 0u,
+			.discardStartMask = COLOR0 | DEPTH,
+			.discardEndMask = COLOR0 | DEPTH,
+			.sample = VK_SAMPLE_COUNT_1_BIT,
+			.resolveMask = 0u,
+			.inputAttachmentMask = 0u,
+			.depthResolve = false,
+			.dedicatedName = "Test Render Pass",
+        };
+        rp.colorFormat[0] = m_Swapchain.SurfaceFormat.format;
+        auto r = m_FBOCache.GetRenderPass(rp);
+
+        Framebuffer::ConstructParam fp 
+        {
+			.ctx = m_Context,
+			.renderPass = *r,
+			.width = m_Swapchain.Extent.width,
+			.height = m_Swapchain.Extent.height,
+			.layers = 1u,
+			.depth = m_Swapchain.GetDepthAttachment().GetPrimaryView(),
+			.depthResolve = nullptr,
+			.dedicatedName = "Test Framebuffer",
+        }; 
+        fp.color[0] = m_Swapchain.GetColorAttachment().GetSingleLayerView(VK_IMAGE_ASPECT_COLOR_BIT, 0, 0);
+        auto f = m_FBOCache.GetFramebuffer(fp);
+
+        ShaderSource vs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.vert" })};
+        ShaderModule::ConstructParm smpV
+        {
+            .ctx = m_Context,
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .source = vs,
+            .dedicatedName = "Test Vertex Shader Module",
+        };
+        m_GraphicsPipeCache.BindShader(smpV);
+
+        ShaderSource fs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.frag" })};
+        ShaderModule::ConstructParm smpF
+        {
+            .ctx = m_Context,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .source = fs,
+            .dedicatedName = "Test Vertex Shader Module",
+        };
+        m_GraphicsPipeCache.BindShader(smpF);
+
+        m_GraphicsPipeCache.BindShaderFinished();
+
+        if (!m_GraphicsPipeCache.BindPipelineLayout()) return;
+
+        GraphicsPipeline::RasterState defaultRS{};
+        m_GraphicsPipeCache.BindRasterState(defaultRS);
+
+        m_GraphicsPipeCache.BindRenderPass(r, 0);
+
+        VkCommandBuffer cmdBuf = m_Context.CmdBufCacheGraphics->Get();
+
+        m_GraphicsPipeCache.BindDescriptorSet(cmdBuf);
+        m_GraphicsPipeCache.BindPipeline(cmdBuf);
+
+        m_Context.CmdBufCacheGraphics->Flush();
+    }      
+
+//////////////////////////////////////
+/////           TEST             /////
+//////////////////////////////////////
 }

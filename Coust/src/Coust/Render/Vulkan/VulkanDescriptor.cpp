@@ -86,6 +86,8 @@ namespace Coust::Render::VK
                 continue;
             }
             
+            // if (res.UpdateMode == ShaderResourceUpdateMode::UpdateAfterBind)
+            //     m_RequiredPoolFlags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
             VkDescriptorType descriptorType = GetDescriptorType(res.Type, res.UpdateMode);
             VkDescriptorSetLayoutBinding binding
             {
@@ -94,7 +96,6 @@ namespace Coust::Render::VK
                 .descriptorCount    = res.ArraySize,
                 .stageFlags         = res.Stage,
             };
-
             
             if (auto iter = m_Bindings.find(res.Binding); iter == m_Bindings.end())
             {
@@ -145,131 +146,18 @@ namespace Coust::Render::VK
         COUST_CORE_WARN("{}: Requesting a non-existent descriptor set binding. The binding name is {}", m_DebugName, name);
         return {};
     }
-    
-    DescriptorSetAllocator::DescriptorSetAllocator(const ConstructParam& param)
-        : Hashable(param.GetHash()), m_Ctx(param.ctx), m_Layout(&param.layout), m_MaxSetsPerPool(param.maxSets)
-    {
-        // Get count of each type of descriptor, this information then becomes our template to create descriptor pool
-        const auto& bindings = param.layout.GetBindings();
-        std::unordered_map<VkDescriptorType, uint32_t> descriptorTypeCounts{};
-        descriptorTypeCounts.reserve(bindings.size());
-        for (const auto& b : bindings)
-        {
-            descriptorTypeCounts[b.second.descriptorType] += b.second.descriptorCount;
-        }
-        m_PoolSizes.resize(descriptorTypeCounts.size());
-        
-        auto insertIter = m_PoolSizes.begin();
-        for (const auto& c : descriptorTypeCounts)
-        {
-            insertIter->type = c.first;
-            insertIter->descriptorCount = c.second * param.maxSets;
-            ++insertIter;
-        }
-    }
-    
-    DescriptorSetAllocator::~DescriptorSetAllocator()
-    {
-        Reset();
 
-        for (const auto& f : m_Factories)
-        {
-            vkDestroyDescriptorPool(m_Ctx.Device, f.Pool.GetHandle(), nullptr);
-        }
-    }
-
-    const DescriptorSetLayout& DescriptorSetAllocator::GetLayout() const { return *m_Layout; }
-
-    VkDescriptorSet DescriptorSetAllocator::Allocate()
-    {
-        if (!RequireFactory())
-        {
-            COUST_CORE_ERROR("Can't create descriptor pool, `VK_NULL_HANDLE` is returned");
-            return VK_NULL_HANDLE;
-        }
-        
-        ++ m_Factories[m_CurrentFactoryIdx].CurrentProductCount;
-        VkDescriptorSetLayout layout = m_Layout->GetHandle();
-        VkDescriptorSetAllocateInfo ai 
-        {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = m_Factories[m_CurrentFactoryIdx].Pool.GetHandle(),
-            .descriptorSetCount = 1,
-            .pSetLayouts = &layout,
-        };
-        bool succeeded = false;
-        VkDescriptorSet set = VK_NULL_HANDLE;
-        VK_REPORT(vkAllocateDescriptorSets(m_Ctx.Device, &ai, &set), succeeded);
-        if (!succeeded)
-        {
-            -- m_Factories[m_CurrentFactoryIdx].CurrentProductCount;
-            COUST_CORE_ERROR("Can't allocate descriptor set, `VK_NULL_HANDLE` is returned");
-            return VK_NULL_HANDLE;
-        }
-        m_Products.push_back(set);
-        return set;
-    }
-
-    void DescriptorSetAllocator::Reset() noexcept
-    {
-        m_CurrentFactoryIdx = 0;
-        
-        for (auto& f : m_Factories)
-        {
-            f.CurrentProductCount = 0;
-            vkResetDescriptorPool(m_Ctx.Device, f.Pool.GetHandle(), 0);
-        }
-
-        // descriptor sets have been implicitly freed by `vkResetDescriptorPool`
-        m_Products.clear();
-    }
-    
-    bool DescriptorSetAllocator::RequireFactory()
-    {
-        uint32_t searchIdx = m_CurrentFactoryIdx;
-        while (true)
-        {
-            // Searching reaches boundary, create new descriptor pool
-            if (m_Factories.size() <= searchIdx)
-            {
-                VkDescriptorPoolCreateInfo ci 
-                {
-                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                    // We always reset the entire pool instead of freeing each descriptor individually
-                    // And unlike command buffer which is reset to "initial" status when the command buffer it attached to is reset, 
-                    // resetting descriptor pool will implicitly free all the descriptor sets attached to it.
-                    .flags = 0,
-                    .maxSets = m_MaxSetsPerPool,
-                    .poolSizeCount = (uint32_t) m_PoolSizes.size(),
-                    .pPoolSizes = m_PoolSizes.data(),
-                };
-
-                VkDescriptorPool pool = VK_NULL_HANDLE;
-                VK_CHECK(vkCreateDescriptorPool(m_Ctx.Device, &ci, nullptr, &pool));
-                
-                m_Factories.emplace_back(m_Ctx, pool);
-                break;
-            }
-            // Or there's still enough capacity to allocate new descriptor set
-            else if (m_Factories[searchIdx].CurrentProductCount < m_MaxSetsPerPool)
-                break;
-            // Capacity of current descriptor pool is depleted, search for next one
-            else  
-                ++ searchIdx;
-        }
-        
-        m_CurrentFactoryIdx = searchIdx;
-        return true;
-    }
+    VkDescriptorPoolCreateFlags DescriptorSetLayout::GetRequiredPoolFlags() const noexcept { return m_RequiredPoolFlags; }
 
     DescriptorSet::DescriptorSet(const ConstructParam& param)
-        : Base(param.ctx, VK_NULL_HANDLE),
+        : Base(*param.ctx, VK_NULL_HANDLE),
           Hashable(param.GetHash()),
-          m_GPUProerpties(*param.ctx.GPUProperties),
-          m_Layout(param.allocator.GetLayout()),
-          m_Allocator(param.allocator),
+          m_GPUProerpties(*param.ctx->GPUProperties),
+          m_Layout(param.allocator->GetLayout()),
+          m_Allocator(*param.allocator),
           m_BufferInfos(param.bufferInfos),
-          m_ImageInfos(param.imageInfos)
+          m_ImageInfos(param.imageInfos),
+          m_SetIdx(param.setIndex)
     {
         m_Handle = m_Allocator.Allocate();
         if (m_Handle != VK_NULL_HANDLE)
@@ -278,8 +166,6 @@ namespace Coust::Render::VK
                 SetDedicatedDebugName(param.dedicatedName);
             else if (param.scopeName)
                 SetDefaultDebugName(param.scopeName, nullptr);
-            else
-                COUST_CORE_WARN("Descriptor set created without debug name");
 
             Prepare();
         }
@@ -298,23 +184,24 @@ namespace Coust::Render::VK
     {
     }
 
+    DescriptorSet::~DescriptorSet()
+    {
+        if (m_Handle != VK_NULL_HANDLE)
+            m_Allocator.Release(m_Handle);
+    }
+
     void DescriptorSet::Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos,
                               const std::optional<std::vector<BoundArray<Image>>>& imageInfos)
     {
-        bool boundInfoUpdated = false;
         if (bufferInfos.has_value())
-        {
             m_BufferInfos = bufferInfos.value();
-            boundInfoUpdated = true;
-        }
-        if (imageInfos.has_value())
-        {
-            m_ImageInfos = imageInfos.value();
-            boundInfoUpdated = true;
-        }
+        else  
+            m_BufferInfos.clear();
 
-        if (!boundInfoUpdated)
-            COUST_CORE_WARN("Reset descriptor set without specifying new buffer / image info");
+        if (imageInfos.has_value())
+            m_ImageInfos = imageInfos.value();
+        else
+             m_ImageInfos.clear();
         
         m_Writes.clear();
         m_AppliedWrites.clear();
@@ -386,6 +273,8 @@ namespace Coust::Render::VK
 
     const std::vector<BoundArray<Image>>& DescriptorSet::GetImageInfo() const noexcept { return m_ImageInfos; }
 
+    uint32_t DescriptorSet::GetSetIndex() const noexcept { return m_SetIdx; }
+
     void DescriptorSet::Prepare()
     {
         if (!m_Writes.empty())
@@ -402,6 +291,9 @@ namespace Coust::Render::VK
             {
                 for (auto& b : buffers)
                 {
+                    if (b.buffer == VK_NULL_HANDLE)
+                        continue;
+
                     // clamp the binding range to the GPU limit
                     VkDeviceSize clampedRange = b.range;
                     if (uint32_t uniformBufferRangeLimit = m_GPUProerpties.limits.maxUniformBufferRange;
@@ -487,6 +379,187 @@ namespace Coust::Render::VK
 
         return false;
     }
+    
+    DescriptorSetAllocator::DescriptorSetAllocator(const ConstructParam& param)
+        : Hashable(param.GetHash()), m_Ctx(param.ctx), m_Layout(&param.layout), m_MaxSetsPerPool(param.maxSets)
+    {
+        // Get count of each type of descriptor, this information then becomes our template to create descriptor pool
+        const auto& bindings = param.layout.GetBindings();
+        std::unordered_map<VkDescriptorType, uint32_t> descriptorTypeCounts{};
+        descriptorTypeCounts.reserve(bindings.size());
+        for (const auto& b : bindings)
+        {
+            descriptorTypeCounts[b.second.descriptorType] += b.second.descriptorCount;
+        }
+        m_PoolSizes.resize(descriptorTypeCounts.size());
+        
+        auto insertIter = m_PoolSizes.begin();
+        for (const auto& c : descriptorTypeCounts)
+        {
+            insertIter->type = c.first;
+            insertIter->descriptorCount = c.second * param.maxSets;
+            ++insertIter;
+        }
+    }
+
+    DescriptorSetAllocator::DescriptorSetAllocator(DescriptorSetAllocator&& other) noexcept
+        : Hashable(std::forward<Hashable>(other)),
+          m_Ctx(other.m_Ctx),
+          m_Layout(other.m_Layout),
+          m_PoolSizes(std::move(other.m_PoolSizes)),
+          m_Factories(std::move(other.m_Factories)),
+          m_FreeSets(std::move(other.m_FreeSets)),
+          m_MaxSetsPerPool(other.m_MaxSetsPerPool),
+          m_CurrentFactoryIdx(other.m_CurrentFactoryIdx)
+    {
+    }
+    
+    DescriptorSetAllocator::~DescriptorSetAllocator()
+    {
+        Reset();
+
+        for (const auto& f : m_Factories)
+        {
+            vkDestroyDescriptorPool(m_Ctx.Device, f.Pool.GetHandle(), nullptr);
+        }
+    }
+
+    const DescriptorSetLayout& DescriptorSetAllocator::GetLayout() const { return *m_Layout; }
+
+    VkDescriptorSet DescriptorSetAllocator::Allocate()
+    {
+        if (!m_FreeSets.empty())
+        {
+            auto set = m_FreeSets.back();
+            m_FreeSets.pop_back();
+            return set;
+        }
+
+        if (!RequireFactory())
+        {
+            COUST_CORE_ERROR("Can't create descriptor pool, `VK_NULL_HANDLE` is returned");
+            return VK_NULL_HANDLE;
+        }
+        
+        ++ m_Factories[m_CurrentFactoryIdx].CurrentProductCount;
+        VkDescriptorSetLayout layout = m_Layout->GetHandle();
+        VkDescriptorSetAllocateInfo ai 
+        {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = m_Factories[m_CurrentFactoryIdx].Pool.GetHandle(),
+            .descriptorSetCount = 1,
+            .pSetLayouts = &layout,
+        };
+        bool succeeded = false;
+        VkDescriptorSet set = VK_NULL_HANDLE;
+        VK_REPORT(vkAllocateDescriptorSets(m_Ctx.Device, &ai, &set), succeeded);
+        if (!succeeded)
+        {
+            -- m_Factories[m_CurrentFactoryIdx].CurrentProductCount;
+            COUST_CORE_ERROR("Can't allocate descriptor set, `VK_NULL_HANDLE` is returned");
+            return VK_NULL_HANDLE;
+        }
+        // m_UsedSets.push_back(set);
+        return set;
+    }
+
+    void DescriptorSetAllocator::Release(VkDescriptorSet set)
+    {
+        m_FreeSets.push_back(set);
+    }
+
+    void DescriptorSetAllocator::Reset() noexcept
+    {
+        m_CurrentFactoryIdx = 0;
+        
+        for (auto& f : m_Factories)
+        {
+            f.CurrentProductCount = 0;
+            vkResetDescriptorPool(m_Ctx.Device, f.Pool.GetHandle(), 0);
+        }
+
+        // descriptor sets have been implicitly freed by `vkResetDescriptorPool`
+        m_FreeSets.clear();
+    }
+
+    void DescriptorSetAllocator::FillEmptyDescriptorSetConstructParam(DescriptorSet::ConstructParam& param) const noexcept
+    {
+        param.allocator = (DescriptorSetAllocator*) this;
+        param.setIndex = m_Layout->GetSetIndex();
+
+        for (const auto& pair: m_Layout->GetBindings())
+        {
+            uint32_t bindIdx = pair.first;
+            const VkDescriptorSetLayoutBinding& binding = pair.second;
+            switch (binding.descriptorType)
+            {
+                case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                case VK_DESCRIPTOR_TYPE_SAMPLER:
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                    param.imageInfos.emplace_back(
+                        BoundArray<Image>
+                        { 
+                            std::vector<BoundElement<Image>>(1 + binding.descriptorCount),
+                            bindIdx, 
+                        });
+                    break;
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: 
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: 
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                    param.bufferInfos.emplace_back(
+                        BoundArray<Buffer>
+                        { 
+                            std::vector<BoundElement<Buffer>>(1 + binding.descriptorCount),
+                            bindIdx, 
+                        });
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    
+    bool DescriptorSetAllocator::RequireFactory()
+    {
+        uint32_t searchIdx = m_CurrentFactoryIdx;
+        while (true)
+        {
+            // Searching reaches boundary, create new descriptor pool
+            if (m_Factories.size() <= searchIdx)
+            {
+                VkDescriptorPoolCreateInfo ci 
+                {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                    // We always reset the entire pool instead of freeing each descriptor set individually
+                    // And unlike command buffer which is reset to "initial" status when the command buffer it attached to is reset, 
+                    // resetting descriptor pool will implicitly free all the descriptor sets attached to it.
+                    .flags = m_Layout->GetRequiredPoolFlags(),
+                    .maxSets = m_MaxSetsPerPool,
+                    .poolSizeCount = (uint32_t) m_PoolSizes.size(),
+                    .pPoolSizes = m_PoolSizes.data(),
+                };
+
+                VkDescriptorPool pool = VK_NULL_HANDLE;
+                VK_CHECK(vkCreateDescriptorPool(m_Ctx.Device, &ci, nullptr, &pool));
+                
+                m_Factories.emplace_back(m_Ctx, pool);
+                break;
+            }
+            // Or there's still enough capacity to allocate new descriptor set
+            else if (m_Factories[searchIdx].CurrentProductCount < m_MaxSetsPerPool)
+                break;
+            // Capacity of current descriptor pool is depleted, search for next one
+            else  
+                ++ searchIdx;
+        }
+        
+        m_CurrentFactoryIdx = searchIdx;
+        return true;
+    }
+
 
 
     /* Hashes */
@@ -504,7 +577,7 @@ namespace Coust::Render::VK
     {
         size_t h = 0;
 
-        Hash::Combine(h, allocator.GetLayout());
+        Hash::Combine(h, allocator->GetLayout());
 
         for (const auto& b : bufferInfos)
         {
@@ -531,7 +604,10 @@ namespace Coust::Render::VK
 
     size_t DescriptorSetAllocator::ConstructParam::GetHash() const
     {
-        return layout.GetHash();
+        size_t h = 0;
+        Hash::Combine(h, layout);
+        Hash::Combine(h, maxSets);
+        return h;
     }
     /* Hashes */
 }

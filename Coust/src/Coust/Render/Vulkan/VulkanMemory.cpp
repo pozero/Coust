@@ -458,8 +458,10 @@ namespace Coust::Render::VK
           m_Format(param.format),
           m_SampleCount(param.samples),
           // we won't sample this image, so this is just a dummy value
-          m_MipLevelCount(0)
+          m_MipLevelCount(0),
+          m_ViewType(VK_IMAGE_VIEW_TYPE_2D)
     {
+
         if (param.dedicatedName)
             SetDedicatedDebugName(param.dedicatedName);
         else if (param.scopeName)
@@ -682,12 +684,23 @@ namespace Coust::Render::VK
         return &m_CachedImageView.at(subRange);
     }
 
+    const Image::View* Image::GetSingleLayerView(VkImageAspectFlags aspect, uint32_t layer, uint32_t mipLevel)
+    {
+        return GetView(VkImageSubresourceRange{
+            .aspectMask = aspect,
+            .baseMipLevel = mipLevel,
+            .levelCount = 1,
+            .baseArrayLayer = layer,
+            .layerCount = 1,
+        });
+    }
+
     VkImageLayout Image::GetPrimaryLayout() const noexcept
     {
         return GetLayout(m_PrimarySubRange.baseArrayLayer, m_PrimarySubRange.baseMipLevel);
     }
 
-    const Image::View* Image::GetPrimaryView()
+    const Image::View* Image::GetPrimaryView() const
     {
         return &m_CachedImageView.at(m_PrimarySubRange);
     }
