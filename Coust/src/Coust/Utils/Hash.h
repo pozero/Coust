@@ -33,9 +33,9 @@ namespace Coust
         }
         
         // Murmur3 algorithm requires key struct with size of multiple of 4. 
-        // And we also need to ensure the key comes in is a POD.
+        // And we also need to ensure the layout of key comes in is the same as it's delcared in code.
         template <typename T>
-        concept Murmur3Hashable = (sizeof(T) & 3u) == 0 && std::is_pod<T>::value;
+        concept Murmur3Hashable = (sizeof(T) & 3u) == 0u && std::is_standard_layout<T>::value;
         
         template <typename T>
         concept StdHashable = requires (T a)

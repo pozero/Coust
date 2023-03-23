@@ -23,19 +23,19 @@ namespace Coust::Render::VK
     template <>
     struct BoundElement<Buffer>
     {
-        VkBuffer buffer;
-        VkDeviceSize offset;
-        VkDeviceSize range;
-        uint32_t dstArrayIdx;
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceSize offset = 0;
+        VkDeviceSize range = 0;
+        uint32_t dstArrayIdx = INVALID_IDX;
     };
 
     template <>
     struct BoundElement<Image>
     {
-        VkSampler sampler;
-        VkImageView imageView;
-        VkImageLayout imageLayout;
-        uint32_t dstArrayIdx;
+        VkSampler sampler = VK_NULL_HANDLE;
+        VkImageView imageView = VK_NULL_HANDLE;
+        VkImageLayout imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        uint32_t dstArrayIdx = INVALID_IDX;
     };
 
     /**
@@ -46,7 +46,7 @@ namespace Coust::Render::VK
     struct BoundArray
     {
         std::vector<BoundElement<T>> elements;
-        uint32_t bindingIdx;
+        uint32_t bindingIdx = INVALID_IDX;
     };
 
     // Usually, this class is managed by the pipeline layout
@@ -117,11 +117,11 @@ namespace Coust::Render::VK
     public:
         struct ConstructParam 
         {
-            const Context*                                                  ctx;
+            const Context*                                                  ctx = nullptr;
             DescriptorSetAllocator*                                         allocator;      // Free list of descriptor pool, it contains the descriptor layout and MANAGES the lifecycle of this object
             std::vector<BoundArray<Buffer>>                                 bufferInfos;    // Bound buffer infos, they're bound in arrays
             std::vector<BoundArray<Image>>                                  imageInfos;     // Bound image infos, they're bound in arrays
-            uint32_t                                                        setIndex;
+            uint32_t                                                        setIndex = INVALID_IDX;
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 

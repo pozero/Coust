@@ -154,6 +154,7 @@ xmake version 2.7.6+master.882cb4e03
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanMemory.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanPipeline.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanRenderPass.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanSampler.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanShader.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanSwapchain.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanUtils.h" />
@@ -217,6 +218,9 @@ xmake version 2.7.6+master.882cb4e03
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanRenderPass.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanSampler.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanShader.cpp">

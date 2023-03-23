@@ -37,7 +37,7 @@ namespace Coust::Render::VK
             .usage = Buffer::Usage::Staging,
             .scopeName = "VK::StagePool",
         };
-        if (Buffer::Base::Create(buf.buf, param))
+        if (Buffer::Create(buf.buf, param))
         {
             buf.lastAccessed = m_Timer.CurrentCount(),
             m_UsedStagingBuf.push_back(buf);
@@ -74,7 +74,7 @@ namespace Coust::Render::VK
             .width = width,
             .height = height,
         };
-        if (!HostImage::Base::Create(image.image, param))
+        if (!HostImage::Create(image.image, param))
             return nullptr;
 
         image.lastAccessed = m_Timer.CurrentCount(),

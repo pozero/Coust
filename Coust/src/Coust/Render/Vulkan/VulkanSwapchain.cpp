@@ -76,7 +76,6 @@ namespace Coust::Render::VK
 				if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 				{
 					bestDepthFormat = candidates[i];
-					// TODO: We don't need stencil buffer now
 					break;
 				}
 			}

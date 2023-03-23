@@ -456,10 +456,10 @@ namespace Coust::Render::VK
         : Base(param.ctx, param.handle),
           m_Extent{param.width, param.height, 1},
           m_Format(param.format),
+          m_ViewType(VK_IMAGE_VIEW_TYPE_2D),
           m_SampleCount(param.samples),
           // we won't sample this image, so this is just a dummy value
-          m_MipLevelCount(0),
-          m_ViewType(VK_IMAGE_VIEW_TYPE_2D)
+          m_MipLevelCount(0)
     {
 
         if (param.dedicatedName)

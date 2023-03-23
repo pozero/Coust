@@ -285,6 +285,8 @@ namespace Coust::Render::VK
 
         for (auto& arr : m_BufferInfos)
         {
+            if (arr.bindingIdx == INVALID_IDX)
+                continue;
             uint32_t bindingIdx = arr.bindingIdx;
             std::vector<BoundElement<Buffer>>& buffers = arr.elements;
             if (std::optional<VkDescriptorSetLayoutBinding> bindingInfo = m_Layout.GetBinding(bindingIdx); bindingInfo.has_value())
@@ -342,12 +344,17 @@ namespace Coust::Render::VK
 
         for (auto& arr : m_ImageInfos)
         {
+            if (arr.bindingIdx == INVALID_IDX)
+                continue;
             uint32_t bindingIdx = arr.bindingIdx;
             std::vector<BoundElement<Image>>& images = arr.elements;
             if (std::optional<VkDescriptorSetLayoutBinding> bindingInfo = m_Layout.GetBinding(bindingIdx); bindingInfo.has_value())
             {
                 for (auto& i : images)
                 {
+                    if (i.imageView == VK_NULL_HANDLE)
+                        continue;
+
                     static_assert(std::is_standard_layout<BoundElement<Image>>::value, "");
                     VkWriteDescriptorSet write
                     {
@@ -487,6 +494,14 @@ namespace Coust::Render::VK
         param.allocator = (DescriptorSetAllocator*) this;
         param.setIndex = m_Layout->GetSetIndex();
 
+        uint32_t biggestBindingIdx = 0;
+        for (const auto& pair: m_Layout->GetBindings())
+        {
+            biggestBindingIdx = std::max(pair.first, biggestBindingIdx);
+        }
+		// To avoid too much searching when binding resources later, we fill in all possible bindings;
+        param.bufferInfos.resize(biggestBindingIdx + 1);
+        param.imageInfos.resize(biggestBindingIdx + 1);
         for (const auto& pair: m_Layout->GetBindings())
         {
             uint32_t bindIdx = pair.first;
@@ -498,23 +513,15 @@ namespace Coust::Render::VK
                 case VK_DESCRIPTOR_TYPE_SAMPLER:
                 case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                    param.imageInfos.emplace_back(
-                        BoundArray<Image>
-                        { 
-                            std::vector<BoundElement<Image>>(1 + binding.descriptorCount),
-                            bindIdx, 
-                        });
+                    param.imageInfos[bindIdx].bindingIdx = bindIdx;
+                    param.imageInfos[bindIdx].elements.resize(binding.descriptorCount);
                     break;
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: 
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: 
                 case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                    param.bufferInfos.emplace_back(
-                        BoundArray<Buffer>
-                        { 
-                            std::vector<BoundElement<Buffer>>(1 + binding.descriptorCount),
-                            bindIdx, 
-                        });
+                    param.bufferInfos[bindIdx].bindingIdx = bindIdx;
+                    param.bufferInfos[bindIdx].elements.resize(binding.descriptorCount);
                     break;
                 default:
                     break;

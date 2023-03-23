@@ -362,8 +362,8 @@ namespace Coust::Render::VK
 	{
         m_CachedShaderModules.clear();
         m_CachedPipelineLayouts.clear();
-        m_DescriptorSetAllocators.clear();
         m_CachedDescriptorSets.clear();
+        m_DescriptorSetAllocators.clear();
         m_CachedGraphicsPipelines.clear();
         m_SpecializationConstantCurrent.Reset();
 		m_CurrentBoundShaderModules.clear();
@@ -547,41 +547,17 @@ namespace Coust::Render::VK
 				}
 				const uint32_t setIdx = res.Set;
 				const uint32_t bindIdx = res.Binding;
-				auto param = std::find_if(m_DescriptorSetRequirement.begin(), m_DescriptorSetRequirement.end(),
-					[setIdx](const DescriptorSet::ConstructParam& p) -> bool 
-					{
-						return p.setIndex == setIdx;
-					});	
-				auto arrInfo = std::find_if(param->bufferInfos.begin(), param->bufferInfos.end(), 
-					[bindIdx](const BoundArray<Buffer>& arr) -> bool 
-					{
-						return arr.bindingIdx == bindIdx;
-					});
-				auto bufInfo = std::find_if(arrInfo->elements.begin(), arrInfo->elements.end(),
-					[arrayIdx](const BoundElement<Buffer>& buf) -> bool 
-					{
-						return arrayIdx == buf.dstArrayIdx;
-					});
-				if (bufInfo != arrInfo->elements.end())
-				{
-					BoundElement<Buffer> b 
-					{
-						.buffer = buffer.GetHandle(),
-						.offset = offsetToWrite,
-						.range = size,
-						.dstArrayIdx = arrayIdx,
-					};
-					arrInfo->elements.push_back(b);
-				}
+				auto param = m_DescriptorSetRequirement[setIdx];
+				auto arrInfo = param.bufferInfos[bindIdx];
+				auto bufInfo = arrInfo.elements[arrayIdx];
 				// We'll just overwrite the buffer info if there're already binding exists
-				else
-				{
-					bufInfo->buffer = buffer.GetHandle();
-					bufInfo->offset = offsetToWrite;
-					bufInfo->range = size;
-					bufInfo->dstArrayIdx = arrayIdx;
-				}
+				bufInfo.buffer = buffer.GetHandle();
+				bufInfo.offset = offsetToWrite;
+				bufInfo.range = size;
+				bufInfo.dstArrayIdx = arrayIdx;
+				return;
 			}
+			COUST_CORE_WARN("Can't find shader buffer resource of name {}", name);
 		}
 	}
 
@@ -593,42 +569,18 @@ namespace Coust::Render::VK
 			{
 				const uint32_t setIdx = res.Set;
 				const uint32_t bindIdx = res.Binding;
-				auto param = std::find_if(m_DescriptorSetRequirement.begin(), m_DescriptorSetRequirement.end(),
-					[setIdx](const DescriptorSet::ConstructParam& p) -> bool 
-					{
-						return p.setIndex == setIdx;
-					});	
-				auto arrInfo = std::find_if(param->imageInfos.begin(), param->imageInfos.end(), 
-					[bindIdx](const BoundArray<Image>& arr) -> bool 
-					{
-						return arr.bindingIdx == bindIdx;
-					});
-				auto imageInfo = std::find_if(arrInfo->elements.begin(), arrInfo->elements.end(),
-					[arrayIdx](const BoundElement<Image>& buf) -> bool 
-					{
-						return arrayIdx == buf.dstArrayIdx;
-					});
-				if (imageInfo != arrInfo->elements.end())
-				{
-					BoundElement<Image> i 
-					{
-						.sampler = sampler,
-						.imageView = image.GetPrimaryView()->GetHandle(),
-						.imageLayout = image.GetPrimaryLayout(),
-						.dstArrayIdx = arrayIdx,
-					};
-					arrInfo->elements.push_back(i);
-				}
+				auto param = m_DescriptorSetRequirement[setIdx];
+				auto arrInfo = param.imageInfos[bindIdx];
+				auto imageInfo = arrInfo.elements[arrayIdx];
 				// We'll just overwrite the image info if there're already binding exists
-				else 
-				{
-					imageInfo->sampler = sampler;
-					imageInfo->imageView = image.GetPrimaryView()->GetHandle();
-					imageInfo->imageLayout = image.GetPrimaryLayout();
-					imageInfo->dstArrayIdx = arrayIdx;
-				}
+				imageInfo.sampler = sampler;
+				imageInfo.imageView = image.GetPrimaryView()->GetHandle();
+				imageInfo.imageLayout = image.GetPrimaryLayout();
+				imageInfo.dstArrayIdx = arrayIdx;
+				return;
 			}
 		}
+		COUST_CORE_WARN("Can't find shader image resource of name {}", name);
 	}
 
 	void GraphicsPipelineCache::BindInputAttachment(std::string_view name, const Image& attachment)
@@ -639,36 +591,16 @@ namespace Coust::Render::VK
 			{
 				const uint32_t setIdx = res.Set;
 				const uint32_t bindIdx = res.Binding;
-				auto param = std::find_if(m_DescriptorSetRequirement.begin(), m_DescriptorSetRequirement.end(),
-					[setIdx](const DescriptorSet::ConstructParam& p) -> bool 
-					{
-						return p.setIndex == setIdx;
-					});	
-				auto arrInfo = std::find_if(param->imageInfos.begin(), param->imageInfos.end(), 
-					[bindIdx](const BoundArray<Image>& arr) -> bool 
-					{
-						return arr.bindingIdx == bindIdx;
-					});
-				if (arrInfo->elements.empty())
-				{
-					BoundElement<Image> i 
-					{
-						.sampler = VK_NULL_HANDLE,
-						.imageView = attachment.GetPrimaryView()->GetHandle(),
-						.imageLayout = attachment.GetPrimaryLayout(),
-						.dstArrayIdx = 0,
-					};
-					arrInfo->elements.push_back(i);
-				}
+				auto param = m_DescriptorSetRequirement[setIdx];
+				auto arrInfo = param.imageInfos[bindIdx];
 				// We'll just overwrite the input attachment info if there're already binding exists
-				else 
-				{
-					auto& imageInfo = arrInfo->elements[0];
-					imageInfo.imageView = attachment.GetPrimaryView()->GetHandle();
-					imageInfo.imageLayout = attachment.GetPrimaryLayout();
-				}
+				auto& imageInfo = arrInfo.elements[0];
+				imageInfo.imageView = attachment.GetPrimaryView()->GetHandle();
+				imageInfo.imageLayout = attachment.GetPrimaryLayout();
+				return;
 			}
 		}
+		COUST_CORE_WARN("Can't find shader input attachment resource of name {}", name);
 	}
 
     void GraphicsPipelineCache::SetInputRatePerInstance(uint32_t location)
@@ -680,16 +612,11 @@ namespace Coust::Render::VK
 	{
 		std::vector<VkDescriptorSet> setToBind{};
 		std::vector<uint32_t> dynamicOffsets{};
-		// We sort the requirement according to their set index here so we don't have to sort the dynamic offsets later on, the spec says:
+		// The descriptor requriement has already been sorted by set index. The spec says:
 		// Values are taken from pDynamicOffsets in an order such that all entries for set N come before set
 		// N+1; within a set, entries are ordered by the binding numbers in the descriptor set layouts; and
 		// within a binding array, elements are in order. dynamicOffsetCount must equal the total number of
 		// dynamic descriptors in the sets being bound.
-		std::sort(m_DescriptorSetRequirement.begin(), m_DescriptorSetRequirement.end(),
-			[](const DescriptorSet::ConstructParam& l, const DescriptorSet::ConstructParam& r) -> bool 
-			{
-				return l.setIndex < r.setIndex;
-			});
 		for (auto& requirement : m_DescriptorSetRequirement)
 		{
 			size_t h = requirement.GetHash();
@@ -718,6 +645,7 @@ namespace Coust::Render::VK
 				{
 					dynamicOffsets.push_back(m_DynamicOffsets[requirement.setIndex]);
 				}
+				continue;
 			}
 
 			// create a new descriptor set
@@ -796,9 +724,7 @@ namespace Coust::Render::VK
 
     void GraphicsPipelineCache::CreateDescriptorAllocator()
 	{
-		m_DescriptorSetAllocators.emplace(m_PipelineLayoutCurrent, std::vector<DescriptorSetAllocator>{});
-		
-		auto& map = m_DescriptorSetAllocators.at(m_PipelineLayoutCurrent);
+		auto iter = m_DescriptorSetAllocators.emplace(m_PipelineLayoutCurrent, std::vector<DescriptorSetAllocator>{});
 		
 		for (const auto& l : m_PipelineLayoutCurrent->GetDescriptorSetLayouts())
 		{
@@ -808,23 +734,26 @@ namespace Coust::Render::VK
 				.layout = l,
 			};
 			DescriptorSetAllocator a{ p };
-			map.emplace_back(std::move(a));
+			iter.first->second.emplace_back(std::move(a));
 		}
 	}
 
     void GraphicsPipelineCache::FillDescriptorSetRequirements()
 	{
 		m_DescriptorSetRequirement.clear();
-		const auto& map = m_DescriptorSetAllocators.at(m_PipelineLayoutCurrent);
-		m_DescriptorSetRequirement.reserve(map.size());
-		for (const auto& pair : map)
+		const auto& v = m_DescriptorSetAllocators.at(m_PipelineLayoutCurrent);
+		// To avoid too much searching when binding resources later, we fill in all possible descriptor sets.
+		uint32_t biggestSetIdx = 0;
+		for (const auto& alloc : v)
 		{
-			m_DescriptorSetRequirement.emplace_back(
-				DescriptorSet::ConstructParam
-				{
-					.ctx = &m_Ctx,
-				});
-			pair.FillEmptyDescriptorSetConstructParam(m_DescriptorSetRequirement.back());
+			biggestSetIdx = std::max(alloc.GetLayout().GetSetIndex(), biggestSetIdx);
+		}
+		m_DescriptorSetRequirement.resize(biggestSetIdx + 1);
+		for (const auto& alloc : v)
+		{
+			auto& r = m_DescriptorSetRequirement[alloc.GetLayout().GetSetIndex()];
+			r.ctx = &m_Ctx;
+			alloc.FillEmptyDescriptorSetConstructParam(r);
 		}
 	}
 

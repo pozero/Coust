@@ -95,7 +95,8 @@ namespace Coust::Render::VK
     Driver::Driver()
         : m_StagePool(m_Context),
           m_Swapchain(m_Context),
-          m_GraphicsPipeCache(m_Context)
+          m_GraphicsPipeCache(m_Context),
+          m_SamplerCache(m_Context)
     {
         VK_REPORT(volkInitialize(), m_IsInitialized);
 
@@ -121,11 +122,14 @@ namespace Coust::Render::VK
     {
         m_IsInitialized = false;
 
-        m_FBOCache.Reset();
+        ShutdownTest();
+
         m_Swapchain.Destroy();
         delete m_Context.CmdBufCacheGraphics;
+        m_FBOCache.Reset();
         m_GraphicsPipeCache.Reset();
         m_StagePool.Reset();
+        m_SamplerCache.Reset();
 
         vmaDestroyAllocator(m_Context.VmaAlloc);
         vkDestroyDevice(m_Context.Device, nullptr);
@@ -480,8 +484,39 @@ namespace Coust::Render::VK
 /////           TEST             /////
 //////////////////////////////////////
 
+    std::unique_ptr<Image> cuteCat{ nullptr };
+
     void Driver::InitializationTest()
     {
+        auto path = FileSystem::GetFullPathFrom({ "Coust", "asset", "orange-cat-face-pixabay.jpg" });
+        int width = 0, height = 0, channel = 0;
+        auto data = stbi_load(path.string().c_str(), &width, &height, &channel, STBI_rgb_alpha);
+        Image::ConstructParam_Create p 
+        {
+            .ctx = m_Context,
+            .width = (uint32_t) width,
+            .height = (uint32_t) height,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .usage = Image::Usage::Texture2D,
+            .mipLevels = 1,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .dedicatedName = "Test image",
+        };
+        if (!Image::Create(cuteCat, p))
+            return;
+        Image::UpdateParam up 
+        {
+            .dataFormat = VK_FORMAT_R8G8B8A8_UNORM,
+            .width = (uint32_t) width,
+            .height = (uint32_t) height,
+            .data = data,
+            .dstImageLayer = 0,
+            .dstImageLayerCount = 1,
+            .dstImageMipmapLevel = 0,
+        };
+        cuteCat->Update(m_StagePool, up);
+
+        m_Context.CmdBufCacheGraphics->Flush();
     }
 
     void Driver::LoopTest()
@@ -549,13 +584,25 @@ namespace Coust::Render::VK
 
         m_GraphicsPipeCache.BindRenderPass(r, 0);
 
+        if (cuteCat)
+        {
+            SamplerCache::SamplerInfo defaultSI{};
+            VkSampler sampler = m_SamplerCache.Get(defaultSI);
+            m_GraphicsPipeCache.BindImage("tex1", sampler, *cuteCat, 0);
+        }
+
         VkCommandBuffer cmdBuf = m_Context.CmdBufCacheGraphics->Get();
 
         m_GraphicsPipeCache.BindDescriptorSet(cmdBuf);
         m_GraphicsPipeCache.BindPipeline(cmdBuf);
 
         m_Context.CmdBufCacheGraphics->Flush();
-    }      
+    }
+
+    void Driver::ShutdownTest()
+    {
+        cuteCat.reset();
+    }
 
 //////////////////////////////////////
 /////           TEST             /////
