@@ -36,11 +36,11 @@ namespace Coust::Render::VK
 		bool HasResized() const noexcept;
 
 		// TODO: we let swapchain responsible for presentable layout transition for now 
-		// (it should be much slower than transition inside renderpass), it will be changed later
+		// it should be much slower than transition inside renderpass (I guess), if the benchmark shows a significant overhead of that operation, we would fix it
 		void MakePresentable();
 
 		Image& GetColorAttachment() const noexcept;
-		Image& GetDepthAttachment() const noexcept;
+		// Image& GetDepthAttachment() const noexcept;
 		uint32_t GetImageIndex() const noexcept;
 
 	public:
@@ -60,14 +60,15 @@ namespace Coust::Render::VK
 		VkSemaphore ImgAvaiSignal = VK_NULL_HANDLE;
 		mutable bool IsNextImgAcquired = false;
 
-		mutable bool IsFirstRenderPass = false;
+		// mutable bool IsFirstRenderPass = false;
 
 		bool IsSubOptimal = false;
 
 	private:
 		std::vector<std::unique_ptr<Image>> m_Images;
 
-		std::unique_ptr<Image> m_Depth;
+		// In most case the render pass before presenting is postprocessing render pass, the depth attachment shouldn't be managed by swapchain.
+		// std::unique_ptr<Image> m_Depth;
 
 		uint32_t m_CurImgIdx = 0;
 	};

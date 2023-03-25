@@ -2,6 +2,7 @@
 
 #include "Coust/Render/Driver.h"
 #include "Coust/Render/Vulkan/StagePool.h"
+#include "Coust/Render/Vulkan/Refrigerator.h"
 #include "Coust/Render/Vulkan/VulkanContext.h"
 #include "Coust/Render/Vulkan/VulkanSwapchain.h"
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
@@ -13,7 +14,7 @@ namespace Coust::Render::VK
     class Driver : public Coust::Render::Driver
     {
 	public:
-		Driver();
+		explicit Driver();
 		virtual ~Driver();
 		
 		virtual void InitializationTest() override;
@@ -29,58 +30,62 @@ namespace Coust::Render::VK
 
 	// Driver API (It's vulkan specific now, they'll be abstracted when we decide to add a new graphics API)
 
+		// collect and recycle unused cache, it'll be implicitly called per submission
+		void CollectGarbage() noexcept;
+
+		void BegingFrame();
+
+		void EndFrame();
+
 	/*
-	void CollectGarbage();
+		void CreateRenderTarget();
+		void DestroyRenderTarget();
 
-	void BegingFrame();
-	void EndFrame();
+		void SetRenderTarget();
 
-	void CreateRenderPrimitive();
-	void DestroyRenderPrimitive();
+		void CreateRenderPrimitive();
+		void DestroyRenderPrimitive();
 
-	void CreateVertexBuffer();
-	void DestroyVertexBuffer();
+		void CreateVertexBuffer();
+		void DestroyVertexBuffer();
 
-	// vertex buffer is a set of buffers
-	void SetVertexBuffer();
+		// vertex buffer is a set of buffers
+		void SetVertexBuffer();
 
-	// index buffer is basically a buffer
-	void CreateIndexBuffer();
-	void DestroyIndexBuffer();
+		// index buffer is basically a buffer
+		void CreateIndexBuffer();
+		void DestroyIndexBuffer();
 
-	void UpdateIndexBuffer();
+		void UpdateIndexBuffer();
 
-	void CreateBuffer();
-	void DestroyBuffer();
+		void CreateBuffer();
+		void DestroyBuffer();
 
-	void UpdateBuffer();
+		void UpdateBuffer();
 
-	void CreateTexture();
-	void DestroyTexture();
+		void CreateTexture();
+		void DestroyTexture();
 
-	void SetTextureMipMapLevel();
+		void SetTextureMipMapLevel();
 
-	void CreateProgram();
-	void DestroyProgram();
+		void CreateProgram();
+		void DestroyProgram();
 
-	void CreateRenderTarget();
-	void DestroyRenderTarget();
+		void BeginRenderPass();
+		void EndRenderPass();
 
-	void BeginRenderPass();
-	void EndRenderPass();
+		void NextSubPass();
 
-	void NextSubPass();
+		void Present();
 
-	void Present();
+		void BindBuffer();
+		// maybe we need unbind?
 
-	void BindBuffer();
-	// maybe we need unbind?
+		void BindTexture();
 
-	void BindTexture();
+		void ReadPixels();
 
-	void ReadPixels();
-
-	void BlitImage();
+		void BlitImage();
 	
 	*/
 		
@@ -105,5 +110,7 @@ namespace Coust::Render::VK
 		GraphicsPipelineCache m_GraphicsPipeCache;
 
 		SamplerCache m_SamplerCache;
+
+		Refrigerator m_Refrigerator;
     };
 }

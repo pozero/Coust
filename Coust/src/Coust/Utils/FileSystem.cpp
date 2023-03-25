@@ -124,11 +124,11 @@ namespace Coust
     void FileSystem::Shutdown()
     {
         // flush to cache files
-        for (const auto& c : m_Caches)
+        for (const auto& p : m_Caches)
         {
             // TODO: Task System
             auto path = s_CachePath;
-            path /= std::to_string(c.cacheTag);
+            path /= std::to_string(p.first);
 
             std::ofstream file{ path, std::ios::binary };
 
@@ -136,7 +136,7 @@ namespace Coust
                 return;
 
             file.write((const char*) &MAGIC_NUMBER, sizeof(uint32_t));
-            file.write(c.cache.data(), c.cache.size());
+            file.write(p.second.data(), p.second.size());
             file.close();
         }
 
@@ -326,7 +326,7 @@ namespace Coust
         }
 
         m_CacheHeaders.push_back(header);
-        m_Caches.push_back({cacheTag, std::move(cacheBytes)});
+        m_Caches[cacheTag] = std::move(cacheBytes);
     }
 
     std::filesystem::path FileSystem::GetRootPath()

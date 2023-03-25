@@ -10,3 +10,4 @@ vsxmake2022/.vs
 # Files
 *.user
 compile_commands.json
+*.spv

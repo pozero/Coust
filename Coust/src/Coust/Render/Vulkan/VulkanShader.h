@@ -266,7 +266,7 @@ namespace Coust::Render::VK
          * @brief Actual constructor, compilation & reflection happens here
          * @param ctx 
          */
-        void Construct(const Context& ctx);
+        bool Construct(const Context& ctx);
 
     private:
         VkShaderStageFlagBits m_Stage;

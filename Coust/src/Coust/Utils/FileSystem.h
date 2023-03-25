@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <functional>
+#include <unordered_map>
 
 #include "Coust/Utils/Hash.h"
 
@@ -106,14 +107,9 @@ namespace Coust
             std::optional<std::string> originFileLastModifiedTime;
         };
 
-        struct CacheToWrite
-        {
-            size_t cacheTag;                    // hash tag comes from caller, also used as cache file name
-            std::vector<char> cache;
-        };
-
         std::vector<CacheHeader> m_CacheHeaders;
-        std::vector<CacheToWrite> m_Caches;
+        // cacheTag -> cache data
+        std::unordered_map<size_t, std::vector<char>> m_Caches;
 
     public:
         static std::filesystem::path GetRootPath();

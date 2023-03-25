@@ -101,7 +101,7 @@ namespace Coust::Render::VK
 	
 	ShaderByteCode::~ShaderByteCode()
 	{
-		if (!ByteCode.empty())
+		if (!ByteCode.empty() && ShouldBeFlushed)
 		{
 			GlobalContext::Get().GetFileSystem().AddCache(SourcePath, CacheTag, ByteCode, true);
 		}
@@ -895,10 +895,17 @@ namespace Coust::Render::VK
         // It is possible to reclaim some of this unused space. To do this, you declare two (or more) variables that use the same location, 
         // but use different components within that location.
 
-        // GLSL code example:
+        // Note: We can actually do alias in IO varaibles, which will complicate things a lot! 
         // layout(location = 0) out vec2 arr1[5];
         // layout(location = 0, component = 2) out vec2 arr2[4]; //Different sizes are fine.
         // layout(location = 4, component = 2) out float val;    //A non-array takes the last two fields from location 4.
+
+        // **The following codes assume there ISN'T any alias happening in the input of vertex shader.** In other words, each variable will not overlap each other.
+
+        // Also, we assume there's no gap or padding between each component and location, 
+        // which means the last byte of last component / location will be followed by the first byte of the next component / location.
+        // So basically we don't support array of input, which would cause skipping location number.
+        // By the way if the array is small enough like an array of vec2 with size 2 then it's still ok, but why don't just use vec4?
 
         std::vector<ShaderResource> inputResource{};
         std::unordered_set<uint32_t> allLocations{};
@@ -942,8 +949,8 @@ namespace Coust::Render::VK
                 {
                     .location = location,
                     .binding = location,
-                    // Here we assume all the type of 1 byte is integer, since we can't get information about whether the data is normalized through spir-v reflection
-                    // because the normalized byte isn't part of the standard glsl.
+                    // Here we assume all the type of 1 byte is integer, since we can't get information about whether the data is normalized through spir-v reflection.
+                    // This is because the normalized byte isn't part of the standard glsl.
                     .format = GetInputResourceFormat(res.VecSize, res.BaseType),
                     .offset = totalSizeInLocation,
                 });
@@ -1009,7 +1016,7 @@ namespace Coust::Render::VK
         vkDestroyShaderModule(m_Ctx.Device, m_Handle, nullptr);
     }
 
-    void ShaderModule::Construct(const Context& ctx)
+    bool ShaderModule::Construct(const Context& ctx)
     {
         size_t cacheTag = m_Hash;
 
@@ -1035,6 +1042,7 @@ namespace Coust::Render::VK
             if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
             {
             	COUST_CORE_ERROR(result.GetErrorMessage().data());
+                return false;
             }
             else
                 m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
@@ -1042,7 +1050,11 @@ namespace Coust::Render::VK
         m_ByteCode.CacheTag = cacheTag;
         
         if (!SPIRVReflectShaderResource(m_ByteCode.ByteCode, m_Stage, m_Source.GetDesiredDynamicBufferSize(), m_Resources))
+        {
             COUST_CORE_ERROR("Can't reflect SPIR-V");
+            return false;
+        }
+        return true;
     }
     
     std::string ShaderModule::GetDisassembledSPIRV()

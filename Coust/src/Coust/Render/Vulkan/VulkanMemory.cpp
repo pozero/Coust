@@ -485,6 +485,7 @@ namespace Coust::Render::VK
 
     Image::~Image()
     {
+
         // if we perform the actual allocation, then it's our responsiblity to destroy it
         if (m_Allocation != VK_NULL_HANDLE)
             vmaDestroyImage(m_Ctx.VmaAlloc, m_Handle, m_Allocation);
@@ -715,7 +716,7 @@ namespace Coust::Render::VK
         GetView(m_PrimarySubRange);
     }
 
-    VkExtent3D Image::GetExtent() const noexcept { return m_Extent; }
+    VkExtent2D Image::GetExtent() const noexcept { return { m_Extent.width, m_Extent.height }; }
 
     VkFormat Image::GetFormat() const noexcept { return m_Format; }
 
@@ -726,6 +727,8 @@ namespace Coust::Render::VK
     std::shared_ptr<Image> Image::GetMSAAImage() const noexcept { return m_MSAAImage; }
 
     void Image::SetMASSImage(std::shared_ptr<Image> msaaImage) noexcept { m_MSAAImage = msaaImage; } 
+
+    uint32_t Image::GetMipLevel() const noexcept { return m_MipLevelCount; }
 
     Image::View::View(const ConstructParam& param) noexcept
         : Base(param.ctx, VK_NULL_HANDLE), 

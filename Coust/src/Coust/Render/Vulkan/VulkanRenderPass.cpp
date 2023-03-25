@@ -377,15 +377,15 @@ namespace Coust::Render::VK
             if (color[i])
                 Hash::Combine(h, color[i]->GetHandle());
         }
-
         for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
         {
             if (resolve[i])
                 Hash::Combine(h, resolve[i]->GetHandle());
         }
-
         if (depth)
             Hash::Combine(h, depth->GetHandle());
+        if (depthResolve)
+            Hash::Combine(h, depthResolve->GetHandle());
 
         return h;
     }
@@ -405,6 +405,7 @@ namespace Coust::Render::VK
         Hash::Combine(h, discardEndMask);
         Hash::Combine(h, sample);
         Hash::Combine(h, resolveMask);
+        Hash::Combine(h, depthResolve);
         Hash::Combine(h, inputAttachmentMask);
 
         return h;

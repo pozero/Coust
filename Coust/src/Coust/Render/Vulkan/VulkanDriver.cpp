@@ -8,6 +8,7 @@
 #include "Coust/Render/Vulkan/VulkanRenderPass.h"
 #include "Coust/Render/Vulkan/VulkanCommand.h"
 #include "Coust/Render/Vulkan/VulkanPipeline.h"
+#include "Coust/Render/Vulkan/RenderTarget.h"
 
 #include "Coust/Core/Window.h"
 #include "Coust/Utils/FileSystem.h"
@@ -108,6 +109,7 @@ namespace Coust::Render::VK
             SelectPhysicalDeviceAndCreateDevice();
 
         m_Context.CmdBufCacheGraphics = new CommandBufferCache{ m_Context, false };
+        m_Context.PresentRenderTarget = new RenderTarget();
         m_Swapchain.Prepare();
         m_IsInitialized = m_Swapchain.Create() && m_IsInitialized;
 
@@ -124,8 +126,12 @@ namespace Coust::Render::VK
 
         ShutdownTest();
 
+        delete m_Context.PresentRenderTarget;
+
         m_Swapchain.Destroy();
         delete m_Context.CmdBufCacheGraphics;
+
+        m_Refrigerator.Reset();
         m_FBOCache.Reset();
         m_GraphicsPipeCache.Reset();
         m_StagePool.Reset();
@@ -478,130 +484,55 @@ namespace Coust::Render::VK
         }
         return true;
     }
+
+//////////////////////////////////////
+/////           API              /////
+//////////////////////////////////////
+
+	void Driver::CollectGarbage() noexcept
+    {
+        m_StagePool.GC();
+        m_FBOCache.GC();
+        m_Refrigerator.GC();
+        m_Context.CmdBufCacheGraphics->GC();
+    }
+
+    void Driver::BegingFrame() 
+    {
+    }
+
+    void Driver::EndFrame()
+    {
+        // Only collect garbage when a command buffer gets submitted (next frame)
+        if (m_Context.CmdBufCacheGraphics->Flush())
+            CollectGarbage();
+    }
+
     
+//////////////////////////////////////
+/////           API              /////
+//////////////////////////////////////
 
 //////////////////////////////////////
 /////           TEST             /////
 //////////////////////////////////////
 
-    std::unique_ptr<Image> cuteCat{ nullptr };
-
     void Driver::InitializationTest()
     {
-        auto path = FileSystem::GetFullPathFrom({ "Coust", "asset", "orange-cat-face-pixabay.jpg" });
-        int width = 0, height = 0, channel = 0;
-        auto data = stbi_load(path.string().c_str(), &width, &height, &channel, STBI_rgb_alpha);
-        Image::ConstructParam_Create p 
-        {
-            .ctx = m_Context,
-            .width = (uint32_t) width,
-            .height = (uint32_t) height,
-            .format = VK_FORMAT_R8G8B8A8_SRGB,
-            .usage = Image::Usage::Texture2D,
-            .mipLevels = 1,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .dedicatedName = "Test image",
-        };
-        if (!Image::Create(cuteCat, p))
-            return;
-        Image::UpdateParam up 
-        {
-            .dataFormat = VK_FORMAT_R8G8B8A8_UNORM,
-            .width = (uint32_t) width,
-            .height = (uint32_t) height,
-            .data = data,
-            .dstImageLayer = 0,
-            .dstImageLayerCount = 1,
-            .dstImageMipmapLevel = 0,
-        };
-        cuteCat->Update(m_StagePool, up);
-
         m_Context.CmdBufCacheGraphics->Flush();
     }
 
     void Driver::LoopTest()
     {
-        m_Context.CmdBufCacheGraphics->GC();
         m_StagePool.GC();
         m_FBOCache.GC();
-
-        RenderPass::ConstructParam rp 
-        {
-			.ctx = m_Context,
-			.depthFormat = m_Swapchain.DepthFormat,
-			.clearMask = 0u,
-			.discardStartMask = COLOR0 | DEPTH,
-			.discardEndMask = COLOR0 | DEPTH,
-			.sample = VK_SAMPLE_COUNT_1_BIT,
-			.resolveMask = 0u,
-			.inputAttachmentMask = 0u,
-			.depthResolve = false,
-			.dedicatedName = "Test Render Pass",
-        };
-        rp.colorFormat[0] = m_Swapchain.SurfaceFormat.format;
-        auto r = m_FBOCache.GetRenderPass(rp);
-
-        Framebuffer::ConstructParam fp 
-        {
-			.ctx = m_Context,
-			.renderPass = *r,
-			.width = m_Swapchain.Extent.width,
-			.height = m_Swapchain.Extent.height,
-			.layers = 1u,
-			.depth = m_Swapchain.GetDepthAttachment().GetPrimaryView(),
-			.depthResolve = nullptr,
-			.dedicatedName = "Test Framebuffer",
-        }; 
-        fp.color[0] = m_Swapchain.GetColorAttachment().GetSingleLayerView(VK_IMAGE_ASPECT_COLOR_BIT, 0, 0);
-        auto f = m_FBOCache.GetFramebuffer(fp);
-
-        ShaderSource vs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.vert" })};
-        ShaderModule::ConstructParm smpV
-        {
-            .ctx = m_Context,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .source = vs,
-            .dedicatedName = "Test Vertex Shader Module",
-        };
-        m_GraphicsPipeCache.BindShader(smpV);
-
-        ShaderSource fs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.frag" })};
-        ShaderModule::ConstructParm smpF
-        {
-            .ctx = m_Context,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .source = fs,
-            .dedicatedName = "Test Vertex Shader Module",
-        };
-        m_GraphicsPipeCache.BindShader(smpF);
-
-        m_GraphicsPipeCache.BindShaderFinished();
-
-        if (!m_GraphicsPipeCache.BindPipelineLayout()) return;
-
-        GraphicsPipeline::RasterState defaultRS{};
-        m_GraphicsPipeCache.BindRasterState(defaultRS);
-
-        m_GraphicsPipeCache.BindRenderPass(r, 0);
-
-        if (cuteCat)
-        {
-            SamplerCache::SamplerInfo defaultSI{};
-            VkSampler sampler = m_SamplerCache.Get(defaultSI);
-            m_GraphicsPipeCache.BindImage("tex1", sampler, *cuteCat, 0);
-        }
-
-        VkCommandBuffer cmdBuf = m_Context.CmdBufCacheGraphics->Get();
-
-        m_GraphicsPipeCache.BindDescriptorSet(cmdBuf);
-        m_GraphicsPipeCache.BindPipeline(cmdBuf);
+        m_Context.CmdBufCacheGraphics->GC();
 
         m_Context.CmdBufCacheGraphics->Flush();
     }
 
     void Driver::ShutdownTest()
     {
-        cuteCat.reset();
     }
 
 //////////////////////////////////////

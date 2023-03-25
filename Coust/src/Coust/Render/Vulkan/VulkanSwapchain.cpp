@@ -12,8 +12,8 @@
 namespace Coust::Render::VK
 {
 	Swapchain::Swapchain(const Context &ctx) noexcept
-		: Base(ctx, VK_NULL_HANDLE),
-		  IsFirstRenderPass(true)
+		: Base(ctx, VK_NULL_HANDLE)
+		//   IsFirstRenderPass(true)
 	{}
 
 	void Swapchain::Prepare()
@@ -173,28 +173,28 @@ namespace Coust::Render::VK
 		VK_CHECK(vkCreateSemaphore(m_Ctx.Device, &sci, nullptr, &ImgAvaiSignal));
 		IsNextImgAcquired = false;
 
-		Image::ConstructParam_Create p
-		{
-            .ctx = m_Ctx,
-            .width = Extent.width,
-            .height = Extent.height,
-            .format = DepthFormat,
-            .usage = Image::Usage::DepthStencilAttachment,
-            .usageFlags = 0,
-            .createFlags = 0,
-            .mipLevels = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .dedicatedName = "Depth Stencil Attachment"
-		};
-		Image::Create(m_Depth, p);
+		// Image::ConstructParam_Create p
+		// {
+        //     .ctx = m_Ctx,
+        //     .width = Extent.width,
+        //     .height = Extent.height,
+        //     .format = DepthFormat,
+        //     .usage = Image::Usage::DepthStencilAttachment,
+        //     .usageFlags = 0,
+        //     .createFlags = 0,
+        //     .mipLevels = 1,
+        //     .samples = VK_SAMPLE_COUNT_1_BIT,
+        //     .tiling = VK_IMAGE_TILING_OPTIMAL,
+        //     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        //     .dedicatedName = "Depth Stencil Attachment"
+		// };
+		// Image::Create(m_Depth, p);
 
-		if (!Image::CheckValidation(*m_Depth))
-		{
-			COUST_CORE_ERROR("Can't create depth stencil attachment for swapchain");
-			return false;
-		}
+		// if (!Image::CheckValidation(*m_Depth))
+		// {
+		// 	COUST_CORE_ERROR("Can't create depth stencil attachment for swapchain");
+		// 	return false;
+		// }
 
 		SetDedicatedDebugName("Swapchain");
 
@@ -207,7 +207,7 @@ namespace Coust::Render::VK
 		m_Ctx.CmdBufCacheGraphics->Flush();
 		m_Ctx.CmdBufCacheGraphics->Wait();
 
-		m_Depth.reset();
+		// m_Depth.reset();
 		for (auto& i : m_Images)
 		{
 			i.reset();
@@ -262,7 +262,7 @@ namespace Coust::Render::VK
 
 	Image& Swapchain::GetColorAttachment() const noexcept { return *m_Images[m_CurImgIdx]; }
 
-	Image& Swapchain::GetDepthAttachment() const noexcept { return *m_Depth; }
+	// Image& Swapchain::GetDepthAttachment() const noexcept { return *m_Depth; }
 
 	uint32_t Swapchain::GetImageIndex() const noexcept { return m_CurImgIdx; }
 }

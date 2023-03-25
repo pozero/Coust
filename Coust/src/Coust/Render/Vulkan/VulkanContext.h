@@ -50,11 +50,16 @@ namespace Coust::Render::VK
 		VkQueue PresentQueue = VK_NULL_HANDLE;
 		VkQueue ComputeQueue = VK_NULL_HANDLE;
 
-		VkSampleCountFlags MSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
+		VkSampleCountFlagBits MSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 		std::unique_ptr<VkPhysicalDeviceProperties> GPUProperties{ new VkPhysicalDeviceProperties{} };
 
 		CommandBufferCache* CmdBufCacheGraphics = nullptr;
+
+		// External render target, specified by renderer
+		class RenderTarget* RenderTargetCurrent = nullptr;
+		// Internal render target, the present target is managed by driver
+		class RenderTarget* PresentRenderTarget = nullptr;
    	};
 
 
@@ -186,7 +191,7 @@ namespace Coust::Render::VK
 		 */
 		template<typename T, typename ...A>
 		static bool Create(std::unique_ptr<T>& out_Resource, const A&... args)
-			requires IsVulkanResource<T, VkHandle, ObjectType>
+			requires (IsVulkanResource<T, VkHandle, ObjectType> && std::is_constructible_v<T, A...>)
 		{
 			T* ptr = nullptr;
 			bool result =  Create(ptr, args...);
@@ -205,7 +210,7 @@ namespace Coust::Render::VK
 		 */
 		template<typename T, typename ...A>
 		static bool Create(std::shared_ptr<T>& out_Resource, const A&... args)
-			requires IsVulkanResource<T, VkHandle, ObjectType>
+			requires (IsVulkanResource<T, VkHandle, ObjectType> && std::is_constructible_v<T, A...>)
 		{
 			T* ptr = nullptr;
 			bool result =  Create(ptr, args...);
@@ -224,7 +229,7 @@ namespace Coust::Render::VK
 		 */
 		template<typename T, typename ...A>
 		static bool Create(T*& out_Resource, const A&... args)
-			requires IsVulkanResource<T, VkHandle, ObjectType>
+			requires (IsVulkanResource<T, VkHandle, ObjectType> && std::is_constructible_v<T, A...>)
 		{
 			T* pResource = new T(args...);
 			if (CheckValidation(*pResource))

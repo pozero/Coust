@@ -283,7 +283,7 @@ namespace Coust::Render::VK
         VkImageSubresourceRange GetPrimarySubRange() const noexcept;
         void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel);
 
-        VkExtent3D GetExtent() const noexcept;
+        VkExtent2D GetExtent() const noexcept;
 
         VkFormat GetFormat() const noexcept;
 
@@ -293,6 +293,8 @@ namespace Coust::Render::VK
 
         std::shared_ptr<Image> GetMSAAImage() const noexcept;
         void SetMASSImage(std::shared_ptr<Image> massImage) noexcept;
+
+        uint32_t GetMipLevel() const noexcept;
 
     private:
         std::unordered_map<VkImageSubresourceRange, View, 
