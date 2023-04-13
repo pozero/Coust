@@ -9,7 +9,7 @@
 
 namespace Coust::Render::VK
 {
-	PipelineLayout::PipelineLayout(const ConstructParam& param)
+	PipelineLayout::PipelineLayout(const ConstructParam& param) noexcept
 		: Base(*param.ctx, VK_NULL_HANDLE),
 		  Hashable(param.GetHash()),
 		  m_ShaderModules(param.shaderModules),
@@ -44,12 +44,7 @@ namespace Coust::Render::VK
 			};
 			m_DescriptorLayouts.emplace_back(p);
 
-			if (!DescriptorSetLayout::CheckValidation(m_DescriptorLayouts.back()))
-			{
-				COUST_CORE_ERROR("Can't create descriptor set layout for shader resources: {}", debugName);
-				m_DescriptorLayouts.pop_back();
-				return;
-			}
+			COUST_CORE_PANIC_IF(!DescriptorSetLayout::CheckValidation(m_DescriptorLayouts.back()), "Can't create descriptor set layout for shader resources: {}", debugName);
 		}
 		std::vector<VkDescriptorSetLayout> setLayouts{};
 		setLayouts.reserve(m_DescriptorLayouts.size());
@@ -81,17 +76,13 @@ namespace Coust::Render::VK
     		.pushConstantRangeCount = (uint32_t) pushConstantRanges.size(),
     		.pPushConstantRanges = pushConstantRanges.data(),
 		};
-		bool success = false;
-		VK_REPORT(vkCreatePipelineLayout(m_Ctx.Device, &CI, nullptr, &m_Handle), success);
-		if (success)
-		{
-			if (param.dedicatedName)
-				SetDedicatedDebugName(param.dedicatedName);
-			else if (param.scopeName)
-				SetDefaultDebugName(param.scopeName, nullptr);
-		}
-		else  
-			m_Handle = VK_NULL_HANDLE;
+		VK_CHECK(vkCreatePipelineLayout(m_Ctx.Device, &CI, nullptr, &m_Handle), "Can't create pipeline layout {} {}", param.dedicatedName, param.scopeName);
+#ifndef COUST_FULL_RELEASE
+		if (param.dedicatedName)
+			SetDedicatedDebugName(param.dedicatedName);
+		else if (param.scopeName)
+			SetDefaultDebugName(param.scopeName, nullptr);
+#endif
 	}
 
 	PipelineLayout::PipelineLayout(PipelineLayout&& other) noexcept
@@ -103,7 +94,7 @@ namespace Coust::Render::VK
 		  m_SetToResourceIdxLookup(std::move(other.m_SetToResourceIdxLookup))
 	{}
 
-	PipelineLayout::~PipelineLayout()
+	PipelineLayout::~PipelineLayout() noexcept
 	{
 		if (m_Handle != VK_NULL_HANDLE)
 			vkDestroyPipelineLayout(m_Ctx.Device, m_Handle, nullptr);
@@ -146,7 +137,7 @@ namespace Coust::Render::VK
 		return h;
 	}
 
-	GraphicsPipeline::GraphicsPipeline(const ConstructParam& param)
+	GraphicsPipeline::GraphicsPipeline(const ConstructParam& param) noexcept
 		: Base(*param.ctx, VK_NULL_HANDLE),
 		  Hashable(param.GetHash()),
 		  m_Layout(*param.layout),
@@ -309,20 +300,14 @@ namespace Coust::Render::VK
     		.subpass = param.subpassIdx,
     		.basePipelineHandle = VK_NULL_HANDLE,
 		};
-		bool success = false;
-		VK_REPORT(vkCreateGraphicsPipelines(m_Ctx.Device, param.cache, 1, &CI, nullptr, &m_Handle), success);
+		VK_CHECK(vkCreateGraphicsPipelines(m_Ctx.Device, param.cache, 1, &CI, nullptr, &m_Handle), "Can't create graphics pipeline {} {}", param.dedicatedName, param.scopeName);
 
-		if (success)
-		{
-			if (param.dedicatedName)
-				SetDedicatedDebugName(param.dedicatedName);
-			else if (param.scopeName)
-				SetDefaultDebugName(param.scopeName, nullptr);
-			else
-			 	COUST_CORE_WARN("Graphics pipeline created without debug name");
-		}
-		else  
-			m_Handle = VK_NULL_HANDLE;
+#ifndef COUST_FULL_RELEASE
+		if (param.dedicatedName)
+			SetDedicatedDebugName(param.dedicatedName);
+		else if (param.scopeName)
+			SetDefaultDebugName(param.scopeName, nullptr);
+#endif
 	}
 
 	GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& other) noexcept
@@ -333,7 +318,7 @@ namespace Coust::Render::VK
 		  m_SubpassIdx(other.m_SubpassIdx)
 	{}
 
-	GraphicsPipeline::~GraphicsPipeline()
+	GraphicsPipeline::~GraphicsPipeline() noexcept
 	{
 		if (m_Handle != VK_NULL_HANDLE)
 			vkDestroyPipeline(m_Ctx.Device, m_Handle, nullptr);
@@ -375,7 +360,7 @@ namespace Coust::Render::VK
         m_DescriptorSetRequirement.clear();
 	}
 
-	void GraphicsPipelineCache::GC(const CommandBuffer& buf)
+	void GraphicsPipelineCache::GC(const CommandBuffer& buf) noexcept
 	{
 		m_Timer.Tick();
         m_SpecializationConstantCurrent.Reset();
@@ -387,7 +372,8 @@ namespace Coust::Render::VK
 
 		for (auto iter = m_CachedDescriptorSets.begin(); iter != m_CachedDescriptorSets.end();)
 		{
-			if (m_Timer.ShouldEvict(iter->second))
+			auto& [set, lastAccessedTime] = iter->second;
+			if (m_Timer.ShouldEvict(lastAccessedTime))
 				iter = m_CachedDescriptorSets.erase(iter);
 			else
 			 	++ iter;
@@ -395,7 +381,8 @@ namespace Coust::Render::VK
 
 		for (auto iter = m_CachedGraphicsPipelines.begin(); iter != m_CachedGraphicsPipelines.end();)
 		{
-			if (m_Timer.ShouldEvict(iter->second))
+			auto& [pipeline, lastAccessedTime] = iter->second;
+			if (m_Timer.ShouldEvict(lastAccessedTime))
 				iter = m_CachedGraphicsPipelines.erase(iter);
 			else
 			 	++ iter;
@@ -403,9 +390,10 @@ namespace Coust::Render::VK
 
 		for (auto iter = m_CachedPipelineLayouts.begin(); iter != m_CachedPipelineLayouts.end();)
 		{
-			if (m_Timer.ShouldEvict(iter->second))
+			auto& [layout, lastAccessedTime] = iter->second;
+			if (m_Timer.ShouldEvict(lastAccessedTime))
 			{
-				m_DescriptorSetAllocators.erase(&iter->first);
+				m_DescriptorSetAllocators.erase(&layout);
 				iter = m_CachedPipelineLayouts.erase(iter);
 			}
 			else  
@@ -426,11 +414,11 @@ namespace Coust::Render::VK
 
 	SpecializationConstantInfo& GraphicsPipelineCache::BindSpecializationConstant() noexcept { return m_SpecializationConstantCurrent; }
 
-	bool GraphicsPipelineCache::BindShader(const ShaderModule::ConstructParm& param)
+	bool GraphicsPipelineCache::BindShader(const ShaderModule::ConstructParm& param) noexcept
 	{
 		size_t sourceHash = param.GetHash();
 		auto iter = std::find_if(m_CachedShaderModules.begin(), m_CachedShaderModules.end(), 
-			[sourceHash](decltype(m_CachedShaderModules[0]) sm) -> bool
+			[sourceHash](decltype(*m_CachedShaderModules.cbegin()) sm) -> bool
 			{
 				return sm.GetHash() == sourceHash;
 			});
@@ -451,7 +439,7 @@ namespace Coust::Render::VK
 		return true;
 	}
 
-	void GraphicsPipelineCache::BindShaderFinished()
+	void GraphicsPipelineCache::BindShaderFinished() noexcept
 	{
 		bool pipelineLayoutShaderUpdated = false;
 		for (uint32_t i : m_CurrentBoundShaderModules)
@@ -480,7 +468,7 @@ namespace Coust::Render::VK
 		}
 	}
 
-	void GraphicsPipelineCache::SetAsDynamic(std::string_view name)
+	void GraphicsPipelineCache::SetAsDynamic(std::string_view name) noexcept
 	{
 		for (auto& res : m_PipelineLayoutRequirement.shaderResources)
 		{
@@ -489,19 +477,15 @@ namespace Coust::Render::VK
 		}
 	}
 
-	bool GraphicsPipelineCache::BindPipelineLayout()
+	bool GraphicsPipelineCache::BindPipelineLayout() noexcept
 	{
 		size_t requirementHash = m_PipelineLayoutRequirement.GetHash();
-		if (auto iter = std::find_if(m_CachedPipelineLayouts.begin(), m_CachedPipelineLayouts.end(), 
-			[requirementHash](decltype(*m_CachedPipelineLayouts.begin()) pair) -> bool 
+		if (auto iter = m_CachedPipelineLayouts.find(requirementHash); iter != m_CachedPipelineLayouts.end())
 		{
-			return pair.first.GetHash() == requirementHash;
-		}); iter != m_CachedPipelineLayouts.end())
-		{
+			auto& [layout, lastAccessedTime] = iter->second;
 			m_PipelineLayoutHitCounter.Hit();
-
-			iter->second = m_Timer.CurrentCount();
-			m_PipelineLayoutCurrent = (PipelineLayout*) &iter->first;
+			lastAccessedTime = m_Timer.CurrentCount();
+			m_PipelineLayoutCurrent = (PipelineLayout*) &layout;
 			FillDescriptorSetRequirements();
 			return true;
 		}
@@ -514,25 +498,25 @@ namespace Coust::Render::VK
 			COUST_CORE_ERROR("Failed to bind pipeline layout (creation failed)");
 			return false;
 		}
-		m_CachedPipelineLayouts.emplace_back(std::move(pl), m_Timer.CurrentCount());
-		m_PipelineLayoutCurrent = (PipelineLayout*) &m_CachedPipelineLayouts.back();
+		auto iter = m_CachedPipelineLayouts.emplace(requirementHash, decltype(m_CachedPipelineLayouts.begin()->second){ std::move(pl), m_Timer.CurrentCount() });
+		m_PipelineLayoutCurrent = (PipelineLayout*) &iter.first->second.first;
 		CreateDescriptorAllocator();
 		FillDescriptorSetRequirements();
 		return true;
 	}
 
-	void GraphicsPipelineCache::BindRasterState(const GraphicsPipeline::RasterState& state)
+	void GraphicsPipelineCache::BindRasterState(const GraphicsPipeline::RasterState& state) noexcept
 	{
 		m_GraphicsPipelineRequirement.rasterState = state;
 	}
 
-	void GraphicsPipelineCache::BindRenderPass(const RenderPass* renderPass, uint32_t subpassIdx)
+	void GraphicsPipelineCache::BindRenderPass(const RenderPass* renderPass, uint32_t subpassIdx) noexcept
 	{
 		m_GraphicsPipelineRequirement.renderPass = renderPass;
 		m_GraphicsPipelineRequirement.subpassIdx = subpassIdx;
 	}
 
-	void GraphicsPipelineCache::BindBuffer(std::string_view name, const Buffer& buffer, uint64_t offset, uint64_t size, uint32_t arrayIdx)
+	void GraphicsPipelineCache::BindBuffer(std::string_view name, const Buffer& buffer, uint64_t offset, uint64_t size, uint32_t arrayIdx) noexcept
 	{
 		for (const auto& res : m_PipelineLayoutRequirement.shaderResources)
 		{
@@ -561,7 +545,7 @@ namespace Coust::Render::VK
 		}
 	}
 
-	void GraphicsPipelineCache::BindImage(std::string_view name, VkSampler sampler, const Image& image, uint32_t arrayIdx)
+	void GraphicsPipelineCache::BindImage(std::string_view name, VkSampler sampler, const Image& image, uint32_t arrayIdx) noexcept
 	{
 		for (const auto& res : m_PipelineLayoutRequirement.shaderResources)
 		{
@@ -583,7 +567,7 @@ namespace Coust::Render::VK
 		COUST_CORE_WARN("Can't find shader image resource of name {}", name);
 	}
 
-	void GraphicsPipelineCache::BindInputAttachment(std::string_view name, const Image& attachment)
+	void GraphicsPipelineCache::BindInputAttachment(std::string_view name, const Image& attachment) noexcept
 	{
 		for (const auto& res : m_PipelineLayoutRequirement.shaderResources)
 		{
@@ -603,12 +587,12 @@ namespace Coust::Render::VK
 		COUST_CORE_WARN("Can't find shader input attachment resource of name {}", name);
 	}
 
-    void GraphicsPipelineCache::SetInputRatePerInstance(uint32_t location)
+    void GraphicsPipelineCache::SetInputRatePerInstance(uint32_t location) noexcept
 	{
 		m_GraphicsPipelineRequirement.perInstanceInputMask |= (1u << location);
 	}
 
-	bool GraphicsPipelineCache::BindDescriptorSet(VkCommandBuffer cmdBuf)
+	bool GraphicsPipelineCache::BindDescriptorSet(VkCommandBuffer cmdBuf) noexcept
 	{
 		std::vector<VkDescriptorSet> setToBind{};
 		std::vector<uint32_t> dynamicOffsets{};
@@ -629,18 +613,14 @@ namespace Coust::Render::VK
 				continue;
 			
 			// next, find if it exists in descriptor cache
-			if (auto iter = std::find_if(m_CachedDescriptorSets.begin(), m_CachedDescriptorSets.end(),
-				[h](decltype(*m_CachedDescriptorSets.begin()) p) -> bool
-				{
-					return p.first.GetHash() == h;
-				}); iter != m_CachedDescriptorSets.end())
+			if (auto iter = m_CachedDescriptorSets.find(h); iter != m_CachedDescriptorSets.end())
 			{
+				auto& [set, lastAccessedTime] = iter->second;
 				m_DescriptorSetHitCounter.Hit();
-
-				iter->first.ApplyWrite(true);
-				iter->second = m_Timer.CurrentCount();
-				m_DescriptorSetsCurrent.push_back(&iter->first);
-				setToBind.push_back(iter->first.GetHandle());
+				set.ApplyWrite(true);
+				lastAccessedTime = m_Timer.CurrentCount();
+				m_DescriptorSetsCurrent.push_back(&set);
+				setToBind.push_back(set.GetHandle());
 				if (m_DynamicOffsets.find(requirement.setIndex) != m_DynamicOffsets.end())
 				{
 					dynamicOffsets.push_back(m_DynamicOffsets[requirement.setIndex]);
@@ -660,9 +640,12 @@ namespace Coust::Render::VK
 				return false;
 			}
 			set.ApplyWrite(true);
-			m_CachedDescriptorSets.emplace_back(std::move(set), m_Timer.CurrentCount());
-			m_DescriptorSetsCurrent.push_back(&m_CachedDescriptorSets.back().first);
-			setToBind.push_back(m_CachedDescriptorSets.back().first.GetHandle());
+			{
+				auto iter = m_CachedDescriptorSets.emplace(h, decltype(m_CachedDescriptorSets.begin()->second) { std::move(set), m_Timer.CurrentCount() });
+				auto& [set, lastAccessedTime] = iter.first->second;
+				m_DescriptorSetsCurrent.push_back(&set);
+				setToBind.push_back(set.GetHandle());
+			}
 			if (m_DynamicOffsets.find(requirement.setIndex) != m_DynamicOffsets.end())
 			{
 				dynamicOffsets.push_back(m_DynamicOffsets[requirement.setIndex]);
@@ -678,7 +661,7 @@ namespace Coust::Render::VK
 		return true;
 	}
 
-	bool GraphicsPipelineCache::BindPipeline(VkCommandBuffer cmdBuf)
+	bool GraphicsPipelineCache::BindPipeline(VkCommandBuffer cmdBuf) noexcept
 	{
 		m_GraphicsPipelineRequirement.specializationConstantInfo = &m_SpecializationConstantCurrent;
 		m_GraphicsPipelineRequirement.layout = m_PipelineLayoutCurrent;
@@ -693,17 +676,13 @@ namespace Coust::Render::VK
 		}
 
 		// else find in graphics pipeline cache
-		if (auto iter = std::find_if(m_CachedGraphicsPipelines.begin(), m_CachedGraphicsPipelines.end(),
-			[h](decltype(*m_CachedGraphicsPipelines.begin()) p) -> bool 
-			{
-				return h == p.first.GetHash();
-			}); iter != m_CachedGraphicsPipelines.end())	
+		if (auto iter = m_CachedGraphicsPipelines.find(h); iter != m_CachedGraphicsPipelines.end())	
 		{
 			m_GraphicsPipelineHitCounter.Hit();
-
-			iter->second = m_Timer.CurrentCount();
-			m_GraphicsPipelineCurrent = &iter->first;
-			vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, iter->first.GetHandle());
+			auto& [pipeline, lastAccessedTime] = iter->second;
+			lastAccessedTime = m_Timer.CurrentCount();
+			m_GraphicsPipelineCurrent = &pipeline;
+			vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
 			return true;
 		}
 
@@ -717,12 +696,16 @@ namespace Coust::Render::VK
 			COUST_CORE_ERROR("Failed to bind graphics pipeline (creation failure)");
 			return false;
 		}
-		m_CachedGraphicsPipelines.emplace_back(std::move(p), m_Timer.CurrentCount());
-		vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CachedGraphicsPipelines.back().first.GetHandle());
+		{
+			auto iter = m_CachedGraphicsPipelines.emplace(h, decltype(m_CachedGraphicsPipelines.begin()->second) { std::move(p), m_Timer.CurrentCount() });
+			auto& [pipeline, lastAccessedTime] = iter.first->second;
+			m_GraphicsPipelineCurrent = &pipeline;
+			vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
+		}
 		return true;
 	}
 
-    void GraphicsPipelineCache::CreateDescriptorAllocator()
+    void GraphicsPipelineCache::CreateDescriptorAllocator() noexcept
 	{
 		auto iter = m_DescriptorSetAllocators.emplace(m_PipelineLayoutCurrent, std::vector<DescriptorSetAllocator>{});
 		
@@ -738,7 +721,7 @@ namespace Coust::Render::VK
 		}
 	}
 
-    void GraphicsPipelineCache::FillDescriptorSetRequirements()
+    void GraphicsPipelineCache::FillDescriptorSetRequirements() noexcept
 	{
 		m_DescriptorSetRequirement.clear();
 		const auto& v = m_DescriptorSetAllocators.at(m_PipelineLayoutCurrent);
@@ -757,8 +740,7 @@ namespace Coust::Render::VK
 		}
 	}
 
-
-	size_t PipelineLayout::ConstructParam::GetHash() const 
+	size_t PipelineLayout::ConstructParam::GetHash() const noexcept
 	{
 		size_t h = 0;
         for (const auto& s : shaderModules)
@@ -774,7 +756,7 @@ namespace Coust::Render::VK
 		return h;
 	}
 
-	size_t GraphicsPipeline::ConstructParam::GetHash() const 
+	size_t GraphicsPipeline::ConstructParam::GetHash() const noexcept
 	{
 		size_t h = 0;
 		Hash::Combine(h, *specializationConstantInfo);

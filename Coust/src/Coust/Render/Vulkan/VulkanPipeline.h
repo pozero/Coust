@@ -8,7 +8,6 @@
 #include "Coust/Utils/Hash.h"
 
 #include <map>
-#include <list>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
@@ -44,13 +43,13 @@ namespace Coust::Render::VK
             const char*                                 scopeName = nullptr;
             const char*                                 dedicatedName = nullptr;
 
-            size_t GetHash() const;
+            size_t GetHash() const noexcept;
         };
-        explicit PipelineLayout(const ConstructParam& param);
+        explicit PipelineLayout(const ConstructParam& param) noexcept;
 
         PipelineLayout(PipelineLayout&& other) noexcept;
 
-        ~PipelineLayout();
+        ~PipelineLayout() noexcept;
 
         const std::vector<ShaderModule*>& GetShaderModules() const noexcept;
 
@@ -85,10 +84,10 @@ namespace Coust::Render::VK
 
     public:
         template <typename T>
-        bool AddConstant(uint32_t id, const T& data)
+        bool AddConstant(uint32_t id, const T& data) noexcept
         {
             if (auto iter = std::find_if(m_Entry.begin(), m_Entry.end(), 
-                [id](decltype(m_Entry[0]) i) -> bool
+                [id](decltype(*m_Entry.cbegin()) i) -> bool
                 {
                     return i.constantID == id;
                 }); iter != m_Entry.end())
@@ -110,10 +109,10 @@ namespace Coust::Render::VK
         }
 
         template <typename T>
-        bool ChangeConstant(uint32_t id, const T& data)
+        bool ChangeConstant(uint32_t id, const T& data) noexcept
         {
             if (auto iter = std::find_if(m_Entry.begin(), m_Entry.end(), 
-                [id](decltype(m_Entry[0]) i) -> bool
+                [id](decltype(*m_Entry.cbegin()) i) -> bool
                 {
                     return i.constantID == id;
                 }); iter == m_Entry.end())
@@ -211,13 +210,13 @@ namespace Coust::Render::VK
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
 
-            size_t GetHash() const;
+            size_t GetHash() const noexcept;
         };
-        explicit GraphicsPipeline(const ConstructParam& param);
+        explicit GraphicsPipeline(const ConstructParam& param) noexcept;
 
         GraphicsPipeline(GraphicsPipeline&& other) noexcept;
 
-        ~GraphicsPipeline();
+        ~GraphicsPipeline() noexcept;
 
         const PipelineLayout& GetLayout() const noexcept;
 
@@ -252,7 +251,7 @@ namespace Coust::Render::VK
         // This function will be called when the driver switches to a new command buffer, which means the old command buffer is submitted.
         // We know that command buffer records all these bindings, so once it's submitted, all the old render states bound previously are gone.
         // We would do some housekeeping here, clearing out all the old render states.
-        void GC(const CommandBuffer& buf);
+        void GC(const CommandBuffer& buf) noexcept;
 
         // Internal clearing methods. They just set the corresponding requirements to default state.
 
@@ -270,43 +269,43 @@ namespace Coust::Render::VK
         // Specialization constant info will get cleared when a new command buffer is activated.
         SpecializationConstantInfo& BindSpecializationConstant() noexcept;
 
-        bool BindShader(const ShaderModule::ConstructParm& source);
+        bool BindShader(const ShaderModule::ConstructParm& source) noexcept;
 
         // Tell the cache that's all the shader we need. ONLY after this function can we start to bind shader resources.
         // This function will collect all the shader resources for pipeline layout construction,
         // and clear the update mode of all the shader resources inside the current bound shader modules to `Static`.
-        void BindShaderFinished();
+        void BindShaderFinished() noexcept;
 
         // Modify the update mode of sepcific buffer
-        void SetAsDynamic(std::string_view name);
+        void SetAsDynamic(std::string_view name) noexcept;
 
         // Tell the cache that's all the shader resource (with correct update mode) we need, and build or get the pipeline layout and corresponding descriptor set allocator.
-        bool BindPipelineLayout();
+        bool BindPipelineLayout() noexcept;
 
-        void BindRasterState(const GraphicsPipeline::RasterState& state);
+        void BindRasterState(const GraphicsPipeline::RasterState& state) noexcept;
 
-        void BindRenderPass(const RenderPass* renderPass, uint32_t subpassIdx);
+        void BindRenderPass(const RenderPass* renderPass, uint32_t subpassIdx) noexcept;
 
         // The following functions are responsible for configuring the construction parameter for descriptor sets
 
-        void BindBuffer(std::string_view name, const Buffer& buffer, uint64_t offset, uint64_t size, uint32_t arrayIdx);
+        void BindBuffer(std::string_view name, const Buffer& buffer, uint64_t offset, uint64_t size, uint32_t arrayIdx) noexcept;
 
-        void BindImage(std::string_view name, VkSampler sampler, const Image& image, uint32_t arrayIdx);
+        void BindImage(std::string_view name, VkSampler sampler, const Image& image, uint32_t arrayIdx) noexcept;
 
-        void BindInputAttachment(std::string_view name, const Image& attachment);
+        void BindInputAttachment(std::string_view name, const Image& attachment) noexcept;
 
-        void SetInputRatePerInstance(uint32_t location);
+        void SetInputRatePerInstance(uint32_t location) noexcept;
 
         // Actual binding
         
-        bool BindDescriptorSet(VkCommandBuffer cmdBuf);
+        bool BindDescriptorSet(VkCommandBuffer cmdBuf) noexcept;
 
-        bool BindPipeline(VkCommandBuffer cmdBuf);
+        bool BindPipeline(VkCommandBuffer cmdBuf) noexcept;
 
     private:
-        void CreateDescriptorAllocator();
+        void CreateDescriptorAllocator() noexcept;
 
-        void FillDescriptorSetRequirements();
+        void FillDescriptorSetRequirements() noexcept;
 
     private:
         // We won't recycle shader modules here, since they won't get much change during rendering and compile a shader from source takes huge amount of time.
@@ -314,19 +313,19 @@ namespace Coust::Render::VK
         // Instead we give caller a chance to change the update mode BEFORE we actually get pipeline layout, and hash the update mode information in the pipeline layout class.
         std::vector<ShaderModule> m_CachedShaderModules;
 
-        // pipeline layout, last accessed time
-        std::list<std::pair<PipelineLayout, uint32_t>> m_CachedPipelineLayouts;
+        // construction hash -> { pipeline layout, last accessed time }
+        std::unordered_map<size_t, std::pair<PipelineLayout, uint32_t>> m_CachedPipelineLayouts;
         // pipeline layout -> corresponding descriptor set allocators:
         //      set index -> descriptor set allocator
         std::unordered_map<const PipelineLayout*, std::vector<DescriptorSetAllocator>> m_DescriptorSetAllocators;
 
         // The descriptor sets in the `m_CachedDescriptorSets` are filled with write info, which means they are bound to specific buffers & images,
         // whilst the descriptor sets stored in the free list do not carry any write info.
-        // used decriptor sets, last accessed time
-        std::list<std::pair<DescriptorSet, uint32_t>> m_CachedDescriptorSets;
+        // construction hash -> { used decriptor sets, last accessed time }
+        std::unordered_map<size_t, std::pair<DescriptorSet, uint32_t>> m_CachedDescriptorSets;
 
-        // graphics pipline, last accessed time
-        std::list<std::pair<GraphicsPipeline, uint32_t>> m_CachedGraphicsPipelines;
+        // construction hash -> { graphics pipline, last accessed time }
+        std::unordered_map<size_t, std::pair<GraphicsPipeline, uint32_t>> m_CachedGraphicsPipelines;
 
         // Following are currently bound resources, which are basically index to the cache above.
 

@@ -35,9 +35,9 @@ namespace Coust::Render::VK
         };
     
     public:
-        SamplerCache(const Context& ctx);
+        SamplerCache(const Context& ctx) noexcept;
 
-        void Reset();
+        void Reset() noexcept;
 
         struct SamplerInfo 
         {
@@ -50,7 +50,7 @@ namespace Coust::Render::VK
             float                    maxAnisotropy = 16.0f;
         };
 
-        VkSampler Get(const SamplerInfo& info);
+        VkSampler Get(const SamplerInfo& info) noexcept;
 
     private:
         const Context& m_Ctx;

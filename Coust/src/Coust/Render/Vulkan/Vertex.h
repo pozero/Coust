@@ -34,12 +34,12 @@ namespace Coust::Render::VK
             size_t GetHash() const noexcept;
         };
 
-        VertexBuffer() = default;
-        ~VertexBuffer() = default;
+        VertexBuffer() noexcept = default;
+        ~VertexBuffer() noexcept = default;
 
-        void Add(std::string_view component[4], Buffer* buffer);
+        void Add(std::string_view component[4], Buffer* buffer) noexcept;
 
-        bool Get(const std::vector<ShaderResource>& resources, std::vector<VkBuffer>& out_Handles) const;
+        bool Get(const std::vector<ShaderResource>& resources, std::vector<VkBuffer>& out_Handles) const noexcept;
 
     private:
         std::unordered_map<LocationBundle, Buffer*, Hash::HashFn<LocationBundle>, Hash::EqualFn<LocationBundle>> m_VertexDataPerLocation;
@@ -57,7 +57,7 @@ namespace Coust::Render::VK
     public:
         explicit IndexBuffer(VkIndexType indexType, Buffer* buffer) noexcept;
 
-        std::tuple<VkBuffer, VkIndexType> Get() const;
+        std::pair<VkBuffer, VkIndexType> Get() const noexcept;
     
     private:
         Buffer* m_Buffer;
@@ -73,11 +73,11 @@ namespace Coust::Render::VK
         RenderPrimitive& operator=(const RenderPrimitive&) = delete;
     
     public:
-        RenderPrimitive() = default;
+        RenderPrimitive() noexcept = default;
 
         void Set(VertexBuffer* vertexBuffer, IndexBuffer *indexBuffer) noexcept;
 
-        std::tuple<VertexBuffer*, IndexBuffer*> Get() const noexcept;
+        std::pair<VertexBuffer*, IndexBuffer*> Get() const noexcept;
     
     private:
         VertexBuffer* m_VertexBuf;

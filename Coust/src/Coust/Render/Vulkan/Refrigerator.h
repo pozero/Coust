@@ -16,25 +16,17 @@ namespace Coust::Render::VK
         Refrigerator& operator=(const Refrigerator&) = delete;
 
     public:
-        explicit Refrigerator() = default;
+        explicit Refrigerator() noexcept = default;
 
         void Reset() noexcept;
 
-        template <typename T>
-        void Register(T* resource)
-        {
-            m_Resources[resource].deletor = [](void* res)
-            {
-                T* realType = (T*) res;
-                delete realType;
-            };
-        }
+        void Register(void* resource, std::function<void(void*)>&& deletor) noexcept;
 
         void Acquire(void* resource) noexcept;
 
         void Release(void* resource) noexcept;
 
-        void GC();
+        void GC() noexcept;
 
     private:
         struct Tag

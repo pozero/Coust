@@ -26,8 +26,6 @@ namespace Coust::Render::VK
         HostAndDevice,
     };
 
-    constexpr uint32_t COMMAND_QUEUE_COUNT = 3;
-
     class Buffer : public Resource<VkBuffer, VK_OBJECT_TYPE_BUFFER>
     {
     public:
@@ -83,9 +81,9 @@ namespace Coust::Render::VK
             const char*                         scopeName = nullptr;
             const char*                         dedicatedName = nullptr;
         };
-        explicit Buffer(const ConstructParam& param);
+        explicit Buffer(const ConstructParam& param) noexcept;
 
-        ~Buffer();
+        ~Buffer() noexcept;
 
         Buffer(Buffer&& other) noexcept;
         
@@ -96,34 +94,32 @@ namespace Coust::Render::VK
 
         void SetAlwaysFlush(bool shouldAlwaysFlush) noexcept;
         
-        /**
-         * @brief Flush memory if it's `HOST_VISIBLE` but not `HOST_COHERENT`
-         *        Note: Also, Windows drivers from all 3 PC GPU vendors (AMD, Intel, NVIDIA) currently provide HOST_COHERENT flag on all memory types that are HOST_VISIBLE, 
-         *              so on PC you may not need to bother.
-         *        https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/memory_mapping.html#memory_mapping_persistently_mapped_memory
-         */
-        void Flush() const;
+        // Flush memory if it's `HOST_VISIBLE` but not `HOST_COHERENT`
+        // Note: Also, Windows drivers from all 3 PC GPU vendors (AMD, Intel, NVIDIA) currently provide HOST_COHERENT flag on all memory types that are HOST_VISIBLE, 
+        //       so on PC you may not need to bother.
+        // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/memory_mapping.html#memory_mapping_persistently_mapped_memory
+        void Flush() const noexcept;
         
         template<typename T>
-        void Update(StagePool& stagePool, const T& obj, size_t offset = 0)
+        void Update(StagePool& stagePool, const T& obj, size_t offset = 0) noexcept
         {
             Update(stagePool, (const void*) &obj, sizeof(T), offset);
         }
         
         template<typename T>
-        void Update(StagePool& stagePool, const std::vector<T>& data, size_t offset = 0)
+        void Update(StagePool& stagePool, const std::vector<T>& data, size_t offset = 0) noexcept
         {
             Update(stagePool, (const void*) data.data(), sizeof(T) * data.size(), offset);
         }
         
         template<typename T>
-        void Update(StagePool& stagePool, const T* data, size_t count, size_t offset = 0)
+        void Update(StagePool& stagePool, const T* data, size_t count, size_t offset = 0) noexcept
         {
             Update(stagePool, (const void*) data, count * sizeof(T), offset);
         }
 
         // the update will check the memory domain and decide whether to use a staging buffer to update its content
-        void Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset = 0);
+        void Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset = 0) noexcept;
 
         const uint8_t* GetMappedData() const noexcept;
 
@@ -134,12 +130,6 @@ namespace Coust::Render::VK
         MemoryDomain GetMemoryDomain() const noexcept;
         
         bool IsValid() const noexcept;
-        
-    private:
-        /**
-         * @brief Actual construction happens here
-         */
-        bool Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const uint32_t* relatedQueues);
 
     private:
         VkDeviceSize m_Size;
@@ -182,7 +172,7 @@ namespace Coust::Render::VK
             View operator=(View&&) = delete;
             View& operator=(const View&) = delete;
 
-            const Image& GetImage() const;
+            const Image& GetImage() const noexcept;
 
             struct ConstructParam
             {
@@ -197,7 +187,7 @@ namespace Coust::Render::VK
 
             View(View&& other) noexcept;
 
-            ~View();
+            ~View() noexcept;
 
         private:
             Image& m_Image;
@@ -227,7 +217,7 @@ namespace Coust::Render::VK
             const char*                     dedicatedName = nullptr;
             const char*                     scopeName = nullptr;
         };
-        explicit Image(const ConstructParam_Create& param);
+        explicit Image(const ConstructParam_Create& param) noexcept;
 
         struct ConstructParam_Wrap
         {
@@ -240,9 +230,9 @@ namespace Coust::Render::VK
             const char*                 dedicatedName = nullptr;
             const char*                 scopeName = nullptr;
         };
-        explicit Image(const ConstructParam_Wrap& param);
+        explicit Image(const ConstructParam_Wrap& param) noexcept;
 
-        ~Image();
+        ~Image() noexcept;
 
         Image(Image&& other) noexcept;
 
@@ -262,26 +252,26 @@ namespace Coust::Render::VK
             uint32_t        dstImageLayerCount = 1;
             uint32_t        dstImageMipmapLevel = 0;
         };
-        void Update(StagePool& stagePool, const UpdateParam& p);
+        void Update(StagePool& stagePool, const UpdateParam& p) noexcept;
 
-        void TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange);
+        void TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange) noexcept;
 
         VkImageLayout GetLayout(uint32_t layer, uint32_t level) const noexcept;
 
         // If the class is just a wrapper around a `VkImage` handle, like a swapchain image, then its layout might be changed during renderpass.
         // We can use this method to keep track of the actual layout
-        void ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout);
+        void ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout) noexcept;
 
         // return or create the required image view
-        const View* GetView(VkImageSubresourceRange subRange);
+        const View* GetView(VkImageSubresourceRange subRange) noexcept;
 
-        const View* GetSingleLayerView(VkImageAspectFlags aspect, uint32_t layer, uint32_t mipLevel);
+        const View* GetSingleLayerView(VkImageAspectFlags aspect, uint32_t layer, uint32_t mipLevel) noexcept;
 
         // helper function related to primary subresource range
         VkImageLayout GetPrimaryLayout() const noexcept;
-        const View* GetPrimaryView() const;
+        const View* GetPrimaryView() const noexcept;
         VkImageSubresourceRange GetPrimarySubRange() const noexcept;
-        void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel);
+        void SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel) noexcept;
 
         VkExtent2D GetExtent() const noexcept;
 
@@ -341,11 +331,11 @@ namespace Coust::Render::VK
             uint32_t height;
 
         };
-        explicit HostImage(const ConstructParam& param);
+        explicit HostImage(const ConstructParam& param) noexcept;
 
-        ~HostImage();
+        ~HostImage() noexcept;
 
-        void Update(const void* data, size_t size);
+        void Update(const void* data, size_t size) noexcept;
 
         VkImageAspectFlags GetAspect() const noexcept;
 

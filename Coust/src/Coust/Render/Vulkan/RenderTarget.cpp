@@ -8,7 +8,7 @@ namespace Coust::Render::VK
         : image(&image), level(level), layer(layer)
     {}
 
-    RenderTarget::RenderTarget(const ConstrucParam& param)
+    RenderTarget::RenderTarget(const ConstrucParam& param) noexcept
         : m_Depth(param.depth), m_Extent(param.extent), m_AttachedToSwapchain(false)
     {
         for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
@@ -46,11 +46,7 @@ namespace Coust::Render::VK
                         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .scopeName = "RenderTarget MSAA",
                     };
-                    if (!Image::Create(m_MsaaColor[i].image, msaaIP))
-                    {
-                        COUST_CORE_ERROR("Creation msaa image for color attachment failed");
-                        return;
-                    }
+                    COUST_CORE_PANIC_IF(!Image::Create(m_MsaaColor[i].image, msaaIP), "Creation msaa image for color attachment failed");
                     attachment.image->SetMASSImage(std::shared_ptr<Image>{m_MsaaColor[i].image});
                 }
                 // Or the sample count of the color attachment is already multisampled, which means it doesn't require resolvement.
@@ -75,13 +71,12 @@ namespace Coust::Render::VK
                 .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                 .scopeName = "RenderTarget MSAA",
             };
-            if (!Image::Create(m_MsaaDepth.image, msaaIP))
-                COUST_CORE_ERROR("Creation msaa image for depth attachment failed");
+            COUST_CORE_PANIC_IF(!Image::Create(m_MsaaDepth.image, msaaIP), "Creation msaa image for depth attachment failed");
             m_Depth.image->SetMASSImage(std::shared_ptr<Image>{m_MsaaDepth.image});
         }
     }
 
-    RenderTarget::RenderTarget()
+    RenderTarget::RenderTarget() noexcept
         : m_AttachedToSwapchain(true)
     {}
 
@@ -101,6 +96,7 @@ namespace Coust::Render::VK
 
     void RenderTarget::Attach(const Swapchain& swapchain) noexcept
     {
+        COUST_CORE_ASSERT(m_AttachedToSwapchain, "Can't attach non-present render target to swapchain");
         m_Color[0].image = &swapchain.GetColorAttachment();
         m_Extent = swapchain.Extent;
     }

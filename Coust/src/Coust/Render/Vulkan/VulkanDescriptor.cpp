@@ -9,7 +9,7 @@
 
 namespace Coust::Render::VK
 {
-    inline VkDescriptorType GetDescriptorType(ShaderResourceType type, ShaderResourceUpdateMode mode)
+    inline VkDescriptorType GetDescriptorType(ShaderResourceType type, ShaderResourceUpdateMode mode) noexcept
     {
         switch (type) 
         {
@@ -27,51 +27,17 @@ namespace Coust::Render::VK
                     VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : 
                     VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             default:
-                COUST_CORE_ERROR("Can't find suitable `VkDescriptorType` for {}", ToString(type));
+                COUST_CORE_ASSERT(false, "Can't find suitable `VkDescriptorType` for {}", ToString(type));
                 return VK_DESCRIPTOR_TYPE_MAX_ENUM;
         }
     }
 
-    DescriptorSetLayout::DescriptorSetLayout(const ConstructParam& param) 
+    DescriptorSetLayout::DescriptorSetLayout(const ConstructParam& param)  noexcept
         : Base(param.ctx, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Set(param.set)
-    {
-        if (Construct(param.ctx, param.shaderResources))
-        {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, nullptr);
-            else
-                COUST_CORE_WARN("Descriptor set layout created without a debug name");
-        }
-        else  
-            m_Handle = VK_NULL_HANDLE;
-    }
-
-    DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept
-        : Base(std::forward<Base>(other)), Hashable(std::forward<Hashable>(other)),
-          m_Set(other.m_Set), 
-          m_Bindings(std::move(other.m_Bindings)), 
-          m_ResNameToBindingIdx(std::move(other.m_ResNameToBindingIdx))
-    {
-    }
-
-
-    DescriptorSetLayout::~DescriptorSetLayout()
-    {
-        vkDestroyDescriptorSetLayout(m_Ctx.Device, m_Handle, nullptr);
-    }
-
-    uint32_t DescriptorSetLayout::GetSetIndex() const noexcept { return m_Set; }
-    
-    const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& DescriptorSetLayout::GetBindings() const noexcept { return m_Bindings; }
-
-    bool DescriptorSetLayout::Construct(const Context& ctx, 
-                                        const std::vector<ShaderResource>& shaderResources)
     {
         std::vector<VkDescriptorSetLayoutBinding> bindingsVec{};
         bindingsVec.reserve(m_Bindings.size());
-        for (const auto& res : shaderResources)
+        for (const auto& res : param.shaderResources)
         {
             // skip resources without binding point
             if (res.Type == ShaderResourceType::Input ||
@@ -80,11 +46,8 @@ namespace Coust::Render::VK
                 res.Type == ShaderResourceType::SpecializationConstant)
                 continue;
 
-            if (res.Set != m_Set)
-            {
-                COUST_CORE_WARN("Required to bind shader resource {} with Set {} Bind {}, but the descriptor set index is {}", res.Name, res.Set, res.Binding, m_Set);
-                continue;
-            }
+            COUST_CORE_ASSERT(res.Set == m_Set,
+                "Required to bind shader resource {} with Set {} Bind {}, but the descriptor set index is {}", res.Name, res.Set, res.Binding, m_Set);
             
             // if (res.UpdateMode == ShaderResourceUpdateMode::UpdateAfterBind)
             //     m_RequiredPoolFlags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
@@ -96,18 +59,13 @@ namespace Coust::Render::VK
                 .descriptorCount    = res.ArraySize,
                 .stageFlags         = res.Stage,
             };
-            
-            if (auto iter = m_Bindings.find(res.Binding); iter == m_Bindings.end())
-            {
-                m_Bindings[res.Binding] = binding;
-                bindingsVec.push_back(binding);
-                m_ResNameToBindingIdx.emplace(res.Name, res.Binding);
-            }
-            else 
-            {
-                COUST_CORE_ERROR("There are different shader resources with the same binding while constructing {}. The conflicting binding is: Name {} -> Set {}, Binding {}", m_DebugName, res.Name, m_Set, res.Binding);
-                return false;
-            }
+            auto iter = m_Bindings.find(res.Binding);
+            COUST_CORE_PANIC_IF( iter != m_Bindings.end(), 
+                "There are different shader resources with the same binding while constructing {}. The conflicting binding is: Name {} -> Set {}, Binding {}", 
+                m_DebugName, res.Name, m_Set, res.Binding);
+            m_Bindings[res.Binding] = binding;
+            bindingsVec.push_back(binding);
+            m_ResNameToBindingIdx.emplace(res.Name, res.Binding);
         }
         
         VkDescriptorSetLayoutCreateInfo ci 
@@ -117,23 +75,44 @@ namespace Coust::Render::VK
             .bindingCount       = (uint32_t) bindingsVec.size(),
             .pBindings          = bindingsVec.data(),
         };
-        VK_CHECK(vkCreateDescriptorSetLayout(ctx.Device, &ci, nullptr, &m_Handle));
-        return true;
+        VK_CHECK(vkCreateDescriptorSetLayout(param.ctx.Device, &ci, nullptr, &m_Handle), "Can't create descriptor set layout {} {}", param.scopeName, param.dedicatedName);
+
+#ifndef COUST_FULL_RELEASE
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, nullptr);
+        else
+            COUST_CORE_WARN("Descriptor set layout created without a debug name");
+#endif
     }
 
-    std::optional<VkDescriptorSetLayoutBinding> DescriptorSetLayout::GetBinding(uint32_t bindingIdx) const noexcept
+    DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept
+        : Base(std::forward<Base>(other)), Hashable(std::forward<Hashable>(other)),
+          m_Set(other.m_Set), 
+          m_Bindings(std::move(other.m_Bindings)), 
+          m_ResNameToBindingIdx(std::move(other.m_ResNameToBindingIdx))
+    {
+    }
+
+
+    DescriptorSetLayout::~DescriptorSetLayout() noexcept
+    {
+        vkDestroyDescriptorSetLayout(m_Ctx.Device, m_Handle, nullptr);
+    }
+
+    uint32_t DescriptorSetLayout::GetSetIndex() const noexcept { return m_Set; }
+    
+    const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& DescriptorSetLayout::GetBindings() const noexcept { return m_Bindings; }
+
+    VkDescriptorSetLayoutBinding DescriptorSetLayout::GetBinding(uint32_t bindingIdx) const noexcept
     {
         auto iter = m_Bindings.find(bindingIdx);
-        if (iter != m_Bindings.end())
-            return iter->second;
-        else
-        {
-            COUST_CORE_WARN("{}: Requesting a non-existent descriptor set binding. The binding is: Set {}, Binding {}", m_DebugName, m_Set, bindingIdx);
-            return {};
-        }
+        COUST_CORE_PANIC_IF(iter == m_Bindings.end(), "{}: Requesting a non-existent descriptor set binding. The binding is: Set {}, Binding {}", m_DebugName, m_Set, bindingIdx);
+        return iter->second;
     }
     
-    std::optional<VkDescriptorSetLayoutBinding> DescriptorSetLayout::GetBinding(const std::string& name) const noexcept
+    VkDescriptorSetLayoutBinding DescriptorSetLayout::GetBinding(const std::string& name) const noexcept
     {
         auto nameIter = m_ResNameToBindingIdx.find(name);
         if (nameIter != m_ResNameToBindingIdx.end())
@@ -143,13 +122,13 @@ namespace Coust::Render::VK
                 return bindingIter->second;
         }
 
-        COUST_CORE_WARN("{}: Requesting a non-existent descriptor set binding. The binding name is {}", m_DebugName, name);
+        COUST_CORE_PANIC_IF(true, "{}: Requesting a non-existent descriptor set binding. The binding name is {}", m_DebugName, name);
         return {};
     }
 
     VkDescriptorPoolCreateFlags DescriptorSetLayout::GetRequiredPoolFlags() const noexcept { return m_RequiredPoolFlags; }
 
-    DescriptorSet::DescriptorSet(const ConstructParam& param)
+    DescriptorSet::DescriptorSet(const ConstructParam& param) noexcept
         : Base(*param.ctx, VK_NULL_HANDLE),
           Hashable(param.GetHash()),
           m_GPUProerpties(*param.ctx->GPUProperties),
@@ -160,15 +139,13 @@ namespace Coust::Render::VK
           m_SetIdx(param.setIndex)
     {
         m_Handle = m_Allocator.Allocate();
-        if (m_Handle != VK_NULL_HANDLE)
-        {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, nullptr);
-
-            Prepare();
-        }
+#ifndef COUST_FULL_RELEASE
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, nullptr);
+#endif
+        Prepare();
     }
 
     DescriptorSet::DescriptorSet(DescriptorSet&& other) noexcept
@@ -184,47 +161,43 @@ namespace Coust::Render::VK
     {
     }
 
-    DescriptorSet::~DescriptorSet()
+    DescriptorSet::~DescriptorSet() noexcept
     {
         if (m_Handle != VK_NULL_HANDLE)
             m_Allocator.Release(m_Handle);
     }
 
-    void DescriptorSet::Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos,
-                              const std::optional<std::vector<BoundArray<Image>>>& imageInfos)
-    {
-        if (bufferInfos.has_value())
-            m_BufferInfos = bufferInfos.value();
-        else  
-            m_BufferInfos.clear();
+    // void DescriptorSet::Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos,
+    //                           const std::optional<std::vector<BoundArray<Image>>>& imageInfos)
+    // {
+    //     if (bufferInfos.has_value())
+    //         m_BufferInfos = bufferInfos.value();
+    //     else  
+    //         m_BufferInfos.clear();
 
-        if (imageInfos.has_value())
-            m_ImageInfos = imageInfos.value();
-        else
-             m_ImageInfos.clear();
+    //     if (imageInfos.has_value())
+    //         m_ImageInfos = imageInfos.value();
+    //     else
+    //          m_ImageInfos.clear();
         
-        m_Writes.clear();
-        m_AppliedWrites.clear();
+    //     m_Writes.clear();
+    //     m_AppliedWrites.clear();
         
-        Prepare();
-    }
+    //     Prepare();
+    // }
 
-    void DescriptorSet::ApplyWrite(uint32_t bindingsToUpdateMask)
-    {
-        VkWriteDescriptorSet writeNotYetApplied[sizeof(bindingsToUpdateMask)];
-        uint32_t curIdx = 0;
+    void DescriptorSet::ApplyWrite(uint32_t bindingsToUpdateMask) noexcept
+    {   
+        std::vector<VkWriteDescriptorSet> writeNotYetApplied;
+        writeNotYetApplied.reserve(sizeof(bindingsToUpdateMask));
         for (uint32_t i = 0; i < m_Writes.size(); ++ i)
         {
-            if (i >= sizeof(bindingsToUpdateMask))
-            {
-                COUST_CORE_ERROR("There're more than {} binding slots, the type of binding mask should upscale");
-                continue;
-            }
+            COUST_CORE_ASSERT(i < sizeof(bindingsToUpdateMask), "There're more than {} binding slots, the type of binding mask should upscale", sizeof(bindingsToUpdateMask));
             if ((1 << i) & bindingsToUpdateMask)
             {
                 if (!HasBeenApplied(m_Writes[i]))
                 {
-                    writeNotYetApplied[curIdx++] = m_Writes[i];
+                    writeNotYetApplied.push_back(m_Writes[i]);
                     // record this write
                     size_t hash = Hash::HashFn<VkWriteDescriptorSet>{}(m_Writes[i]);
                     m_AppliedWrites[m_Writes[i].dstBinding] = hash;
@@ -232,11 +205,11 @@ namespace Coust::Render::VK
             }
         }
 
-        if (curIdx != 0)
-            vkUpdateDescriptorSets(m_Ctx.Device, curIdx, writeNotYetApplied, 0, nullptr);
+        if (!writeNotYetApplied.empty())
+            vkUpdateDescriptorSets(m_Ctx.Device, (uint32_t) writeNotYetApplied.size(), writeNotYetApplied.data(), 0, nullptr);
     }
 
-    void DescriptorSet::ApplyWrite(bool overwrite)
+    void DescriptorSet::ApplyWrite(bool overwrite) noexcept
     {
         if (overwrite)
         {
@@ -275,11 +248,11 @@ namespace Coust::Render::VK
 
     uint32_t DescriptorSet::GetSetIndex() const noexcept { return m_SetIdx; }
 
-    void DescriptorSet::Prepare()
+    void DescriptorSet::Prepare() noexcept
     {
         if (!m_Writes.empty())
         {
-            COUST_CORE_WARN("Can't prepare a descriptor set with a fulfilled write operation vectors.");
+            COUST_CORE_WARN("Can't prepare a descriptor set with the same operation vectors twice.");
             return;
         }
 
@@ -322,7 +295,7 @@ namespace Coust::Render::VK
                     // A pointer to an object of standard-layout class type can be reinterpret_cast to pointer to its first non-static non-bitfield data member 
                     // (if it has non-static data members) or otherwise any of its base class subobjects (if it has any), and vice versa. 
                     // In other words, padding is not allowed before the first data member of a standard-layout type.
-                    static_assert(std::is_standard_layout<BoundElement<Buffer>>::value, "");
+                    static_assert(std::is_standard_layout_v<BoundElement<Buffer>>, "");
                     VkWriteDescriptorSet write
                     {
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -355,7 +328,7 @@ namespace Coust::Render::VK
                     if (i.imageView == VK_NULL_HANDLE)
                         continue;
 
-                    static_assert(std::is_standard_layout<BoundElement<Image>>::value, "");
+                    static_assert(std::is_standard_layout_v<BoundElement<Image>>, "");
                     VkWriteDescriptorSet write
                     {
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -387,7 +360,7 @@ namespace Coust::Render::VK
         return false;
     }
     
-    DescriptorSetAllocator::DescriptorSetAllocator(const ConstructParam& param)
+    DescriptorSetAllocator::DescriptorSetAllocator(const ConstructParam& param) noexcept
         : Hashable(param.GetHash()), m_Ctx(param.ctx), m_Layout(&param.layout), m_MaxSetsPerPool(param.maxSets)
     {
         // Get count of each type of descriptor, this information then becomes our template to create descriptor pool
@@ -421,7 +394,7 @@ namespace Coust::Render::VK
     {
     }
     
-    DescriptorSetAllocator::~DescriptorSetAllocator()
+    DescriptorSetAllocator::~DescriptorSetAllocator() noexcept
     {
         Reset();
 
@@ -431,9 +404,9 @@ namespace Coust::Render::VK
         }
     }
 
-    const DescriptorSetLayout& DescriptorSetAllocator::GetLayout() const { return *m_Layout; }
+    const DescriptorSetLayout& DescriptorSetAllocator::GetLayout() const noexcept { return *m_Layout; }
 
-    VkDescriptorSet DescriptorSetAllocator::Allocate()
+    VkDescriptorSet DescriptorSetAllocator::Allocate() noexcept
     {
         if (!m_FreeSets.empty())
         {
@@ -442,11 +415,7 @@ namespace Coust::Render::VK
             return set;
         }
 
-        if (!RequireFactory())
-        {
-            COUST_CORE_ERROR("Can't create descriptor pool, `VK_NULL_HANDLE` is returned");
-            return VK_NULL_HANDLE;
-        }
+        RequireFactory();
         
         ++ m_Factories[m_CurrentFactoryIdx].CurrentProductCount;
         VkDescriptorSetLayout layout = m_Layout->GetHandle();
@@ -457,20 +426,12 @@ namespace Coust::Render::VK
             .descriptorSetCount = 1,
             .pSetLayouts = &layout,
         };
-        bool succeeded = false;
         VkDescriptorSet set = VK_NULL_HANDLE;
-        VK_REPORT(vkAllocateDescriptorSets(m_Ctx.Device, &ai, &set), succeeded);
-        if (!succeeded)
-        {
-            -- m_Factories[m_CurrentFactoryIdx].CurrentProductCount;
-            COUST_CORE_ERROR("Can't allocate descriptor set, `VK_NULL_HANDLE` is returned");
-            return VK_NULL_HANDLE;
-        }
-        // m_UsedSets.push_back(set);
+        VK_CHECK(vkAllocateDescriptorSets(m_Ctx.Device, &ai, &set), "Can't allocate descriptor set");
         return set;
     }
 
-    void DescriptorSetAllocator::Release(VkDescriptorSet set)
+    void DescriptorSetAllocator::Release(VkDescriptorSet set) noexcept
     {
         m_FreeSets.push_back(set);
     }
@@ -529,7 +490,7 @@ namespace Coust::Render::VK
         }
     }
     
-    bool DescriptorSetAllocator::RequireFactory()
+    void DescriptorSetAllocator::RequireFactory() noexcept
     {
         uint32_t searchIdx = m_CurrentFactoryIdx;
         while (true)
@@ -550,7 +511,7 @@ namespace Coust::Render::VK
                 };
 
                 VkDescriptorPool pool = VK_NULL_HANDLE;
-                VK_CHECK(vkCreateDescriptorPool(m_Ctx.Device, &ci, nullptr, &pool));
+                VK_CHECK(vkCreateDescriptorPool(m_Ctx.Device, &ci, nullptr, &pool), "Can't create descriptor pool");
                 
                 m_Factories.emplace_back(m_Ctx, pool);
                 break;
@@ -564,13 +525,10 @@ namespace Coust::Render::VK
         }
         
         m_CurrentFactoryIdx = searchIdx;
-        return true;
     }
 
-
-
     /* Hashes */
-    size_t DescriptorSetLayout::ConstructParam::GetHash() const
+    size_t DescriptorSetLayout::ConstructParam::GetHash() const noexcept
     {
         size_t h = 0;
         for (const auto& s : shaderModules)
@@ -580,7 +538,7 @@ namespace Coust::Render::VK
         return h;
     }
 
-    size_t DescriptorSet::ConstructParam::GetHash() const
+    size_t DescriptorSet::ConstructParam::GetHash() const noexcept
     {
         size_t h = 0;
 
@@ -609,7 +567,7 @@ namespace Coust::Render::VK
         return h;
     }
 
-    size_t DescriptorSetAllocator::ConstructParam::GetHash() const
+    size_t DescriptorSetAllocator::ConstructParam::GetHash() const noexcept
     {
         size_t h = 0;
         Hash::Combine(h, layout);

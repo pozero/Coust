@@ -49,8 +49,8 @@ namespace Coust::Render::VK
             NonExist,
         };
 
-        CommandBuffer() = default;
-        ~CommandBuffer() = default;
+        CommandBuffer() noexcept = default;
+        ~CommandBuffer() noexcept = default;
 
         CommandBuffer(CommandBuffer&&) = delete;
         CommandBuffer(const CommandBuffer&) = delete;
@@ -73,7 +73,7 @@ namespace Coust::Render::VK
     public:
         CommandBufferCache(const Context& ctx, bool isCompute = false) noexcept;
 
-        ~CommandBufferCache();
+        ~CommandBufferCache() noexcept;
 
         CommandBufferCache() = delete;
         CommandBufferCache(CommandBufferCache&&) = delete;

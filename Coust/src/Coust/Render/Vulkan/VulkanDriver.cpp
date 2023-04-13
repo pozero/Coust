@@ -93,20 +93,20 @@ namespace Coust::Render::VK
         };
     }
 
-    Driver::Driver()
+    Driver::Driver() noexcept
         : m_StagePool(m_Context),
           m_Swapchain(m_Context),
           m_GraphicsPipeCache(m_Context),
           m_SamplerCache(m_Context)
     {
-        VK_REPORT(volkInitialize(), m_IsInitialized);
+        VK_CHECK(volkInitialize(), "Can't initialize volk");
 
-        m_IsInitialized = m_IsInitialized && CreateInstance() &&
+        CreateInstance();
 #ifndef COUST_FULL_RELEASE
-            CreateDebugMessengerAndReportCallback() &&
+        CreateDebugMessengerAndReportCallback();
 #endif
-            CreateSurface() &&
-            SelectPhysicalDeviceAndCreateDevice();
+        CreateSurface();
+        SelectPhysicalDeviceAndCreateDevice();
 
         m_Context.CmdBufCacheGraphics = new CommandBufferCache{ m_Context, false };
         m_Context.PresentRenderTarget = new RenderTarget();
@@ -120,7 +120,7 @@ namespace Coust::Render::VK
             });
     }
 
-    Driver::~Driver()
+    Driver::~Driver() noexcept
     {
         m_IsInitialized = false;
 
@@ -147,7 +147,7 @@ namespace Coust::Render::VK
         vkDestroyInstance(m_Context.Instance, nullptr);
     }
 
-    bool Driver::CreateInstance()
+    void Driver::CreateInstance() noexcept
     {
         VkApplicationInfo appInfo
         {
@@ -193,11 +193,7 @@ namespace Coust::Render::VK
                     if (strcmp(requiredEXT, providedEXT.extensionName) == 0)
                         found = true;
                 }
-                if (!found)
-                {
-                    COUST_CORE_ERROR("Required extension not found when creating vulkan instance");
-                    return false;
-                }
+                COUST_CORE_PANIC_IF(!found, "Required extension not found when creating vulkan instance");
             }
             instanceInfo.enabledExtensionCount   = (uint32_t) requiredExtensions.size();
             instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
@@ -222,49 +218,41 @@ namespace Coust::Render::VK
                     if (strcmp(requiredLayer, providedLayer.layerName) == 0)
                         found = true;
                 }
-                if (!found)
-                {
-                    COUST_CORE_ERROR("Required layer not found when creating vulkan instance");
-                    return false;
-                }
+                COUST_CORE_PANIC_IF(!found, "Required layer not found when creating vulkan instance");
             }
             instanceInfo.enabledLayerCount = (uint32_t) requiredLayers.size();
             instanceInfo.ppEnabledLayerNames = requiredLayers.data();
         }
  
 #ifndef COUST_FULL_RELEASE
-           VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = DebugMessengerCreateInfo();
-         instanceInfo.pNext                       = (void*)&debugMessengerCreateInfo;
+        VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = DebugMessengerCreateInfo();
+        instanceInfo.pNext = (void*)&debugMessengerCreateInfo;
 #endif
 
-        VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &m_Context.Instance));
+        VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &m_Context.Instance), "Can't create Vulkan instance");
 
         volkLoadInstance(m_Context.Instance);
-        return true;
     }
 
-    bool Driver::CreateDebugMessengerAndReportCallback()
+    void Driver::CreateDebugMessengerAndReportCallback() noexcept
     {
         {
             VkDebugUtilsMessengerCreateInfoEXT info = DebugMessengerCreateInfo();
-               VK_CHECK(vkCreateDebugUtilsMessengerEXT(m_Context.Instance, &info, nullptr, &m_Context.DebugMessenger));
+               VK_CHECK(vkCreateDebugUtilsMessengerEXT(m_Context.Instance, &info, nullptr, &m_Context.DebugMessenger), "Can't create debug messenger");
         }
 
         {
             VkDebugReportCallbackCreateInfoEXT info = DebugReportCallbackCreateInfo();
-            VK_CHECK(vkCreateDebugReportCallbackEXT(m_Context.Instance, &info, nullptr, &m_Context.DebugReportCallback));
+            VK_CHECK(vkCreateDebugReportCallbackEXT(m_Context.Instance, &info, nullptr, &m_Context.DebugReportCallback), "Can't create debug report callback");
         }
-
-        return true;
     }
 
-    bool Driver::CreateSurface()
+    void Driver::CreateSurface() noexcept
     {
-        VK_CHECK(glfwCreateWindowSurface(m_Context.Instance, GlobalContext::Get().GetWindow().GetHandle(), nullptr, &m_Context.Surface));
-        return true;
+        VK_CHECK(glfwCreateWindowSurface(m_Context.Instance, GlobalContext::Get().GetWindow().GetHandle(), nullptr, &m_Context.Surface), "Can't create surface");
     }
 
-    bool Driver::SelectPhysicalDeviceAndCreateDevice()
+    void Driver::SelectPhysicalDeviceAndCreateDevice() noexcept
     {
         std::vector <const char*> requiredDeviceExtensions
         {
@@ -274,11 +262,7 @@ namespace Coust::Render::VK
         {
             uint32_t physicalDeviceCount = 0;
             vkEnumeratePhysicalDevices(m_Context.Instance, &physicalDeviceCount, nullptr);
-            if (physicalDeviceCount == 0)
-            {
-                COUST_CORE_ERROR("Not physical device with vulkan support found");
-                return false;
-            }
+            COUST_CORE_PANIC_IF(physicalDeviceCount == 0, "Not physical device with vulkan support found");
             std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
             vkEnumeratePhysicalDevices(m_Context.Instance, &physicalDeviceCount, physicalDevices.data());
 
@@ -388,11 +372,7 @@ namespace Coust::Render::VK
                     }
                 }
             }
-            if (m_Context.PhysicalDevice == VK_NULL_HANDLE)
-            {
-                COUST_CORE_ERROR("No suitable physical device found");
-                return false;
-            }
+            COUST_CORE_PANIC_IF(m_Context.PhysicalDevice == VK_NULL_HANDLE, "No suitable physical device found");
 
             vkGetPhysicalDeviceProperties(m_Context.PhysicalDevice, m_Context.GPUProperties.get());
         }
@@ -456,7 +436,7 @@ namespace Coust::Render::VK
                     .ppEnabledExtensionNames = requiredDeviceExtensions.data(),
                     .pEnabledFeatures = &physicalDeviceFeatures,
                 };
-                VK_CHECK(vkCreateDevice(m_Context.PhysicalDevice, &deviceInfo, nullptr, &m_Context.Device));
+                VK_CHECK(vkCreateDevice(m_Context.PhysicalDevice, &deviceInfo, nullptr, &m_Context.Device), "Can't create vulkan device");
             }
 
             volkLoadDevice(m_Context.Device);
@@ -479,10 +459,9 @@ namespace Coust::Render::VK
                     .instance			= m_Context.Instance,
                     .vulkanApiVersion	= VULKAN_API_VERSION,
                 };
-                VK_CHECK(vmaCreateAllocator(&vmaAllocInfo, &m_Context.VmaAlloc));
+                VK_CHECK(vmaCreateAllocator(&vmaAllocInfo, &m_Context.VmaAlloc), "Can't create VMA allocator");
             }
         }
-        return true;
     }
 
 //////////////////////////////////////
@@ -497,11 +476,11 @@ namespace Coust::Render::VK
         m_Context.CmdBufCacheGraphics->GC();
     }
 
-    void Driver::BegingFrame() 
+    void Driver::BegingFrame()  noexcept
     {
     }
 
-    void Driver::EndFrame()
+    void Driver::EndFrame() noexcept
     {
         // Only collect garbage when a command buffer gets submitted (next frame)
         if (m_Context.CmdBufCacheGraphics->Flush())
@@ -515,25 +494,144 @@ namespace Coust::Render::VK
 
 //////////////////////////////////////
 /////           TEST             /////
-//////////////////////////////////////
+////////////////////////////////////// 
+        std::unique_ptr<Image> cuteCat{ nullptr };
 
     void Driver::InitializationTest()
     {
+        auto path = FileSystem::GetFullPathFrom({ "Coust", "asset", "orange-cat-face-pixabay.jpg" });
+        int width = 0, height = 0, channel = 0;
+        auto data = stbi_load(path.string().c_str(), &width, &height, &channel, STBI_rgb_alpha);
+        Image::ConstructParam_Create p 
+        {
+            .ctx = m_Context,
+            .width = (uint32_t) width,
+            .height = (uint32_t) height,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .usage = Image::Usage::Texture2D,
+            .mipLevels = 1,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .dedicatedName = "Test image",
+        };
+        if (!Image::Create(cuteCat, p))
+            return;
+        Image::UpdateParam up 
+        {
+            .dataFormat = VK_FORMAT_R8G8B8A8_UNORM,
+            .width = (uint32_t) width,
+            .height = (uint32_t) height,
+            .data = data,
+            .dstImageLayer = 0,
+            .dstImageLayerCount = 1,
+            .dstImageMipmapLevel = 0,
+        };
+        cuteCat->Update(m_StagePool, up);
+
         m_Context.CmdBufCacheGraphics->Flush();
     }
 
     void Driver::LoopTest()
     {
+        m_Context.CmdBufCacheGraphics->GC();
         m_StagePool.GC();
         m_FBOCache.GC();
-        m_Context.CmdBufCacheGraphics->GC();
+
+        RenderPass::ConstructParam rp 
+        {
+			.ctx = m_Context,
+			.depthFormat = VK_FORMAT_UNDEFINED,
+			.clearMask = 0u,
+			.discardStartMask = COLOR0 | DEPTH,
+			.discardEndMask = COLOR0 | DEPTH,
+			.sample = VK_SAMPLE_COUNT_1_BIT,
+			.resolveMask = 0u,
+			.inputAttachmentMask = 0u,
+			.depthResolve = false,
+			.dedicatedName = "Test Render Pass",
+        };
+        rp.colorFormat[0] = m_Swapchain.SurfaceFormat.format;
+        auto r = m_FBOCache.GetRenderPass(rp);
+
+        Framebuffer::ConstructParam fp 
+        {
+			.ctx = m_Context,
+			.renderPass = *r,
+			.width = m_Swapchain.Extent.width,
+			.height = m_Swapchain.Extent.height,
+			.layers = 1u,
+			.depth = nullptr,
+			.depthResolve = nullptr,
+			.dedicatedName = "Test Framebuffer",
+        }; 
+        fp.color[0] = m_Swapchain.GetColorAttachment().GetSingleLayerView(VK_IMAGE_ASPECT_COLOR_BIT, 0, 0);
+        auto f = m_FBOCache.GetFramebuffer(fp); (void) f;
+
+        ShaderSource vs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.vert" })};
+        ShaderModule::ConstructParm smpV
+        {
+            .ctx = m_Context,
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .source = vs,
+            .dedicatedName = "Test Vertex Shader Module",
+        };
+        m_GraphicsPipeCache.BindShader(smpV);
+
+        ShaderSource fs{ FileSystem::GetFullPathFrom({ "Coust", "shaders", "triangle.frag" })};
+        ShaderModule::ConstructParm smpF
+        {
+            .ctx = m_Context,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .source = fs,
+            .dedicatedName = "Test Vertex Shader Module",
+        };
+        m_GraphicsPipeCache.BindShader(smpF);
+
+        m_GraphicsPipeCache.BindShaderFinished();
+
+        if (!m_GraphicsPipeCache.BindPipelineLayout()) return;
+
+        GraphicsPipeline::RasterState defaultRS{};
+        m_GraphicsPipeCache.BindRasterState(defaultRS);
+
+        m_GraphicsPipeCache.BindRenderPass(r, 0);
+
+        if (cuteCat)
+        {
+            SamplerCache::SamplerInfo defaultSI{};
+            VkSampler sampler = m_SamplerCache.Get(defaultSI);
+            m_GraphicsPipeCache.BindImage("tex1", sampler, *cuteCat, 0);
+        }
+
+        VkCommandBuffer cmdBuf = m_Context.CmdBufCacheGraphics->Get();
+
+        m_GraphicsPipeCache.BindDescriptorSet(cmdBuf);
+        m_GraphicsPipeCache.BindPipeline(cmdBuf);
 
         m_Context.CmdBufCacheGraphics->Flush();
     }
 
     void Driver::ShutdownTest()
     {
+        cuteCat.reset();
     }
+
+    // void Driver::InitializationTest()
+    // {
+    //     m_Context.CmdBufCacheGraphics->Flush();
+    // }
+
+    // void Driver::LoopTest()
+    // {
+    //     m_StagePool.GC();
+    //     m_FBOCache.GC();
+    //     m_Context.CmdBufCacheGraphics->GC();
+
+    //     m_Context.CmdBufCacheGraphics->Flush();
+    // }
+
+    // void Driver::ShutdownTest()
+    // {
+    // }
 
 //////////////////////////////////////
 /////           TEST             /////

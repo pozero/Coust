@@ -115,7 +115,7 @@ namespace Coust::Render::VK
     bool SPIRVReflectShaderResource(const std::vector<uint32_t>& spirv, 
                                     VkShaderStageFlagBits stage,
                                     const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                    std::vector<ShaderResource>& out_ShaderResource);
+                                    std::vector<ShaderResource>& out_ShaderResource) noexcept;
     
     /**
      * @brief Helper class to manage source file path , shader macro and dynamic buffer size declaration (for reflection)
@@ -128,16 +128,16 @@ namespace Coust::Render::VK
             : m_SourceFilePath(sourceFilePath)
         {}
 
-        ShaderSource(const ShaderSource& other) = default;
-        ShaderSource(ShaderSource&& other) = default;
+        ShaderSource(const ShaderSource& other) noexcept = default;
+        ShaderSource(ShaderSource&& other) noexcept = default;
         
-        ~ShaderSource() = default;
+        ~ShaderSource() noexcept = default;
         
-        ShaderSource() = delete;
+        ShaderSource() noexcept = delete;
         
         size_t GetHash() const noexcept;
 
-        const std::string& GetCode();
+        const std::string& GetCode() noexcept;
 
         const std::filesystem::path& GetPath() const noexcept;
         
@@ -145,11 +145,11 @@ namespace Coust::Render::VK
         
         const std::unordered_map<std::string, size_t>& GetDesiredDynamicBufferSize() const noexcept;
         
-        void AddMacro(const std::string& name, const std::string& value);
+        void AddMacro(const std::string& name, const std::string& value) noexcept;
         
-        void DeleteMacroByName(const std::string& name);
+        void DeleteMacroByName(const std::string& name) noexcept;
         
-        void SetDynamicBufferSize(std::string_view name, size_t size);
+        void SetDynamicBufferSize(std::string_view name, size_t size) noexcept;
         
     private:
         std::filesystem::path m_SourceFilePath;
@@ -172,7 +172,7 @@ namespace Coust::Render::VK
     private:
         friend class ShaderModule;
 
-        ShaderByteCode(const std::string& sourcePath, std::vector<uint32_t>&& byteCode, bool shouldBeFlushed)
+        ShaderByteCode(const std::string& sourcePath, std::vector<uint32_t>&& byteCode, bool shouldBeFlushed) noexcept
         	: CacheTag(0), SourcePath(sourcePath), ByteCode(byteCode), ShouldBeFlushed(shouldBeFlushed)
         {}
         
@@ -180,11 +180,11 @@ namespace Coust::Render::VK
         /**
          * @brief Flush the byte code with its name to FileSystem if needs to
          */
-        ~ShaderByteCode();
+        ~ShaderByteCode() noexcept;
 
-        ShaderByteCode() = default;
-        ShaderByteCode(ShaderByteCode&&) = default;
-        ShaderByteCode& operator=(ShaderByteCode&&) = default;
+        ShaderByteCode() noexcept = default;
+        ShaderByteCode(ShaderByteCode&&) noexcept = default;
+        ShaderByteCode& operator=(ShaderByteCode&&) noexcept = default;
 
         ShaderByteCode(const ShaderByteCode&) = delete;
         ShaderByteCode& operator=(const ShaderByteCode&) = delete;
@@ -220,13 +220,13 @@ namespace Coust::Render::VK
          */
         static void CollectShaderResources(const std::vector<ShaderModule*>& modules, 
                                            std::vector<ShaderResource>& out_AllShaderResources, 
-                                           std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup);
+                                           std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup) noexcept;
         
         static void CollectShaderInputs(const std::vector<ShaderModule*>& modules,
             uint32_t perInstanceInputMask,  // (1 << l) & perInstanceInputMask != 0 means the input rate of data in location l is per instance
                                             // Also, the maxVertexInputAttributes for 1050 is just 32, so a uint32_t mask is just fine
             std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
-            std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions);
+            std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions) noexcept;
         
     public:
         struct ConstructParm
@@ -239,11 +239,11 @@ namespace Coust::Render::VK
 
             size_t GetHash() const;
         };
-        explicit ShaderModule(const ConstructParm& param);
+        explicit ShaderModule(const ConstructParm& param) noexcept;
 
         ShaderModule(ShaderModule&& other) noexcept;
         
-        ~ShaderModule();
+        ~ShaderModule() noexcept;
         
         ShaderModule() = delete;
         ShaderModule(const ShaderModule&) = delete;
@@ -251,7 +251,7 @@ namespace Coust::Render::VK
         ShaderModule& operator=(const ShaderModule& other) = delete;
         
         // get disassembled glsl code, this might be useful if we want to check the including and optimization state.
-        std::string GetDisassembledSPIRV();
+        std::string GetDisassembledSPIRV() noexcept;
 
         VkShaderStageFlagBits GetStage() const noexcept;
 
@@ -262,13 +262,6 @@ namespace Coust::Render::VK
         bool IsValid() const noexcept;
         
     private:
-        /**
-         * @brief Actual constructor, compilation & reflection happens here
-         * @param ctx 
-         */
-        bool Construct(const Context& ctx);
-
-    private:
         VkShaderStageFlagBits m_Stage;
         
         ShaderSource m_Source;
@@ -278,11 +271,11 @@ namespace Coust::Render::VK
         std::vector<ShaderResource> m_Resources;
     };
 
-    const char* ToString(ShaderResourceType type);
+    const char* ToString(ShaderResourceType type) noexcept;
     
-    const char* ToString(ShaderResourceBaseType type);
+    const char* ToString(ShaderResourceBaseType type) noexcept;
     
-    std::string ToString(const ShaderResourceMember* pMem);
+    std::string ToString(const ShaderResourceMember* pMem) noexcept;
     
-    std::string ToString(const ShaderResource& res);
+    std::string ToString(const ShaderResource& res) noexcept;
 }

@@ -9,56 +9,12 @@
 
 namespace Coust::Render::VK 
 {
-	RenderPass::RenderPass(const ConstructParam& p)
+	RenderPass::RenderPass(const ConstructParam& p) noexcept
         : Base(p.ctx, VK_NULL_HANDLE),
           Hashable(p.GetHash())
     {
-        if (Construct(&p.colorFormat[0], p.depthFormat, p.clearMask, p.discardStartMask, p.discardEndMask, p.sample, p.resolveMask, p.inputAttachmentMask, p.depthResolve))
-        {
-            if (p.dedicatedName)
-                SetDedicatedDebugName(p.dedicatedName);
-            else if (p.scopeName)
-                SetDefaultDebugName(p.scopeName, nullptr);
-            else
-                COUST_CORE_WARN("Render pass created without debug name");
-        }
-        else  
-            m_Handle = VK_NULL_HANDLE;
-    }
-
-	RenderPass::RenderPass(RenderPass&& other) noexcept
-        : Base(std::forward<Base>(other)),
-          Hashable(std::forward<Hashable>(other))
-    {
-    }
-
-	RenderPass::~RenderPass()
-    {
-        if (m_Handle != VK_NULL_HANDLE)
-            vkDestroyRenderPass(m_Ctx.Device, m_Handle, nullptr);
-    }
-
-
-	const VkExtent2D RenderPass::GetRenderAreaGranularity() const noexcept
-    { 
-        VkExtent2D res{};
-        if (m_Handle != VK_NULL_HANDLE)
-            vkGetRenderAreaGranularity(m_Ctx.Device, m_Handle, &res);
-        return res;
-    }
-
-    bool RenderPass::Construct( const VkFormat* colorFormat,
-                                VkFormat depthFormat,
-                                AttachmentFlags clearMask,
-                                AttachmentFlags discardStartMask,
-                                AttachmentFlags discardEndMask,
-                                VkSampleCountFlagBits sample,
-                                uint8_t resolveMask,
-                                uint8_t inputAttachmentMask,
-                                bool depthResolve)
-    {
-        const bool hasSubpasses = (inputAttachmentMask != 0);
-        const bool hasDepth = (depthFormat != VK_FORMAT_UNDEFINED);
+        const bool hasSubpasses = (p.inputAttachmentMask != 0);
+        const bool hasDepth = (p.depthFormat != VK_FORMAT_UNDEFINED);
 
         VkAttachmentReference2 inputAttachmentRef[MAX_ATTACHMENT_COUNT]{};
         VkAttachmentReference2 colorAttachmentRef[2][MAX_ATTACHMENT_COUNT]{};
@@ -133,7 +89,7 @@ namespace Coust::Render::VK
         for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
         {
             // unused slot
-            if (colorFormat[i] == VK_FORMAT_UNDEFINED)
+            if (p.colorFormat[i] == VK_FORMAT_UNDEFINED)
                 continue;
             uint32_t refIdx = 0;
 
@@ -148,7 +104,7 @@ namespace Coust::Render::VK
             else 
             {
                 // input attachment
-                if (inputAttachmentMask & (1 << i))
+                if (p.inputAttachmentMask & (1 << i))
                 {
                     refIdx = subpasses[0].colorAttachmentCount++;
                     colorAttachmentRef[0][refIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
@@ -161,7 +117,7 @@ namespace Coust::Render::VK
                     inputAttachmentRef[refIdx].attachment = curAttachmentIdx;
                     // Spec:
                     // aspectMask is a mask of which aspect(s) can be accessed within the specified subpass as an input attachment.
-                    inputAttachmentRef[refIdx].aspectMask = IsDepthStencilFormat(colorFormat[i]) ?
+                    inputAttachmentRef[refIdx].aspectMask = IsDepthStencilFormat(p.colorFormat[i]) ?
                         VK_IMAGE_ASPECT_DEPTH_BIT :
                         VK_IMAGE_ASPECT_COLOR_BIT;
                 }
@@ -172,19 +128,19 @@ namespace Coust::Render::VK
                 colorAttachmentRef[1][refIdx].attachment = curAttachmentIdx;
             }
 
-            const bool clear = (clearMask & (1 << i)) != 0;
-            const bool discard = (discardStartMask & (1 << i)) != 0;
+            const bool clear = (p.clearMask & (1 << i)) != 0;
+            const bool discard = (p.discardStartMask & (1 << i)) != 0;
 
             attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
             attachements[curAttachmentIdx].pNext = nullptr;
             attachements[curAttachmentIdx].flags = 0;
-            attachements[curAttachmentIdx].format = colorFormat[i];
-            attachements[curAttachmentIdx].samples = sample;
+            attachements[curAttachmentIdx].format = p.colorFormat[i];
+            attachements[curAttachmentIdx].samples = p.sample;
             attachements[curAttachmentIdx].loadOp = clear ? 
                 VK_ATTACHMENT_LOAD_OP_CLEAR : 
                 (discard ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_LOAD);
             // perform store if it is not gonna be sampled
-            attachements[curAttachmentIdx].storeOp = sample == VK_SAMPLE_COUNT_1_BIT ?
+            attachements[curAttachmentIdx].storeOp = p.sample == VK_SAMPLE_COUNT_1_BIT ?
                 VK_ATTACHMENT_STORE_OP_STORE :
                 VK_ATTACHMENT_STORE_OP_DONT_CARE;
             // we don't use stencil attachment
@@ -200,10 +156,10 @@ namespace Coust::Render::VK
         // resolve attachment
         for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++ i)
         {
-            if (colorFormat[i] == VK_FORMAT_UNDEFINED)
+            if (p.colorFormat[i] == VK_FORMAT_UNDEFINED)
                 continue;
             
-            if ((resolveMask & (1 << i)) == 0)
+            if ((p.resolveMask & (1 << i)) == 0)
             {
                 resolveAttachmentRef[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
                 resolveAttachmentRef[i].attachment = VK_ATTACHMENT_UNUSED;
@@ -217,7 +173,7 @@ namespace Coust::Render::VK
             attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
             attachements[curAttachmentIdx].pNext = nullptr;
             attachements[curAttachmentIdx].flags = 0;
-            attachements[curAttachmentIdx].format = colorFormat[i];
+            attachements[curAttachmentIdx].format = p.colorFormat[i];
             attachements[curAttachmentIdx].samples = VK_SAMPLE_COUNT_1_BIT;
             attachements[curAttachmentIdx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachements[curAttachmentIdx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -231,9 +187,9 @@ namespace Coust::Render::VK
 
         if (hasDepth)
         {
-            const bool clear = (clearMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
-            const bool discardStart = (discardStartMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
-            const bool discardEnd = (discardEndMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
+            const bool clear = (p.clearMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
+            const bool discardStart = (p.discardStartMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
+            const bool discardEnd = (p.discardEndMask & (uint32_t) AttachmentFlagBits::DEPTH) != 0;
 
             depthAttachmentRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
             depthAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
@@ -242,8 +198,8 @@ namespace Coust::Render::VK
             attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
             attachements[curAttachmentIdx].pNext = nullptr;
             attachements[curAttachmentIdx].flags = 0;
-            attachements[curAttachmentIdx].format = depthFormat;
-            attachements[curAttachmentIdx].samples = sample;
+            attachements[curAttachmentIdx].format = p.depthFormat;
+            attachements[curAttachmentIdx].samples = p.sample;
             attachements[curAttachmentIdx].loadOp = clear ? 
                 VK_ATTACHMENT_LOAD_OP_CLEAR : 
                 (discardStart ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_LOAD);
@@ -257,7 +213,7 @@ namespace Coust::Render::VK
             attachements[curAttachmentIdx].finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             ++ curAttachmentIdx;
 
-            if (depthResolve)
+            if (p.depthResolve)
             {
                 depthResolveAttachmentRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
                 depthResolveAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
@@ -266,7 +222,7 @@ namespace Coust::Render::VK
                 attachements[curAttachmentIdx].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
                 attachements[curAttachmentIdx].pNext = nullptr;
                 attachements[curAttachmentIdx].flags = 0;
-                attachements[curAttachmentIdx].format = depthFormat;
+                attachements[curAttachmentIdx].format = p.depthFormat;
                 attachements[curAttachmentIdx].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachements[curAttachmentIdx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachements[curAttachmentIdx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -288,11 +244,38 @@ namespace Coust::Render::VK
         }
 
         renderPassCI.attachmentCount = curAttachmentIdx;
-        VK_CHECK(vkCreateRenderPass2(m_Ctx.Device, &renderPassCI, nullptr, &m_Handle));
-        return true;
+        VK_CHECK(vkCreateRenderPass2(m_Ctx.Device, &renderPassCI, nullptr, &m_Handle), "Can't create renderpass {} {}", p.dedicatedName, p.scopeName);
+
+#ifndef COUST_FULL_RELEASE
+        if (p.dedicatedName)
+            SetDedicatedDebugName(p.dedicatedName);
+        else if (p.scopeName)
+            SetDefaultDebugName(p.scopeName, nullptr);
+#endif
     }
 
-    Framebuffer::Framebuffer(const ConstructParam& p)
+	RenderPass::RenderPass(RenderPass&& other) noexcept
+        : Base(std::forward<Base>(other)),
+          Hashable(std::forward<Hashable>(other))
+    {
+    }
+
+	RenderPass::~RenderPass() noexcept
+    {
+        if (m_Handle != VK_NULL_HANDLE)
+            vkDestroyRenderPass(m_Ctx.Device, m_Handle, nullptr);
+    }
+
+
+	const VkExtent2D RenderPass::GetRenderAreaGranularity() const noexcept
+    { 
+        VkExtent2D res{};
+        if (m_Handle != VK_NULL_HANDLE)
+            vkGetRenderAreaGranularity(m_Ctx.Device, m_Handle, &res);
+        return res;
+    }
+
+    Framebuffer::Framebuffer(const ConstructParam& p) noexcept
         : Base(p.ctx, VK_NULL_HANDLE), 
           Hashable(p.GetHash()),
           m_RenderPass(p.renderPass)
@@ -331,20 +314,14 @@ namespace Coust::Render::VK
             .layers = p.layers,
         };
 
-        bool success = false;
-        VK_REPORT(vkCreateFramebuffer(m_Ctx.Device, &ci, nullptr, &m_Handle), success);
+        VK_CHECK(vkCreateFramebuffer(m_Ctx.Device, &ci, nullptr, &m_Handle), "Can't create frame buffer {} {}", p.dedicatedName, p.scopeName);
 
-        if (success)
-        {
-            if (p.dedicatedName)
-                SetDedicatedDebugName(p.dedicatedName);
-            else if (p.scopeName)
-                SetDefaultDebugName(p.scopeName, nullptr);
-            else
-                COUST_CORE_WARN("Framebuffer created without debug name");
-        }
-        else  
-            m_Handle = VK_NULL_HANDLE;
+#ifndef COUST_FULL_RELEASE
+        if (p.dedicatedName)
+            SetDedicatedDebugName(p.dedicatedName);
+        else if (p.scopeName)
+            SetDefaultDebugName(p.scopeName, nullptr);
+#endif
     }
 
     Framebuffer::Framebuffer(Framebuffer&& other) noexcept
@@ -354,7 +331,7 @@ namespace Coust::Render::VK
     {
     }
 
-    Framebuffer::~Framebuffer()
+    Framebuffer::~Framebuffer() noexcept
     {
         if (m_Handle != VK_NULL_HANDLE)
             vkDestroyFramebuffer(m_Ctx.Device, m_Handle, nullptr);
@@ -362,7 +339,7 @@ namespace Coust::Render::VK
 
 	const RenderPass& Framebuffer::GetRenderPass() const noexcept { return m_RenderPass; }
 
-	size_t Framebuffer::ConstructParam::GetHash() const
+	size_t Framebuffer::ConstructParam::GetHash() const noexcept
     {
         size_t h = 0;
 
@@ -390,7 +367,7 @@ namespace Coust::Render::VK
         return h;
     }
 
-	size_t RenderPass::ConstructParam::GetHash() const
+	size_t RenderPass::ConstructParam::GetHash() const noexcept
     {
         size_t h = 0;
 
@@ -413,85 +390,60 @@ namespace Coust::Render::VK
 
     static constexpr uint32_t TIME_BEFORE_RELEASE = CommandBufferCache::COMMAND_BUFFER_COUNT;
 
-	FBOCache::FBOCache()
+	FBOCache::FBOCache() noexcept
         : m_Timer(TIME_BEFORE_RELEASE), m_RenderPassHitCounter("FBOCache RenderPass"), m_FramebufferHitCounter("FBOCache Framebuffer")
     {
     }
 
-    const RenderPass* FBOCache::GetRenderPass(const RenderPass::ConstructParam& p)
+    const RenderPass* FBOCache::GetRenderPass(const RenderPass::ConstructParam& p) noexcept
     {
         size_t h = p.GetHash();
-        if (auto iter = std::find_if(m_CachedRenderPasses.begin(), m_CachedRenderPasses.end(),
-            [h](decltype(*m_CachedRenderPasses.begin()) pair) -> bool
-            {
-                return pair.first.GetHash() == h;
-            }); iter != m_CachedRenderPasses.end())
+        if (auto iter = m_CachedRenderPasses.find(h); iter != m_CachedRenderPasses.end())
         {
             m_RenderPassHitCounter.Hit();
-
-            iter->second = m_Timer.CurrentCount();
-            return &iter->first;
+            auto& [rp, lastAccessedTime] = iter->second;
+            lastAccessedTime = m_Timer.CurrentCount();
+            return &rp;
         }
 
         m_RenderPassHitCounter.Miss();
 
         RenderPass r{ p };
-        if (!RenderPass::CheckValidation(r))
-        {
-            COUST_CORE_ERROR("Failed to create render pass, null pointer returned");
-            return nullptr;
-        }
-        auto iter = m_CachedRenderPasses.emplace(std::move(r), m_Timer.CurrentCount());
-        if (!iter.second)
-        {
-            COUST_CORE_ERROR("Failed to insert render pass to the cache list, null pointer returned");
-            return nullptr;
-        }
-        m_RenderPassReferenceCount[&iter.first->first] = 0;
-        return &iter.first->first;
+        auto iter = m_CachedRenderPasses.emplace(h, decltype(m_CachedRenderPasses.begin()->second){ std::move(r), m_Timer.CurrentCount() });
+        auto* rp = &iter.first->second.first;
+        m_RenderPassReferenceCount[rp] = 0;
+        return rp;
     }
 
-    const Framebuffer* FBOCache::GetFramebuffer(const Framebuffer::ConstructParam& p)
+    const Framebuffer* FBOCache::GetFramebuffer(const Framebuffer::ConstructParam& p) noexcept
     {
         size_t h = p.GetHash();
-        if (auto iter = std::find_if(m_CachedFramebuffers.begin(), m_CachedFramebuffers.end(),
-            [h](decltype(*m_CachedFramebuffers.begin()) pair) -> bool 
-            {
-                return pair.first.GetHash() == h;
-            }); iter != m_CachedFramebuffers.end())
+        if (auto iter = m_CachedFramebuffers.find(h); iter != m_CachedFramebuffers.end())
         {
             m_FramebufferHitCounter.Hit();
-
-            iter->second = m_Timer.CurrentCount();
-            return &iter->first;
+            auto& [fb, lastAccessedTime] = iter->second;
+            lastAccessedTime = m_Timer.CurrentCount();
+            return &fb;
         }
 
         m_FramebufferHitCounter.Miss();
 
         Framebuffer f{ p };
-        if (!Framebuffer::CheckValidation(f))
-        {
-            COUST_CORE_ERROR("Failed to create frame buffer, null pointer returned");
-            return nullptr;
-        }
-        auto iter = m_CachedFramebuffers.emplace(std::move(f), m_Timer.CurrentCount());
-        if (!iter.second)
-        {
-            COUST_CORE_ERROR("Failed to insert the frame buffer to the cache list, null pointer returned");
-            return nullptr;
-        }
+        auto iter = m_CachedFramebuffers.emplace(h, decltype(m_CachedFramebuffers.begin()->second) { std::move(f), m_Timer.CurrentCount() });
         ++ m_RenderPassReferenceCount[&p.renderPass];
-        return &iter.first->first;
+        auto* fb = &iter.first->second.first;
+        return fb;
     }
 
-    void FBOCache::GC()
+    void FBOCache::GC() noexcept
     {
         m_Timer.Tick();
         for (auto iter = m_CachedFramebuffers.begin(); iter != m_CachedFramebuffers.end();)
         {
-            if (m_Timer.ShouldEvict(iter->second))
+            auto& [fb, lastAccessedTime] = iter->second;
+            if (m_Timer.ShouldEvict(lastAccessedTime))
             {
-                -- m_RenderPassReferenceCount[&iter->first.GetRenderPass()];
+                -- m_RenderPassReferenceCount[&fb.GetRenderPass()];
                 iter = m_CachedFramebuffers.erase(iter);
             }
             else  
@@ -499,7 +451,8 @@ namespace Coust::Render::VK
         }
         for (auto iter = m_CachedRenderPasses.begin(); iter != m_CachedRenderPasses.end();)
         {
-            if (m_Timer.ShouldEvict(iter->second) && m_RenderPassReferenceCount.at(&iter->first) == 0)
+            auto& [rp, lastAccessedTime] = iter->second;
+            if (m_Timer.ShouldEvict(lastAccessedTime) && m_RenderPassReferenceCount.at(&rp) == 0)
                 iter = m_CachedRenderPasses.erase(iter);
             else
                 ++ iter;
@@ -512,5 +465,4 @@ namespace Coust::Render::VK
         m_RenderPassReferenceCount.clear();
         m_CachedRenderPasses.clear();
     }
-
 }

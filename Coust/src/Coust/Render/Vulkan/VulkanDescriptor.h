@@ -13,10 +13,7 @@ namespace Coust::Render::VK
     class DescriptorSet;
     class DescriptorSetAllocator;
 
-    /**
-     * @brief Structure containing info about a single element in a binding slot
-     * @tparam T can only be Buffer, Image
-     */
+    // Structure containing info about a single element in a binding slot
     template<typename T>
     struct BoundElement;
 
@@ -38,10 +35,7 @@ namespace Coust::Render::VK
         uint32_t dstArrayIdx = INVALID_IDX;
     };
 
-    /**
-     * @brief Structure containing info about a object or array in a binding slot
-     * @tparam T can only be Buffer, Image
-     */
+    // Structure containing info about a object or array in a binding slot
     template <typename T>
     struct BoundArray
     {
@@ -66,11 +60,11 @@ namespace Coust::Render::VK
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
 
-            size_t GetHash() const;
+            size_t GetHash() const noexcept;
         };
-        explicit DescriptorSetLayout(const ConstructParam& param);
+        explicit DescriptorSetLayout(const ConstructParam& param) noexcept;
 
-        ~DescriptorSetLayout();
+        ~DescriptorSetLayout() noexcept;
         
         DescriptorSetLayout(DescriptorSetLayout&& other) noexcept;
         
@@ -83,26 +77,19 @@ namespace Coust::Render::VK
         
         const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& GetBindings() const noexcept;
         
-        std::optional<VkDescriptorSetLayoutBinding> GetBinding(uint32_t bindingIdx) const noexcept;
+        VkDescriptorSetLayoutBinding GetBinding(uint32_t bindingIdx) const noexcept;
 
-        std::optional<VkDescriptorSetLayoutBinding> GetBinding(const std::string& name) const noexcept;
+        VkDescriptorSetLayoutBinding GetBinding(const std::string& name) const noexcept;
 
         VkDescriptorPoolCreateFlags GetRequiredPoolFlags() const noexcept;
         
     private:
-        bool Construct(const Context& ctx, const std::vector<ShaderResource>& shaderResources);
-        
-    private:
         uint32_t m_Set;
         
-        /**
-         * @brief Binding index -> binding info
-         */
+        // Binding index -> binding info
         std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> m_Bindings{};
 
-        /**
-         * @brief shader resource name -> binding index.
-         */
+        // shader resource name -> binding index.
         std::unordered_map<std::string, uint32_t> m_ResNameToBindingIdx{};
 
         VkDescriptorPoolCreateFlags m_RequiredPoolFlags = 0;
@@ -125,12 +112,12 @@ namespace Coust::Render::VK
             const char*                                                     dedicatedName = nullptr;
             const char*                                                     scopeName = nullptr;
 
-            size_t GetHash() const;
+            size_t GetHash() const noexcept;
         };
-        explicit DescriptorSet(const ConstructParam& param);
+        explicit DescriptorSet(const ConstructParam& param) noexcept;
 
         // Lifecycle of descriptor set is managed by descriptor set allocator, so the descructor will release the handle back to its allocator.
-        ~DescriptorSet();
+        ~DescriptorSet() noexcept;
 
         DescriptorSet(DescriptorSet&& other) noexcept;
 
@@ -139,27 +126,16 @@ namespace Coust::Render::VK
         DescriptorSet& operator=(DescriptorSet&&) = delete;
         DescriptorSet& operator=(const DescriptorSet&) = delete;
 
-        /**
-         * @brief Reset the inner state of the descriptor set
-         * 
-         * @param bufferInfos   Optional. If provided, then the old bufferInfos will be discarded
-         * @param imageInfos    Opitonal. If provided, then the old imageInfos will be discarded
-         */
-        void Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos, 
-                   const std::optional<std::vector<BoundArray<Image>>>& imageInfos);
+        // Reset will change the information of bound buffers and images, which will invalidate our hash... 
+        // void Reset(const std::optional<std::vector<BoundArray<Buffer>>>& bufferInfos, 
+        //            const std::optional<std::vector<BoundArray<Image>>>& imageInfos);
         
-        /**
-         * @brief Flush the write operations in the spcified bingding slot
-         * @param bindingsToUpdateMask Mask of binding indices to be updated. It supports at most 32 bindings per set (that's enough, maybe?)
-         */
-        void ApplyWrite(uint32_t bindingsToUpdateMask);
+        // Flush the write operations in the spcified bingding slot
+        void ApplyWrite(uint32_t bindingsToUpdateMask) noexcept;
 
-        /**
-         * @brief Apply all pending write operations 
-         * 
-         * @param overwrite If true, then it will apply all write operations in `m_Writes` without checking if it has been applied (stored in `m_AppliedWrites` in other words)
-         */
-        void ApplyWrite(bool overwrite = false);
+        // Apply all pending write operations.
+        // If overwrite is true, then it will apply all write operations in `m_Writes` without checking if it has been applied (stored in `m_AppliedWrites` in other words)
+        void ApplyWrite(bool overwrite = false) noexcept;
 
         const DescriptorSetLayout& GetLayout() const noexcept;
 
@@ -170,10 +146,8 @@ namespace Coust::Render::VK
         uint32_t GetSetIndex() const noexcept;
 
     private:
-        /**
-         * @brief Fill up the `m_Writes` according to `m_BufferInfos` and `m_ImageInfos`
-         */
-        void Prepare();
+        // Fill up the `m_Writes` according to `m_BufferInfos` and `m_ImageInfos`
+        void Prepare() noexcept;
 
         bool HasBeenApplied(const VkWriteDescriptorSet& write) const noexcept;
 
@@ -197,9 +171,7 @@ namespace Coust::Render::VK
         uint32_t m_SetIdx;
     };
     
-    /**
-     * @brief A free list of descriptor pool, perform on-demand allocation of descriptor set. 
-     */
+    // A free list of descriptor pool, perform on-demand allocation of descriptor set. 
     class DescriptorSetAllocator : public Hashable
     {
     public:
@@ -212,45 +184,38 @@ namespace Coust::Render::VK
             const DescriptorSetLayout&      layout;
             uint32_t                        maxSets = MAX_SET_PER_POOL;
 
-            size_t GetHash() const;
+            size_t GetHash() const noexcept;
         };
-        explicit DescriptorSetAllocator(const ConstructParam& param);
+        explicit DescriptorSetAllocator(const ConstructParam& param) noexcept;
         
         DescriptorSetAllocator(DescriptorSetAllocator&& other) noexcept;
 
-        ~DescriptorSetAllocator();
+        ~DescriptorSetAllocator() noexcept;
         
         DescriptorSetAllocator() = delete;
         DescriptorSetAllocator(const DescriptorSetAllocator&) = delete;
         DescriptorSetAllocator& operator=(DescriptorSetAllocator&&) = delete;
         DescriptorSetAllocator& operator=(const DescriptorSetAllocator&) = delete;
         
-        const DescriptorSetLayout& GetLayout() const;
+        const DescriptorSetLayout& GetLayout() const noexcept;
         
-        /**
-         * @brief If we have free descriptor set returned by `DescriptorSet` then use it, otherwise try to allocate a new one.
-         */
-        VkDescriptorSet Allocate();
+        // If we have free descriptor set returned by `DescriptorSet` then use it, otherwise try to allocate a new one.
+        VkDescriptorSet Allocate() noexcept;
         
-        /**
-         * @brief Reset the whole pools of descriptor pool, and also recycle all the created descriptor set implicitly.
-         */
+        // Reset the whole pools of descriptor pool, and also recycle all the created descriptor set implicitly.
         void Reset() noexcept;
 
         // Fill in empty std::vector<BoundArray<*>> in construct parameter. It's handy in constructing descriptor set.
         void FillEmptyDescriptorSetConstructParam(DescriptorSet::ConstructParam& param) const noexcept;
         
     private:
-        /**
-         * @brief Find if there's any available pool *AFTER* `m_CurrentFactoryIdx`, if there is, then only update `m_CurrentFactoryIdx`
-                  if there isn't, update `m_CurrentFactoryIdx` and allocate a new descriptor pool
-         * @return false if the func `vkCreateDescriptorPool` failed
-         */
-        bool RequireFactory();
+        // Find if there's any available pool *AFTER* `m_CurrentFactoryIdx`, if there is, then only update `m_CurrentFactoryIdx`, 
+        // if there isn't, update `m_CurrentFactoryIdx` and allocate a new descriptor pool
+        void RequireFactory() noexcept;
 
         // Accept the handle previously allocated by it.
-        friend DescriptorSet::~DescriptorSet();
-        void Release(VkDescriptorSet set);
+        friend DescriptorSet::~DescriptorSet() noexcept;
+        void Release(VkDescriptorSet set) noexcept;
 
     private:
         struct Factory 
@@ -275,7 +240,6 @@ namespace Coust::Render::VK
         
         std::vector<Factory> m_Factories;
 
-        // reserved for future use
         std::vector<VkDescriptorSet> m_FreeSets;
         
         uint32_t m_MaxSetsPerPool;

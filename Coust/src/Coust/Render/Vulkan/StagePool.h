@@ -3,7 +3,7 @@
 #include "Coust/Render/Vulkan/VulkanContext.h"
 #include "Coust/Render/Vulkan/VulkanMemory.h"
 
-#include <list>
+#include <vector>
 #include <map>
 
 namespace Coust::Render::VK 
@@ -24,12 +24,12 @@ namespace Coust::Render::VK
     public:
         explicit StagePool(const Context& ctx) noexcept;
 
-        std::shared_ptr<Buffer> AcquireStagingBuffer(VkDeviceSize numBytes);
+        std::shared_ptr<Buffer> AcquireStagingBuffer(VkDeviceSize numBytes) noexcept;
 
-        std::shared_ptr<HostImage> AcquireStagingImage(VkFormat format, uint32_t width, uint32_t height);
+        std::shared_ptr<HostImage> AcquireStagingImage(VkFormat format, uint32_t width, uint32_t height) noexcept;
 
         // Release pointer to the unused (maybe) staging buffers & staging images.
-        void GC();
+        void GC() noexcept;
         
         // Reset all the internal states of this pool. It's dangerous to call it when there're still staging objects in use.
         void Reset() noexcept;
@@ -54,10 +54,10 @@ namespace Coust::Render::VK
 
         // buffer size => staging buffer
         std::multimap<VkDeviceSize, StagingBuffer> m_FreeStagingBuf;
-        std::list<StagingBuffer> m_UsedStagingBuf;
+        std::vector<StagingBuffer> m_UsedStagingBuf;
 
-        std::list<StagingImage> m_FreeStagingImage;
-        std::list<StagingImage> m_UsedStagingImage;
+        std::vector<StagingImage> m_FreeStagingImage;
+        std::vector<StagingImage> m_UsedStagingImage;
 
         // storing current frame count, used for recycling memory
         EvictTimer m_Timer;

@@ -16,6 +16,11 @@ namespace Coust::Render::VK
         m_Resources.clear();
     }
 
+    void Refrigerator::Register(void* resource, std::function<void(void*)>&& deletor) noexcept
+    {
+        m_Resources[resource].deletor = deletor;
+    }
+
     void Refrigerator::Acquire(void* resource) noexcept
     {
         auto iter = m_Resources.find(resource);
@@ -35,7 +40,7 @@ namespace Coust::Render::VK
         -- iter->second.refCount; 
     }
 
-    void Refrigerator::GC()
+    void Refrigerator::GC() noexcept
     {
         // Remain frame count down
         for (auto& p : m_Resources)

@@ -6,29 +6,12 @@
 
 #include <vector>
 
-#define VK_CHECK(func)																													\
-    do																																	\
-    {																																	\
-        VkResult err = func;																											\
-        if (err != VK_SUCCESS)																											\
-        {																																\
-            COUST_CORE_ERROR("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, ToString(err));				\
-            return false;																												\
-        }																																\
+#define VK_CHECK(func, ...)																													    \
+    do																																	        \
+    {																																	        \
+        VkResult err = func;																											        \
+        COUST_CORE_PANIC_IF(err != VK_SUCCESS, "Vulkan Func {} return {}\n\t{}", #func, ToString(err), fmt::format(__VA_ARGS__));				\
     } while (false)																														
-
-#define VK_REPORT(func, status)																											\
-    do																																	\
-    {																																	\
-        VkResult err = func;																											\
-        if (err != VK_SUCCESS)																											\
-        {																																\
-            status = false;																												\
-            COUST_CORE_ERROR("File {0}, Line{1}, Vulkan Func {2} return {3}", __FILE__, __LINE__, #func, ToString(err));				\
-        }																																\
-        else																															\
-            status = true;																												\
-    } while (false)
 
 namespace Coust::Render::VK
 {
@@ -41,42 +24,42 @@ namespace Coust::Render::VK
         return static_cast<uint32_t>(value);
     }
 
-    VkFormat GetNomalizedFormat(VkFormat singleByteFormat);
+    VkFormat GetNomalizedFormat(VkFormat singleByteFormat) noexcept;
 
     // Converting the vulkan srgb format to its corresponding unsigned normalized byte format, as the spec says:
     // VK_FORMAT_R8G8B8_SRGB specifies a three-component, 24-bit unsigned normalized format ...
-    VkFormat UnpackSRGBFormat(VkFormat srgbFormat);
+    VkFormat UnpackSRGBFormat(VkFormat srgbFormat) noexcept;
 
-    VkImageMemoryBarrier2 ImageBlitTransition(VkImageMemoryBarrier2 transition);
+    VkImageMemoryBarrier2 ImageBlitTransition(VkImageMemoryBarrier2 transition) noexcept;
 
-    void TransitionImageLayout(VkCommandBuffer cmdBuf, VkImageMemoryBarrier2 transition);
+    void TransitionImageLayout(VkCommandBuffer cmdBuf, VkImageMemoryBarrier2 transition) noexcept;
 
-    uint32_t GetBytePerPixelFromFormat(VkFormat format);
+    uint32_t GetBytePerPixelFromFormat(VkFormat format) noexcept;
 
-    bool IsDepthOnlyFormat(VkFormat format);
+    bool IsDepthOnlyFormat(VkFormat format) noexcept;
 
-    bool IsDepthStencilFormat(VkFormat format);
+    bool IsDepthStencilFormat(VkFormat format) noexcept;
 
-    const char* ToString(VkResult result);
+    const char* ToString(VkResult result) noexcept;
     
-    const char* ToString(VkObjectType objType);
+    const char* ToString(VkObjectType objType) noexcept;
     
-    const char* ToString(VkAccessFlagBits bit);
+    const char* ToString(VkAccessFlagBits bit) noexcept;
     
-    const char* ToString(VkShaderStageFlagBits bit);
+    const char* ToString(VkShaderStageFlagBits bit) noexcept;
     
-    const char* ToString(VkCommandBufferLevel level);
+    const char* ToString(VkCommandBufferLevel level) noexcept;
     
-    const char* ToString(VkDescriptorType type);
+    const char* ToString(VkDescriptorType type) noexcept;
     
-    const char* ToString(VkBufferUsageFlagBits bit);
+    const char* ToString(VkBufferUsageFlagBits bit) noexcept;
 
-    const char* ToString(VkImageUsageFlagBits bit);
+    const char* ToString(VkImageUsageFlagBits bit) noexcept;
 
-    const char* ToString(VkFormat format);
+    const char* ToString(VkFormat format) noexcept;
     
     template <typename Flag, typename FlagBit>
-    inline std::string ToString(Flag flags)
+    inline std::string ToString(Flag flags) noexcept
         requires std::is_arithmetic<Flag>::value && std::is_enum<FlagBit>::value
     {
         std::string res{};
@@ -98,18 +81,18 @@ namespace std
     template <>
     struct hash<VkDescriptorBufferInfo>
     {
-        std::size_t operator()(const VkDescriptorBufferInfo& key) const;
+        std::size_t operator()(const VkDescriptorBufferInfo& key) const noexcept;
     };
 
     template <>
     struct hash<VkDescriptorImageInfo>
     {
-        std::size_t operator()(const VkDescriptorImageInfo& key) const;
+        std::size_t operator()(const VkDescriptorImageInfo& key) const noexcept;
     };
 
     template <>
     struct hash<VkWriteDescriptorSet>
     {
-        std::size_t operator()(const VkWriteDescriptorSet& key) const;
+        std::size_t operator()(const VkWriteDescriptorSet& key) const noexcept;
     };
 }

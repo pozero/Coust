@@ -54,13 +54,13 @@ namespace Coust::Render::VK
 			const char*                 dedicatedName = nullptr;
 			const char*                 scopeName = nullptr;
 
-			size_t GetHash() const;
+			size_t GetHash() const noexcept;
 		};
-		explicit RenderPass(const ConstructParam& p);
+		explicit RenderPass(const ConstructParam& p) noexcept;
 
 		RenderPass(RenderPass&& other) noexcept;
 
-		~RenderPass();
+		~RenderPass() noexcept;
 
 		RenderPass() = delete;
 		RenderPass(const RenderPass&) = delete;
@@ -102,13 +102,13 @@ namespace Coust::Render::VK
 			const char*                       dedicatedName = nullptr;
 			const char*                       scopeName = nullptr;
 
-			size_t GetHash() const;
+			size_t GetHash() const noexcept;
 		};
-		explicit Framebuffer(const ConstructParam& p);
+		explicit Framebuffer(const ConstructParam& p) noexcept;
 
 		Framebuffer(Framebuffer&& other) noexcept;
 
-		~Framebuffer();
+		~Framebuffer() noexcept;
 
 		Framebuffer() = delete;
 		Framebuffer(const Framebuffer&) = delete;
@@ -131,22 +131,22 @@ namespace Coust::Render::VK
 		FBOCache& operator=(const FBOCache&) = delete;
 
 	public:
-		FBOCache();
+		FBOCache() noexcept;
 
-		const RenderPass* GetRenderPass(const RenderPass::ConstructParam& p);
+		const RenderPass* GetRenderPass(const RenderPass::ConstructParam& p) noexcept;
 
-		const Framebuffer* GetFramebuffer(const Framebuffer::ConstructParam& p);
+		const Framebuffer* GetFramebuffer(const Framebuffer::ConstructParam& p) noexcept;
 
-		void GC();
+		void GC() noexcept;
 
 		void Reset() noexcept;
 
 	private:
-		// render pass -> last time it's accessed
-		std::unordered_map<RenderPass, uint32_t, Hash::HashFn<RenderPass>, Hash::EqualFn<RenderPass>> m_CachedRenderPasses;
+		// cosntruction hash -> { render pass, last time it's accessed }
+		std::unordered_map<size_t, std::pair<RenderPass, uint32_t>> m_CachedRenderPasses;
 
-		// framebuffer -> last time it's accessed
-		std::unordered_map<Framebuffer, uint32_t, Hash::HashFn<Framebuffer>, Hash::EqualFn<Framebuffer>> m_CachedFramebuffers;
+		// construction hash -> { framebuffer, last time it's accessed }
+		std::unordered_map<size_t, std::pair<Framebuffer, uint32_t>> m_CachedFramebuffers;
 
 		// pointer to the render pass -> the reference count (aka the number of framebuffer attached to it) of the render pass
 		std::unordered_map<const RenderPass*, uint32_t> m_RenderPassReferenceCount;

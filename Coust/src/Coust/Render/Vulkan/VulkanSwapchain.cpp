@@ -16,7 +16,7 @@ namespace Coust::Render::VK
 		//   IsFirstRenderPass(true)
 	{}
 
-	void Swapchain::Prepare()
+	void Swapchain::Prepare() noexcept
 	{
 		// prepare the information needed during creation
 		{
@@ -85,7 +85,7 @@ namespace Coust::Render::VK
 		}
 	}
 
-	bool Swapchain::Create()
+	bool Swapchain::Create() noexcept
 	{
 		// if the window is minimized, just wait here
 		int width = 0, height = 0;
@@ -145,13 +145,13 @@ namespace Coust::Render::VK
 		}
 		else
 			swapchainCreateInfo.imageSharingMode    = VK_SHARING_MODE_EXCLUSIVE;
-		VK_CHECK(vkCreateSwapchainKHR(m_Ctx.Device, &swapchainCreateInfo, nullptr, &m_Handle));
+		VK_CHECK(vkCreateSwapchainKHR(m_Ctx.Device, &swapchainCreateInfo, nullptr, &m_Handle), "Can't create swapchain");
 	
 		uint32_t imageCount;
-		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, nullptr));
+		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, nullptr), "Can't get images attched to swapchain");
 		m_Images.resize(imageCount);
 		std::vector<VkImage> rawImg(imageCount, VK_NULL_HANDLE);
-		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, rawImg.data()));
+		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, rawImg.data()), "Can't get images attached to swapchain");
 		for (uint32_t i = 0; i < imageCount; ++ i)
 		{
 			std::string name{ "Swapchain Attached" };
@@ -170,7 +170,7 @@ namespace Coust::Render::VK
 		}
 
 		VkSemaphoreCreateInfo sci { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-		VK_CHECK(vkCreateSemaphore(m_Ctx.Device, &sci, nullptr, &ImgAvaiSignal));
+		VK_CHECK(vkCreateSemaphore(m_Ctx.Device, &sci, nullptr, &ImgAvaiSignal), "Can't create image available signal semaphore for swapchain");
 		IsNextImgAcquired = false;
 
 		// Image::ConstructParam_Create p
@@ -222,11 +222,7 @@ namespace Coust::Render::VK
 		VkResult res = vkAcquireNextImageKHR(m_Ctx.Device, m_Handle, 
 			std::numeric_limits<uint64_t>::max(), ImgAvaiSignal, VK_NULL_HANDLE, &m_CurImgIdx);
 		
-		if (res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR)
-		{
-			COUST_CORE_ERROR("`vkAcquireNextImageKHR` return error: {}", ToString(res));
-			return false;
-		}
+		COUST_CORE_PANIC_IF(res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR, "`vkAcquireNextImageKHR` return error: {}", ToString(res));
 
 		m_Ctx.CmdBufCacheGraphics->InjectDependency(ImgAvaiSignal);
 		IsNextImgAcquired = true;
@@ -247,7 +243,7 @@ namespace Coust::Render::VK
 		return capabilities.currentExtent.width != Extent.width || capabilities.currentExtent.height != Extent.height;
 	}
 
-	void Swapchain::MakePresentable()
+	void Swapchain::MakePresentable() noexcept
 	{
 		GetColorAttachment().TransitionLayout(m_Ctx.CmdBufCacheGraphics->Get(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 
 			VkImageSubresourceRange

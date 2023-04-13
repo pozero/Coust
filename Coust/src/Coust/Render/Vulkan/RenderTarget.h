@@ -14,7 +14,7 @@ namespace Coust::Render::VK
     class Attachment 
     {
     public:
-        Attachment() = default;
+        Attachment() noexcept = default;
 
         explicit Attachment(Image& image, uint16_t level, uint16_t layer) noexcept;
 
@@ -42,10 +42,10 @@ namespace Coust::Render::VK
             Attachment                  depth{};
         };
         // Render pass before present
-        explicit RenderTarget(const ConstrucParam& param);
+        explicit RenderTarget(const ConstrucParam& param) noexcept;
 
         // Presenting render pass, it'll be attached to swapchain and have only one color attachment
-        explicit RenderTarget();
+        explicit RenderTarget() noexcept;
 
         Attachment GetColor(uint32_t idx) const noexcept;
         Attachment GetMsaaColor(uint32_t idx) const noexcept;

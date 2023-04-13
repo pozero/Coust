@@ -32,7 +32,7 @@ namespace Coust::Render::VK
         return h;
     }
 
-    void VertexBuffer::Add(std::string_view component[4], Buffer* buffer)
+    void VertexBuffer::Add(std::string_view component[4], Buffer* buffer) noexcept
     {
         LocationBundle lb{};
         for (uint32_t i = 0; i < 4; ++ i)
@@ -42,7 +42,7 @@ namespace Coust::Render::VK
         m_VertexDataPerLocation[lb] = buffer;
     }
 
-    bool VertexBuffer::Get(const std::vector<ShaderResource>& resources, std::vector<VkBuffer>& out_Handles) const
+    bool VertexBuffer::Get(const std::vector<ShaderResource>& resources, std::vector<VkBuffer>& out_Handles) const noexcept
     {
         out_Handles.resize(m_VertexDataPerLocation.size());
         for (const auto& p : m_VertexDataPerLocation)
@@ -80,7 +80,7 @@ namespace Coust::Render::VK
                 out_Handles[location[0]] = p.second->GetHandle();
             else
             {
-                COUST_CORE_ERROR("The input data layout doesn't match the shader. The layout is:\n\tLocation: {}, {}, {}, {}\n\tOffset: {}, {}, {}, {}", 
+                COUST_CORE_ERROR("The input data layout doesn't match the layout in the shader. The layout is:\n\tLocation: {}, {}, {}, {}\n\tOffset: {}, {}, {}, {}", 
                     location[0], location[1], location[2], location[3], offset[0], offset[1], offset[2], offset[3]);
                 return false;
             }
@@ -92,7 +92,7 @@ namespace Coust::Render::VK
         : m_Buffer(buffer), m_IndexType(indexType)
     {}
 
-    std::tuple<VkBuffer, VkIndexType> IndexBuffer::Get() const
+    std::pair<VkBuffer, VkIndexType> IndexBuffer::Get() const noexcept
     {
         return { m_Buffer->GetHandle(), m_IndexType };
     }
@@ -103,7 +103,7 @@ namespace Coust::Render::VK
         m_IndexBuf = indexBuffer;
     }
 
-    std::tuple<VertexBuffer*, IndexBuffer*> RenderPrimitive::Get() const noexcept
+    std::pair<VertexBuffer*, IndexBuffer*> RenderPrimitive::Get() const noexcept
     {
         return { m_VertexBuf, m_IndexBuf };
     }

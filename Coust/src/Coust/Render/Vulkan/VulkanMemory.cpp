@@ -7,7 +7,7 @@
 
 namespace Coust::Render::VK 
 {
-    inline void GetVmaAllocationConfig(Buffer::Usage usage, VkBufferUsageFlags& out_BufferFlags, VmaMemoryUsage& out_MemoryUsage, VmaAllocationCreateFlags& out_AllocationFlags)
+    inline void GetVmaAllocationConfig(Buffer::Usage usage, VkBufferUsageFlags& out_BufferFlags, VmaMemoryUsage& out_MemoryUsage, VmaAllocationCreateFlags& out_AllocationFlags) noexcept
     {
         switch (usage)
         {
@@ -43,7 +43,7 @@ namespace Coust::Render::VK
         }
     }
 
-    inline void GetImageConfig(Image::Usage usage, VkImageCreateInfo& CI, VmaAllocationCreateInfo& AI, VkImageViewType& viewType, VkImageLayout& defaultLayout, bool blitable)
+    inline void GetImageConfig(Image::Usage usage, VkImageCreateInfo& CI, VmaAllocationCreateInfo& AI, VkImageViewType& viewType, VkImageLayout& defaultLayout, bool blitable) noexcept
     {
         // For the convenience of copying data between image (debug for example), the image can be blitable
         const VkImageUsageFlags blit = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -110,7 +110,7 @@ namespace Coust::Render::VK
         }
     }
 
-    const char* ToString(Image::Usage usage)
+    const char* ToString(Image::Usage usage) noexcept
     {
         switch (usage)
         {
@@ -123,24 +123,71 @@ namespace Coust::Render::VK
         }
     }
 
-    Buffer::Buffer(const ConstructParam& param)
+    Buffer::Buffer(const ConstructParam& param) noexcept
         : Base(param.ctx, VK_NULL_HANDLE), 
           m_Size(param.size), 
           m_VMAAllocator(param.ctx.VmaAlloc),
           m_Usage(param.bufferFlags)
     {
-        if (Construct(param.ctx, param.bufferFlags, param.usage, param.relatedQueue))
+        VmaMemoryUsage vmaMemoryUsage = VMA_MEMORY_USAGE_AUTO;
+        VmaAllocationCreateFlags allocationFlags = 0;
+        GetVmaAllocationConfig(param.usage, m_Usage, vmaMemoryUsage, allocationFlags);
+
+        VkBufferCreateInfo bci 
         {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, ToString<VkBufferUsageFlags, VkBufferUsageFlagBits>(param.bufferFlags).c_str());
-            
-            if (param.usage == Usage::Readback)
-                m_UpdateMode = UpdateMode::ReadOnly;
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .flags = 0,
+            .size = m_Size,
+            .usage = m_Usage,
+        };
+        {
+            std::unordered_set<uint32_t> allQueues;
+            for (uint32_t i = 0; i < COMMAND_QUEUE_COUNT; ++ i)
+            {
+                allQueues.insert(param.relatedQueue[i]);
+            }
+            if (allQueues.size() > 1)
+            {
+                std::vector<uint32_t> queue(allQueues.begin(), allQueues.end());
+                bci.sharingMode = VK_SHARING_MODE_CONCURRENT;
+                bci.queueFamilyIndexCount = (uint32_t) queue.size();
+                bci.pQueueFamilyIndices = queue.data();
+            }
         }
-        else  
-            m_Handle = VK_NULL_HANDLE;
+        
+        VmaAllocationCreateInfo aci 
+        {
+            .flags = allocationFlags,
+            .usage = vmaMemoryUsage,
+        };
+        VmaAllocationInfo ai{};
+        
+        VK_CHECK(vmaCreateBuffer(param.ctx.VmaAlloc, &bci, &aci, &m_Handle, &m_Allocation, &ai), "Can't create buffer {} {}", param.scopeName, param.dedicatedName);
+        
+        VkMemoryPropertyFlags memPropFlags;
+        vmaGetAllocationMemoryProperties(m_VMAAllocator, m_Allocation, &memPropFlags);
+        if (memPropFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT && memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            m_Domain = MemoryDomain::HostAndDevice;
+        else if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            m_Domain = MemoryDomain::HostOnly;
+        else
+            m_Domain = MemoryDomain::DeviceOnly;
+
+        if (memPropFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+            m_UpdateMode = UpdateMode::AutoFlush;
+
+        if (param.usage == Usage::Readback)
+            m_UpdateMode = UpdateMode::ReadOnly;
+        
+        if (m_Domain != MemoryDomain::DeviceOnly && allocationFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT)
+            m_MappedData = (uint8_t*) ai.pMappedData;
+
+#ifndef COUST_FULL_RELEASE
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, ToString<VkBufferUsageFlags, VkBufferUsageFlagBits>(param.bufferFlags).c_str());
+#endif
     }
 
     Buffer::Buffer(Buffer&& other) noexcept
@@ -154,7 +201,7 @@ namespace Coust::Render::VK
         std::swap(m_MappedData, other.m_MappedData);
     }
         
-    Buffer::~Buffer()
+    Buffer::~Buffer() noexcept
     {
         if (IsValid())
         {
@@ -163,9 +210,8 @@ namespace Coust::Render::VK
         }
     }
 
-    void Buffer::Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset)
+    void Buffer::Update(StagePool& stagePool, const void* data, size_t numBytes, size_t offset) noexcept
     {
-        // If the buffer is host-visible, then just use memcpy
         if (m_Domain == MemoryDomain::DeviceOnly)
         {
             auto stagingBuf = stagePool.AcquireStagingBuffer(numBytes);
@@ -285,6 +331,7 @@ namespace Coust::Render::VK
                 vkCmdPipelineBarrier2(cmdBuf, &dependency);
             }
         }
+        // If the buffer is host-visible, then just use memcpy
         else
         {
             std::memcpy(m_MappedData + offset, data, numBytes);
@@ -310,61 +357,6 @@ namespace Coust::Render::VK
     
     bool Buffer::IsValid() const noexcept { return m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE; }
 
-    bool Buffer::Construct(const Context& ctx, VkBufferUsageFlags bufferFlags, Usage usage, const uint32_t* relatedQueues)
-    {
-        VmaMemoryUsage vmaMemoryUsage = VMA_MEMORY_USAGE_AUTO;
-        VmaAllocationCreateFlags allocationFlags = 0;
-        GetVmaAllocationConfig(usage, bufferFlags, vmaMemoryUsage, allocationFlags);
-
-        VkBufferCreateInfo bci 
-        {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .flags = 0,
-            .size = m_Size,
-            .usage = bufferFlags,
-        };
-        {
-            std::unordered_set<uint32_t> allQueues;
-            for (uint32_t i = 0; i < COMMAND_QUEUE_COUNT; ++ i)
-            {
-                allQueues.insert(relatedQueues[i]);
-            }
-            if (allQueues.size() > 1)
-            {
-                std::vector<uint32_t> queue(allQueues.begin(), allQueues.end());
-                bci.sharingMode = VK_SHARING_MODE_CONCURRENT;
-                bci.queueFamilyIndexCount = (uint32_t) queue.size();
-                bci.pQueueFamilyIndices = queue.data();
-            }
-        }
-        
-        VmaAllocationCreateInfo aci 
-        {
-            .flags = allocationFlags,
-            .usage = vmaMemoryUsage,
-        };
-        VmaAllocationInfo ai{};
-        
-        VK_CHECK(vmaCreateBuffer(ctx.VmaAlloc, &bci, &aci, &m_Handle, &m_Allocation, &ai));
-        
-        VkMemoryPropertyFlags memPropFlags;
-        vmaGetAllocationMemoryProperties(m_VMAAllocator, m_Allocation, &memPropFlags);
-        if (memPropFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT && memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            m_Domain = MemoryDomain::HostAndDevice;
-        else if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            m_Domain = MemoryDomain::HostOnly;
-        else
-            m_Domain = MemoryDomain::DeviceOnly;
-
-        if (memPropFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-            m_UpdateMode = UpdateMode::AutoFlush;
-        
-        if (m_Domain != MemoryDomain::DeviceOnly && allocationFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT)
-            m_MappedData = (uint8_t*) ai.pMappedData;
-
-        return true;
-    }
-    
     void Buffer::SetAlwaysFlush(bool shouldAlwaysFlush) noexcept
     {
         if (m_UpdateMode == UpdateMode::AutoFlush || m_UpdateMode == UpdateMode::ReadOnly)
@@ -372,12 +364,12 @@ namespace Coust::Render::VK
         m_UpdateMode = shouldAlwaysFlush ? UpdateMode::AlwaysFlush : UpdateMode::FlushOnDemand;
     }
 
-    void Buffer::Flush() const
+    void Buffer::Flush() const noexcept
     {
         vmaFlushAllocation(m_VMAAllocator, m_Allocation, 0, VK_WHOLE_SIZE);
     }
 
-    Image::Image(const ConstructParam_Create& param)
+    Image::Image(const ConstructParam_Create& param) noexcept
         : Base(param.ctx, VK_NULL_HANDLE),
           m_Extent{ param.width, param.height, 1 },
           m_Format(param.format),
@@ -427,9 +419,8 @@ namespace Coust::Render::VK
         m_PrimarySubRange.baseMipLevel = 0;
         m_PrimarySubRange.levelCount = CI.mipLevels;
 
-        bool success = false;
         VmaAllocationInfo info{};
-        VK_REPORT(vmaCreateImage(m_Ctx.VmaAlloc, &CI, &AI, &m_Handle, &m_Allocation, &info), success);
+        VK_CHECK(vmaCreateImage(m_Ctx.VmaAlloc, &CI, &AI, &m_Handle, &m_Allocation, &info), "Can't create device image {} {}", param.dedicatedName, param.scopeName);
 
         // create image view for the primary subresource range
         GetView(m_PrimarySubRange);
@@ -439,20 +430,17 @@ namespace Coust::Render::VK
             param.usage == Usage::InputAttachment)
             TransitionLayout(m_Ctx.CmdBufCacheGraphics->Get(), m_DefaultLayout, m_PrimarySubRange);
 
-        if (success)
-        {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, ToString(param.usage));
-            else  
-                COUST_CORE_WARN("Image created without a debug name");
-        }
+#ifndef COUST_FULL_RELEASE
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, ToString(param.usage));
         else  
-            m_Handle = VK_NULL_HANDLE;
+            COUST_CORE_WARN("Image created without a debug name");
+#endif 
     }
 
-    Image::Image(const ConstructParam_Wrap& param)
+    Image::Image(const ConstructParam_Wrap& param) noexcept
         : Base(param.ctx, param.handle),
           m_Extent{param.width, param.height, 1},
           m_Format(param.format),
@@ -483,7 +471,7 @@ namespace Coust::Render::VK
     {
     }
 
-    Image::~Image()
+    Image::~Image() noexcept
     {
 
         // if we perform the actual allocation, then it's our responsiblity to destroy it
@@ -491,7 +479,7 @@ namespace Coust::Render::VK
             vmaDestroyImage(m_Ctx.VmaAlloc, m_Handle, m_Allocation);
     }
 
-    void Image::Update(StagePool& stagePool, const UpdateParam& p)
+    void Image::Update(StagePool& stagePool, const UpdateParam& p) noexcept
     {
         VkFormat linearFormat = UnpackSRGBFormat(m_Format);
         size_t dataSize = p.width * p.height * GetBytePerPixelFromFormat(p.dataFormat);
@@ -582,7 +570,7 @@ namespace Coust::Render::VK
         }
     }
 
-    void Image::TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange)
+    void Image::TransitionLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkImageSubresourceRange subRange) noexcept
     {
         const uint32_t layerFirst = subRange.baseArrayLayer;
         const uint32_t layerLast = subRange.baseArrayLayer + subRange.layerCount - 1;
@@ -597,11 +585,7 @@ namespace Coust::Render::VK
             {
                 for (uint32_t level = levelFirst; level <= levelLast; ++ level)
                 {
-                    if (GetLayout(layer, level) != oldLayout)
-                    {
-                        COUST_CORE_ERROR("Try to transition image subresource with inconsisitent image layouts");
-                        return;
-                    }
+                    COUST_CORE_PANIC_IF(GetLayout(layer, level) != oldLayout, "Try to transition image subresource with inconsisitent image layouts");
                 }
             }
         }
@@ -648,7 +632,7 @@ namespace Coust::Render::VK
             return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
-    void Image::ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout)
+    void Image::ChangeLayout(uint32_t layer, uint32_t level, VkImageLayout newLayout) noexcept
     {
         const uint32_t key = (layer << 16) | level;
         if (newLayout == VK_IMAGE_LAYOUT_UNDEFINED) 
@@ -662,7 +646,7 @@ namespace Coust::Render::VK
         }
     }
 
-    const Image::View* Image::GetView(VkImageSubresourceRange subRange)
+    const Image::View* Image::GetView(VkImageSubresourceRange subRange) noexcept
     {
         if (auto iter = m_CachedImageView.find(subRange); iter != m_CachedImageView.end())
         {
@@ -685,7 +669,7 @@ namespace Coust::Render::VK
         return &m_CachedImageView.at(subRange);
     }
 
-    const Image::View* Image::GetSingleLayerView(VkImageAspectFlags aspect, uint32_t layer, uint32_t mipLevel)
+    const Image::View* Image::GetSingleLayerView(VkImageAspectFlags aspect, uint32_t layer, uint32_t mipLevel) noexcept
     {
         return GetView(VkImageSubresourceRange{
             .aspectMask = aspect,
@@ -701,14 +685,14 @@ namespace Coust::Render::VK
         return GetLayout(m_PrimarySubRange.baseArrayLayer, m_PrimarySubRange.baseMipLevel);
     }
 
-    const Image::View* Image::GetPrimaryView() const
+    const Image::View* Image::GetPrimaryView() const noexcept
     {
         return &m_CachedImageView.at(m_PrimarySubRange);
     }
 
     VkImageSubresourceRange Image::GetPrimarySubRange() const noexcept { return m_PrimarySubRange; }
 
-    void Image::SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel)
+    void Image::SetPrimarySubRange(uint32_t minMipmapLevel, uint32_t maxMipmaplevel) noexcept
     {
         maxMipmaplevel = std::min(maxMipmaplevel, m_MipLevelCount - 1);
         m_PrimarySubRange.baseMipLevel = minMipmapLevel;
@@ -757,18 +741,14 @@ namespace Coust::Render::VK
             .subresourceRange = param.subRange,
         };
 
-        bool success = false;
-        VK_REPORT(vkCreateImageView(m_Ctx.Device, &ci, nullptr, &m_Handle), success);
+        VK_CHECK(vkCreateImageView(m_Ctx.Device, &ci, nullptr, &m_Handle), "Can't create image view {} {}", param.dedicatedName, param.scopeName);
 
-        if (success)
-        {
-            if (param.dedicatedName)
-                SetDedicatedDebugName(param.dedicatedName);
-            else if (param.scopeName)
-                SetDefaultDebugName(param.scopeName, param.image.m_DebugName.c_str());
-        }
-        else
-            m_Handle = VK_NULL_HANDLE;
+#ifndef COUST_FULL_RELEASE
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, param.image.m_DebugName.c_str());
+#endif
     }
 
     Image::View::View(View&& other) noexcept
@@ -777,15 +757,15 @@ namespace Coust::Render::VK
     {
     }
     
-    Image::View::~View()
+    Image::View::~View() noexcept
     {
         if (m_Handle != VK_NULL_HANDLE)
             vkDestroyImageView(m_Ctx.Device, m_Handle, nullptr);
     }
 
-    const Image& Image::View::GetImage() const { return m_Image; }
+    const Image& Image::View::GetImage() const noexcept { return m_Image; }
 
-    HostImage::HostImage(const ConstructParam& param)
+    HostImage::HostImage(const ConstructParam& param) noexcept
         : Base(param.ctx, VK_NULL_HANDLE), m_Format(param.format)
     {
         VkImageCreateInfo CI
@@ -813,18 +793,10 @@ namespace Coust::Render::VK
             .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         };
 
-        bool success = false;
         VmaAllocationInfo allocInfo{};
-        VK_REPORT(vmaCreateImage(m_Ctx.VmaAlloc, &CI, &AI, &m_Handle, &m_Allocation, &allocInfo), success);
+        VK_CHECK(vmaCreateImage(m_Ctx.VmaAlloc, &CI, &AI, &m_Handle, &m_Allocation, &allocInfo), "Can't create host image");
 
         m_MappedData = allocInfo.pMappedData;
-
-        if (!success)
-        {
-            m_Handle = VK_NULL_HANDLE;
-            m_Allocation = VK_NULL_HANDLE;
-            return;
-        }
 
         auto aspect = GetAspect();
 
@@ -848,7 +820,7 @@ namespace Coust::Render::VK
     }
 
 
-    HostImage::~HostImage()
+    HostImage::~HostImage() noexcept
     {
         if (m_Handle != VK_NULL_HANDLE && m_Allocation != VK_NULL_HANDLE)
         {
@@ -856,7 +828,7 @@ namespace Coust::Render::VK
         }
     }
 
-    void HostImage::Update(const void* data, size_t size)
+    void HostImage::Update(const void* data, size_t size) noexcept
     {
         memcpy(m_MappedData, data, size);
         // auto flush

@@ -5,7 +5,7 @@
 
 namespace Coust::Render::VK 
 {
-    VkFormat GetNomalizedFormat(VkFormat format)
+    VkFormat GetNomalizedFormat(VkFormat format) noexcept
     {
         switch (format)
         {
@@ -43,7 +43,7 @@ namespace Coust::Render::VK
         }
     }
 
-    VkFormat UnpackSRGBFormat(VkFormat srgbFormat)
+    VkFormat UnpackSRGBFormat(VkFormat srgbFormat) noexcept
     {
         switch (srgbFormat)
         {
@@ -58,7 +58,7 @@ namespace Coust::Render::VK
         }
     }
 
-    VkImageMemoryBarrier2 ImageBlitTransition(VkImageMemoryBarrier2 barrier)
+    VkImageMemoryBarrier2 ImageBlitTransition(VkImageMemoryBarrier2 barrier) noexcept
     {
         switch (barrier.newLayout)
         {
@@ -92,7 +92,7 @@ namespace Coust::Render::VK
         return barrier;
     }
 
-    void TransitionImageLayout(VkCommandBuffer cmdBuf, VkImageMemoryBarrier2 barrier)
+    void TransitionImageLayout(VkCommandBuffer cmdBuf, VkImageMemoryBarrier2 barrier) noexcept
     {
         // https://github.com/KhronosGroup/Vulkan-Guide/blob/main/chapters/extensions/VK_KHR_synchronization2.adoc
         // Additionally, with VK_KHR_synchronization2, if oldLayout is equal to newLayout, no layout transition is performed and the image contents are preserved. 
@@ -111,7 +111,7 @@ namespace Coust::Render::VK
         vkCmdPipelineBarrier2(cmdBuf, &dependency);
     }
 
-    uint32_t GetBytePerPixelFromFormat(VkFormat format)
+    uint32_t GetBytePerPixelFromFormat(VkFormat format) noexcept
     {
         // Grab from spec
         switch (format)
@@ -262,13 +262,13 @@ namespace Coust::Render::VK
         }
     }
 
-    bool IsDepthOnlyFormat(VkFormat format)
+    bool IsDepthOnlyFormat(VkFormat format) noexcept
     {
         return format == VK_FORMAT_D32_SFLOAT || 
                format == VK_FORMAT_D16_UNORM;
     }
 
-    bool IsDepthStencilFormat(VkFormat format)
+    bool IsDepthStencilFormat(VkFormat format) noexcept
     {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
                 format == VK_FORMAT_D24_UNORM_S8_UINT ||
@@ -276,7 +276,7 @@ namespace Coust::Render::VK
                IsDepthOnlyFormat(format);
     }
 
-    const char* ToString(VkResult result)
+    const char* ToString(VkResult result) noexcept
     {
         switch (result)
         {
@@ -329,7 +329,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(VkObjectType objType)
+    const char* ToString(VkObjectType objType) noexcept
     {
         switch (objType)
         {
@@ -385,7 +385,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(VkAccessFlagBits bit)
+    const char* ToString(VkAccessFlagBits bit) noexcept
     {
         switch (bit) 
         {
@@ -422,7 +422,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(VkShaderStageFlagBits bit)
+    const char* ToString(VkShaderStageFlagBits bit) noexcept
     {
         switch (bit)
         {
@@ -447,7 +447,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(VkCommandBufferLevel level)
+    const char* ToString(VkCommandBufferLevel level) noexcept
     {
         switch (level)
         {
@@ -457,7 +457,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(VkDescriptorType type)
+    const char* ToString(VkDescriptorType type) noexcept
     {
         switch (type) 
         {
@@ -482,7 +482,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(VkBufferUsageFlagBits bit)
+    const char* ToString(VkBufferUsageFlagBits bit) noexcept
     {
         switch (bit)
         {
@@ -513,7 +513,7 @@ namespace Coust::Render::VK
         }
     }
 
-    const char* ToString(VkImageUsageFlagBits bit)
+    const char* ToString(VkImageUsageFlagBits bit) noexcept
     {
         switch (bit)
         {
@@ -538,7 +538,7 @@ namespace Coust::Render::VK
         }
     }
 
-    const char* ToString(VkFormat format)
+    const char* ToString(VkFormat format) noexcept
     {
         switch (format)
         {
@@ -797,7 +797,7 @@ namespace Coust::Render::VK
 
 namespace std 
 {
-    std::size_t hash<VkDescriptorBufferInfo>::operator()(const VkDescriptorBufferInfo& key) const
+    std::size_t hash<VkDescriptorBufferInfo>::operator()(const VkDescriptorBufferInfo& key) const noexcept
     {
         std::size_t h = 0;
         Coust::Hash::Combine(h, key.buffer);
@@ -806,7 +806,7 @@ namespace std
         return h;
     }
 
-    std::size_t hash<VkDescriptorImageInfo>::operator()(const VkDescriptorImageInfo& key) const
+    std::size_t hash<VkDescriptorImageInfo>::operator()(const VkDescriptorImageInfo& key) const noexcept
     {
         std::size_t h = 0;
         Coust::Hash::Combine(h, key.imageView);
@@ -815,7 +815,7 @@ namespace std
         return h;
     }
 
-    std::size_t hash<VkWriteDescriptorSet>::operator()(const VkWriteDescriptorSet& key) const
+    std::size_t hash<VkWriteDescriptorSet>::operator()(const VkWriteDescriptorSet& key) const noexcept
     {
         std::size_t h = 0;
         Coust::Hash::Combine(h, key.dstSet);

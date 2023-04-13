@@ -14,17 +14,16 @@ namespace Coust::Render::VK
                 .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
                 .queueFamilyIndex = isCompute ? ctx.ComputeQueueFamilyIndex : ctx.GraphicsQueueFamilyIndex,
             };
-            bool success = false; (void) success;
-            VK_REPORT(vkCreateCommandPool(m_Device, &poolCI, nullptr, &m_Pool), success);
+            VK_CHECK(vkCreateCommandPool(m_Device, &poolCI, nullptr, &m_Pool), "Can't create command pool");
 
             VkSemaphoreCreateInfo semaphoreCI { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
             for (uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++ i)
             {
-                VK_REPORT(vkCreateSemaphore(m_Device, &semaphoreCI, nullptr, &m_AllSubmissionSignal[i]), success);
+                VK_CHECK(vkCreateSemaphore(m_Device, &semaphoreCI, nullptr, &m_AllSubmissionSignal[i]), "Can't create command buffer submission signal semaphore");
             }
         }
 
-        CommandBufferCache::~CommandBufferCache()
+        CommandBufferCache::~CommandBufferCache() noexcept
         {
             Wait();
             GC();
@@ -65,20 +64,10 @@ namespace Coust::Render::VK
                 .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 .commandBufferCount = 1,
             };
-            bool success = false;
-            VK_REPORT(vkAllocateCommandBuffers(m_Device, &cmdBufAI, &m_AllCmdBuf[m_CurCmdBufIdx].Handle), success);
-
-            if (!success)
-            {
-                COUST_CORE_ERROR("Can't allocate new command buffer, return empty buffer");
-                m_AllCmdBuf[m_CurCmdBufIdx].Handle = VK_NULL_HANDLE;
-                return nullptr;
-            }
+            VK_CHECK(vkAllocateCommandBuffers(m_Device, &cmdBufAI, &m_AllCmdBuf[m_CurCmdBufIdx].Handle), "Can't allocate new command buffer");
 
             VkFenceCreateInfo fenceCI { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, };
-            // The only two senario these vulkan call would fail is we've run out of host or device memory, which is really rare. 
-            // And if it actually happened, the allocation of command buffer would probably already fail.
-            VK_REPORT(vkCreateFence(m_Device, &fenceCI, nullptr, &m_AllCmdBuf[m_CurCmdBufIdx].Fence), success);
+            VK_CHECK(vkCreateFence(m_Device, &fenceCI, nullptr, &m_AllCmdBuf[m_CurCmdBufIdx].Fence), "Can't create fence attached to command buffer");
 
             m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Initial;
 
@@ -87,7 +76,7 @@ namespace Coust::Render::VK
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                 .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
             };
-            VK_REPORT(vkBeginCommandBuffer(m_AllCmdBuf[m_CurCmdBufIdx].Handle, &cmdBufBI), success);
+            VK_CHECK(vkBeginCommandBuffer(m_AllCmdBuf[m_CurCmdBufIdx].Handle, &cmdBufBI), "Can't begin command buffer");
 
             m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Recording;
 
@@ -133,7 +122,7 @@ namespace Coust::Render::VK
             if (m_InjectedSignal != VK_NULL_HANDLE)
                 waitSignals[SI.waitSemaphoreCount++] = m_InjectedSignal;
 
-            VK_CHECK(vkQueueSubmit(m_Queue, 1, &SI, m_AllCmdBuf[m_CurCmdBufIdx].Fence));
+            VK_CHECK(vkQueueSubmit(m_Queue, 1, &SI, m_AllCmdBuf[m_CurCmdBufIdx].Fence), "Can't submit / flush command buffer");
             m_AllCmdBuf[m_CurCmdBufIdx].State = CommandBuffer::State::Pending;
 
             m_LastSubmissionSignal = m_AllSubmissionSignal[m_CurCmdBufIdx];

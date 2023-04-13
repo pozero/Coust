@@ -14,8 +14,8 @@ namespace Coust::Render::VK
     class Driver : public Coust::Render::Driver
     {
 	public:
-		explicit Driver();
-		virtual ~Driver();
+		explicit Driver() noexcept;
+		virtual ~Driver() noexcept;
 		
 		virtual void InitializationTest() override;
 
@@ -24,7 +24,7 @@ namespace Coust::Render::VK
 		void ShutdownTest();
 
 	public:
-		const Context& GetContext() const { return m_Context; }
+		const Context& GetContext() const noexcept { return m_Context; }
 
 	public:
 
@@ -33,9 +33,9 @@ namespace Coust::Render::VK
 		// collect and recycle unused cache, it'll be implicitly called per submission
 		void CollectGarbage() noexcept;
 
-		void BegingFrame();
+		void BegingFrame() noexcept;
 
-		void EndFrame();
+		void EndFrame() noexcept;
 
 	/*
 		void CreateRenderTarget();
@@ -90,13 +90,13 @@ namespace Coust::Render::VK
 	*/
 		
 	private:
-		bool CreateInstance();
+		void CreateInstance() noexcept;
 
-		bool CreateDebugMessengerAndReportCallback();
+		void CreateDebugMessengerAndReportCallback() noexcept;
 
-		bool CreateSurface();
+		void CreateSurface() noexcept;
 
-		bool SelectPhysicalDeviceAndCreateDevice();
+		void SelectPhysicalDeviceAndCreateDevice() noexcept;
 
     private:
         Context m_Context{};

@@ -21,11 +21,11 @@ namespace Coust::Render::VK
 	public:
 		explicit Swapchain(const Context &ctx) noexcept;
 
-		~Swapchain() = default;
+		~Swapchain() noexcept = default;
 
-		void Prepare();
+		void Prepare() noexcept;
 
-		bool Create();
+		bool Create() noexcept;
 
 		void Destroy() noexcept;
 
@@ -37,7 +37,7 @@ namespace Coust::Render::VK
 
 		// TODO: we let swapchain responsible for presentable layout transition for now 
 		// it should be much slower than transition inside renderpass (I guess), if the benchmark shows a significant overhead of that operation, we would fix it
-		void MakePresentable();
+		void MakePresentable() noexcept;
 
 		Image& GetColorAttachment() const noexcept;
 		// Image& GetDepthAttachment() const noexcept;

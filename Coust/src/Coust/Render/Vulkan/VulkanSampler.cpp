@@ -5,12 +5,12 @@
 
 namespace Coust::Render::VK 
 {
-    SamplerCache::SamplerCache(const Context& ctx)
+    SamplerCache::SamplerCache(const Context& ctx) noexcept
         : m_Ctx(ctx), m_HitCounter("Sampler")
     {
     }
 
-    void SamplerCache::Reset()
+    void SamplerCache::Reset() noexcept
     {
         for (const auto& pair : m_CachedSamplers)
         {
@@ -19,7 +19,7 @@ namespace Coust::Render::VK
         m_CachedSamplers.clear();
     }
 
-    inline VkFilter GetMagFilter(SamplerCache::MagFilter mag)
+    inline VkFilter GetMagFilter(SamplerCache::MagFilter mag) noexcept
     {
         switch (mag)
         {
@@ -29,7 +29,7 @@ namespace Coust::Render::VK
         }
     }
 
-    inline VkFilter GetMinFilter(SamplerCache::MinFilter min)
+    inline VkFilter GetMinFilter(SamplerCache::MinFilter min) noexcept
     {
         switch (min)
         {
@@ -46,7 +46,7 @@ namespace Coust::Render::VK
         }
     }
 
-    inline VkSamplerMipmapMode GetMipMapMode(SamplerCache::MinFilter min)
+    inline VkSamplerMipmapMode GetMipMapMode(SamplerCache::MinFilter min) noexcept
     {
         switch (min)
         {
@@ -63,7 +63,7 @@ namespace Coust::Render::VK
         }
     }
 
-    float GetMaxLod(SamplerCache::MinFilter min)
+    float GetMaxLod(SamplerCache::MinFilter min) noexcept
     {
         switch (min)
         {
@@ -84,7 +84,7 @@ namespace Coust::Render::VK
         }
     }
 
-    VkSampler SamplerCache::Get(const SamplerInfo& info)
+    VkSampler SamplerCache::Get(const SamplerInfo& info) noexcept
     {
         if (auto iter = m_CachedSamplers.find(info); iter != m_CachedSamplers.end())
         {
@@ -115,10 +115,7 @@ namespace Coust::Render::VK
             .unnormalizedCoordinates = VK_FALSE,
         };
         VkSampler s = VK_NULL_HANDLE;
-        bool success = false;
-        VK_REPORT(vkCreateSampler(m_Ctx.Device, &CI, nullptr, &s), success);
-        if (!success)
-            return VK_NULL_HANDLE;
+        VK_CHECK(vkCreateSampler(m_Ctx.Device, &CI, nullptr, &s), "Can't create sampler");
         m_CachedSamplers.emplace(info, s);
         return s;
     }

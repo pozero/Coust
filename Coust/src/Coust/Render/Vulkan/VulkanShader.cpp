@@ -14,10 +14,10 @@ namespace Coust::Render::VK
 	class Includer : public shaderc::CompileOptions::IncluderInterface
 	{
 	public:
-		~Includer() override = default;
+		~Includer() noexcept override = default;
 
 		shaderc_include_result *GetInclude( const char *requested_source, shaderc_include_type type, 
-											const char *requesting_source, size_t include_depth ) override
+											const char *requesting_source, size_t include_depth ) noexcept override 
 		{
 			IncludedFileInfo* info = new IncludedFileInfo{};
 			std::filesystem::path includePath{ requested_source };
@@ -44,7 +44,7 @@ namespace Coust::Render::VK
 			return result;
 		}
 
-		void ReleaseInclude(shaderc_include_result *include_result) override
+		void ReleaseInclude(shaderc_include_result *include_result) noexcept override
 		{
 		    IncludedFileInfo* info = (IncludedFileInfo*) include_result->user_data;
 		    delete info;
@@ -73,7 +73,7 @@ namespace Coust::Render::VK
         return hash;
     }
 
-    const std::string& ShaderSource::GetCode()
+    const std::string& ShaderSource::GetCode() noexcept
     {
         if (m_SourceCode.empty())
             FileSystem::ReadWholeText(m_SourceFilePath, m_SourceCode);
@@ -86,20 +86,20 @@ namespace Coust::Render::VK
     
     const std::unordered_map<std::string, size_t>& ShaderSource::GetDesiredDynamicBufferSize() const noexcept { return m_DesiredDynamicBufferSize; }
     
-    void ShaderSource::AddMacro(const std::string& name, const std::string& value) { m_Macros[name] = value; }
+    void ShaderSource::AddMacro(const std::string& name, const std::string& value) noexcept { m_Macros[name] = value; }
     
-    void ShaderSource::DeleteMacroByName(const std::string& name)
+    void ShaderSource::DeleteMacroByName(const std::string& name) noexcept
     {
         const auto& iter = m_Macros.find(name);
         m_Macros.erase(iter);
     }
     
-    void ShaderSource::SetDynamicBufferSize(std::string_view name, size_t size) 
+    void ShaderSource::SetDynamicBufferSize(std::string_view name, size_t size) noexcept
     { 
         m_DesiredDynamicBufferSize[std::string{ name }] = size; 
     }
 	
-	ShaderByteCode::~ShaderByteCode()
+	ShaderByteCode::~ShaderByteCode() noexcept
 	{
 		if (!ByteCode.empty() && ShouldBeFlushed)
 		{
@@ -107,7 +107,7 @@ namespace Coust::Render::VK
 		}
 	}
 	
-	inline ShaderResourceBaseType GetShaderResourceBastType(spirv_cross::SPIRType::BaseType baseType)
+	inline ShaderResourceBaseType GetShaderResourceBastType(spirv_cross::SPIRType::BaseType baseType) noexcept
     {
         switch (baseType)
         {
@@ -128,7 +128,7 @@ namespace Coust::Render::VK
         }
     }
 
-    inline uint32_t GetShaderResourceBaseTypeSize(ShaderResourceBaseType baseType)
+    inline uint32_t GetShaderResourceBaseTypeSize(ShaderResourceBaseType baseType) noexcept
     {
         switch (baseType)
         {
@@ -153,7 +153,7 @@ namespace Coust::Render::VK
         }
     }
     
-    inline uint32_t GetShaderResourceBaseTypeSize(spirv_cross::SPIRType::BaseType baseType)
+    inline uint32_t GetShaderResourceBaseTypeSize(spirv_cross::SPIRType::BaseType baseType) noexcept
     {
         switch (baseType)
         {
@@ -178,7 +178,7 @@ namespace Coust::Render::VK
         }
     }
     
-    ShaderResourceMember* ParseResourceMembers(const spirv_cross::CompilerGLSL& compiler, const spirv_cross::SPIRType& spirvType)
+    ShaderResourceMember* ParseResourceMembers(const spirv_cross::CompilerGLSL& compiler, const spirv_cross::SPIRType& spirvType) noexcept
     {
         ShaderResourceMember* pFirstMember = nullptr;
         ShaderResourceMember* pPrevMember = nullptr;
@@ -213,7 +213,7 @@ namespace Coust::Render::VK
         return pFirstMember;
     }
     
-    inline void CleanResourceMembersInfo(ShaderResourceMember* pMemberInfo)
+    inline void CleanResourceMembersInfo(ShaderResourceMember* pMemberInfo) noexcept
     {
         if (!pMemberInfo)
             return;
@@ -238,7 +238,7 @@ namespace Coust::Render::VK
 	// `basetype` is queried for `VertexInputAttribute.format`
     inline void ReadResourceBaseType(const spirv_cross::CompilerGLSL& compiler, 
 									 const spirv_cross::Resource& resource, 
-									 ShaderResource& out_ShaderResources)
+									 ShaderResource& out_ShaderResources) noexcept
     {
         const auto& spirvType = compiler.get_type_from_variable(resource.id);
         out_ShaderResources.BaseType = GetShaderResourceBastType(spirvType.basetype);
@@ -247,7 +247,7 @@ namespace Coust::Render::VK
     template <spv::Decoration decoration>
     inline void ReadResourceDecoration(const spirv_cross::CompilerGLSL& compiler, 
 									   const spirv_cross::Resource& resource, 
-									   ShaderResource& out_ShaderResources)
+									   ShaderResource& out_ShaderResources) noexcept
     {
 		COUST_CORE_WARN("ReadResourceDecoration<{}>(*) Not Implemented!", ToString(decoration));
     }
@@ -255,7 +255,7 @@ namespace Coust::Render::VK
     template <>
     inline void ReadResourceDecoration<spv::DecorationLocation>(const spirv_cross::CompilerGLSL& compiler, 
 																const spirv_cross::Resource& resource, 
-																ShaderResource& out_ShaderResources)
+																ShaderResource& out_ShaderResources) noexcept
     {
         out_ShaderResources.Location = compiler.get_decoration(resource.id, spv::DecorationLocation);
     }
@@ -263,7 +263,7 @@ namespace Coust::Render::VK
     template <>
     inline void ReadResourceDecoration<spv::DecorationDescriptorSet>(const spirv_cross::CompilerGLSL& compiler, 
 																	 const spirv_cross::Resource& resource, 
-																	 ShaderResource& out_ShaderResources)
+																	 ShaderResource& out_ShaderResources) noexcept
     {
         out_ShaderResources.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
     }
@@ -271,7 +271,7 @@ namespace Coust::Render::VK
     template <>
     inline void ReadResourceDecoration<spv::DecorationBinding>(const spirv_cross::CompilerGLSL& compiler, 
 															   const spirv_cross::Resource& resource, 
-															   ShaderResource& out_ShaderResources)
+															   ShaderResource& out_ShaderResources) noexcept
     {
         out_ShaderResources.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
     }
@@ -279,7 +279,7 @@ namespace Coust::Render::VK
     template <>
     inline void ReadResourceDecoration<spv::DecorationInputAttachmentIndex>(const spirv_cross::CompilerGLSL& compiler, 
 																			const spirv_cross::Resource& resource, 
-																			ShaderResource& out_ShaderResources)
+																			ShaderResource& out_ShaderResources) noexcept
     {
         out_ShaderResources.InputAttachmentIndex = compiler.get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
     }
@@ -287,7 +287,7 @@ namespace Coust::Render::VK
     template <>
     inline void ReadResourceDecoration<spv::DecorationNonReadable>(const spirv_cross::CompilerGLSL& compiler, 
 																   const spirv_cross::Resource& resource, 
-																   ShaderResource& out_ShaderResources)
+																   ShaderResource& out_ShaderResources) noexcept
     {
         // Note: DecorationNonReadable / DecorationNonWritable should be obtained through `get_buffer_block_flags` instead of `get_decoration`
         auto flag = compiler.get_buffer_block_flags(resource.id);
@@ -298,7 +298,7 @@ namespace Coust::Render::VK
     template <>
     inline void ReadResourceDecoration<spv::DecorationNonWritable>(const spirv_cross::CompilerGLSL& compiler, 
 																   const spirv_cross::Resource& resource, 
-																   ShaderResource& out_ShaderResources)
+																   ShaderResource& out_ShaderResources) noexcept
     {
         // Note: DecorationNonReadable / DecorationNonWritable should be obtained through `get_buffer_block_flags` instead of `get_decoration`
         auto flag = compiler.get_buffer_block_flags(resource.id);
@@ -309,7 +309,7 @@ namespace Coust::Render::VK
     // `vecsize` is queried for `VertexInputAttribute.format`
     inline void ReadResourceVecSize(const spirv_cross::CompilerGLSL& compiler, 
 									const spirv_cross::Resource& resource, 
-									ShaderResource& out_ShaderResources)
+									ShaderResource& out_ShaderResources) noexcept
     {
         const auto& spirvType = compiler.get_type_from_variable(resource.id);
         out_ShaderResources.VecSize = spirvType.vecsize;
@@ -319,7 +319,7 @@ namespace Coust::Render::VK
     // `arraysize` is queried for `VkDescriptorSetLayoutBinding.descriptorCount`
     inline void ReadResourceArraySize(const spirv_cross::CompilerGLSL& compiler, 
 									  const spirv_cross::Resource& resource, 
-									  ShaderResource& out_ShaderResources)
+									  ShaderResource& out_ShaderResources) noexcept
     {
         const auto& spirvType = compiler.get_type_from_variable(resource.id);
         out_ShaderResources.ArraySize = spirvType.array.size() > 0 ? spirvType.array[0] : 1;
@@ -328,7 +328,7 @@ namespace Coust::Render::VK
 	inline void ReadResourceSize(const spirv_cross::CompilerGLSL& compiler, 
 								 const spirv_cross::Resource& resource, 
 								 const std::unordered_map<std::string, size_t>& desiredRuntimeSize, 
-								 ShaderResource& out_ShaderResources)
+								 ShaderResource& out_ShaderResources) noexcept
     {
         const auto& spirvType = compiler.get_type_from_variable(resource.id);
         size_t arraySize = 0;
@@ -340,7 +340,7 @@ namespace Coust::Render::VK
 	inline void ReadConstantBaseTypeAndSize(const spirv_cross::CompilerGLSL& compiler, 
                                  const spirv_cross::SpecializationConstant& resource,
 								 const std::unordered_map<std::string, size_t>& desiredRuntimeSize, 
-								 ShaderResource& out_ShaderResources)
+								 ShaderResource& out_ShaderResources) noexcept
     {
         const auto& constant = compiler.get_constant(resource.id);
         const auto& spirvType = compiler.get_type(constant.constant_type);
@@ -354,7 +354,7 @@ namespace Coust::Render::VK
 								   const spirv_cross::ShaderResources& resources, 
 								   VkShaderStageFlagBits stage, 
                                     const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-								   std::vector<ShaderResource>& out_ShaderResources)
+								   std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
         COUST_CORE_WARN("ReadShaderResource<{}> Not implemented!", ToString(Type));
     }
@@ -364,7 +364,7 @@ namespace Coust::Render::VK
                                                               const spirv_cross::ShaderResources& resources, 
                                                               VkShaderStageFlagBits stage, 
                                                               const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                              std::vector<ShaderResource>& out_ShaderResources)
+                                                              std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
         for (auto& res : resources.stage_inputs)
         {
@@ -389,7 +389,7 @@ namespace Coust::Render::VK
                                                                         const spirv_cross::ShaderResources& resources, 
                                                                         VkShaderStageFlagBits stage, 
                                                                         const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                        std::vector<ShaderResource>& out_ShaderResources)
+                                                                        std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.subpass_inputs)
        {
@@ -415,7 +415,7 @@ namespace Coust::Render::VK
                                                                const spirv_cross::ShaderResources& resources, 
                                                                VkShaderStageFlagBits stage, 
                                                                const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                               std::vector<ShaderResource>& out_ShaderResources)
+                                                               std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.stage_outputs)
        {
@@ -440,7 +440,7 @@ namespace Coust::Render::VK
                                                               const spirv_cross::ShaderResources& resources, 
                                                               VkShaderStageFlagBits stage, 
                                                               const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                              std::vector<ShaderResource>& out_ShaderResources)
+                                                              std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.separate_images)
        {
@@ -465,7 +465,7 @@ namespace Coust::Render::VK
                                                                         const spirv_cross::ShaderResources& resources, 
                                                                         VkShaderStageFlagBits stage, 
                                                                         const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                        std::vector<ShaderResource>& out_ShaderResources)
+                                                                        std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.sampled_images)
        {
@@ -490,7 +490,7 @@ namespace Coust::Render::VK
                                                                      const spirv_cross::ShaderResources& resources, 
                                                                      VkShaderStageFlagBits stage, 
                                                                      const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                     std::vector<ShaderResource>& out_ShaderResources)
+                                                                     std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.storage_images)
        {
@@ -518,7 +518,7 @@ namespace Coust::Render::VK
                                                                      const spirv_cross::ShaderResources& resources, 
                                                                      VkShaderStageFlagBits stage, 
                                                                      const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                     std::vector<ShaderResource>& out_ShaderResources)
+                                                                     std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.separate_samplers)
        {
@@ -543,7 +543,7 @@ namespace Coust::Render::VK
                                                                       const spirv_cross::ShaderResources& resources, 
                                                                       VkShaderStageFlagBits stage, 
                                                                       const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                      std::vector<ShaderResource>& out_ShaderResources)
+                                                                      std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.uniform_buffers)
        {
@@ -572,7 +572,7 @@ namespace Coust::Render::VK
                                                                       const spirv_cross::ShaderResources& resources, 
                                                                       VkShaderStageFlagBits stage, 
                                                                       const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                      std::vector<ShaderResource>& out_ShaderResources)
+                                                                      std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.storage_buffers)
        {
@@ -605,7 +605,7 @@ namespace Coust::Render::VK
                                                                      const spirv_cross::ShaderResources& resources, 
                                                                      VkShaderStageFlagBits stage, 
                                                                      const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                     std::vector<ShaderResource>& out_ShaderResources)
+                                                                     std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
        for (auto& res : resources.push_constant_buffers)
        {
@@ -641,7 +641,7 @@ namespace Coust::Render::VK
                                                                      const spirv_cross::ShaderResources& resources, 
                                                                      VkShaderStageFlagBits stage, 
                                                                      const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                                                     std::vector<ShaderResource>& out_ShaderResources)
+                                                                     std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
         auto specializationConstant = compiler.get_specialization_constants();
         
@@ -663,7 +663,7 @@ namespace Coust::Render::VK
     bool SPIRVReflectShaderResource(const std::vector<uint32_t>& spirv, 
                                     VkShaderStageFlagBits stage,
                                     const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
-                                    std::vector<ShaderResource>& out_ShaderResource)
+                                    std::vector<ShaderResource>& out_ShaderResource) noexcept
     {
         try
         {
@@ -694,7 +694,7 @@ namespace Coust::Render::VK
         return true;
     }
 
-    inline shaderc_env_version GetShadercEnvVersion(uint32_t vulkanVer)
+    inline shaderc_env_version GetShadercEnvVersion(uint32_t vulkanVer) noexcept
     {
         switch (vulkanVer)
         {
@@ -706,7 +706,7 @@ namespace Coust::Render::VK
         }
     }
     
-    inline shaderc_shader_kind GetShaderKind(VkShaderStageFlagBits stage)
+    inline shaderc_shader_kind GetShaderKind(VkShaderStageFlagBits stage) noexcept
     {
         switch(stage)
         {
@@ -722,8 +722,8 @@ namespace Coust::Render::VK
 
     void ShaderModule::CollectShaderResources(const std::vector<ShaderModule*>& modules, 
                                               std::vector<ShaderResource>& out_AllShaderResources, 
-                                              std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup)
-    {
+                                              std::unordered_map<uint32_t, uint64_t>& out_SetToResourceIdxLookup) noexcept
+    { 
         for (const auto m : modules)
         {
             const auto& res = m->GetResource();
@@ -746,11 +746,8 @@ namespace Coust::Render::VK
             }
         }
 
-        if (out_AllShaderResources.size() > sizeof(decltype(out_SetToResourceIdxLookup.at(0))))
-        {
-            COUST_CORE_ERROR("There're {} shader resources presenting in this group of shader modules. The value type of `out_SetToResourceIdxLookup` should upscale", out_AllShaderResources.size());
-            return;
-        }
+        COUST_CORE_PANIC_IF(out_AllShaderResources.size() > sizeof(decltype(out_SetToResourceIdxLookup.at(0))), 
+            "There're {} shader resources presenting in this group of shader modules. The value type of `out_SetToResourceIdxLookup` should upscale", out_AllShaderResources.size());
 
         for (size_t i = 0; i < out_AllShaderResources.size(); ++ i)
         {
@@ -776,7 +773,7 @@ namespace Coust::Render::VK
 #pragma warning( push )
 #pragma warning( disable : 4003 )
 
-    inline VkFormat GetInputResourceFormat(uint32_t vecSize, ShaderResourceBaseType baseType)
+    inline VkFormat GetInputResourceFormat(uint32_t vecSize, ShaderResourceBaseType baseType) noexcept
     {
         if (vecSize == 4)
         {
@@ -869,7 +866,7 @@ namespace Coust::Render::VK
     void ShaderModule::CollectShaderInputs(const std::vector<ShaderModule*>& modules,
         uint32_t perInstanceInputMask,  
         std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
-        std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions)
+        std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions) noexcept
     {
         // For question related to the "binding" of vertex input, the mannual for `vkCmdBindVertexBuffers` says:
         // The values taken from elements i of pBuffers and pOffsets replace the current state for the vertex
@@ -930,12 +927,12 @@ namespace Coust::Render::VK
         for (const auto location : allLocations)
         {
             auto begin = std::find_if(inputResource.begin(), inputResource.end(), 
-                [location](decltype(inputResource[0]) r) -> bool
+                [location](decltype(*inputResource.cbegin()) r) -> bool
                 {
                     return r.Location == location;
                 });
             auto end = std::find_if_not(begin, inputResource.end(), 
-                [location](decltype(inputResource[0]) r) -> bool
+                [location](decltype(*inputResource.cbegin()) r) -> bool
                 {
                     return r.Location == location;
                 });
@@ -969,54 +966,8 @@ namespace Coust::Render::VK
         }
     }
 
-    ShaderModule::ShaderModule(const ConstructParm& param)
+    ShaderModule::ShaderModule(const ConstructParm& param) noexcept
         : Base(param.ctx, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Stage(param.stage), m_Source(param.source)
-    {
-        Construct(param.ctx);
-        if (GetByteCode().size() > 0 && GetResource().size() > 0)
-        {
-            VkShaderModuleCreateInfo ci
-            {
-                .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                .codeSize = GetByteCode().size() * sizeof(uint32_t),
-                .pCode = GetByteCode().data(),
-            };
-            bool succeeded = false;
-            VK_REPORT(vkCreateShaderModule(param.ctx.Device, &ci, nullptr, &m_Handle), succeeded);
-            if (succeeded)
-            {
-                if (param.dedicatedName)
-                    SetDedicatedDebugName(param.dedicatedName);
-                else if (param.scopeName)
-                    SetDefaultDebugName(param.scopeName, ToString(param.stage));
-                else
-                    COUST_CORE_WARN("Shader module created without a debug name");
-            }
-            else
-                m_Handle = VK_NULL_HANDLE;
-        }
-    }
-
-    ShaderModule::ShaderModule(ShaderModule&& other) noexcept
-        : Base(std::forward<Base>(other)),
-          Hashable(std::forward<Hashable>(other)),
-          m_Stage(other.m_Stage),
-          m_Source(std::move(other.m_Source)),
-          m_ByteCode(std::move(other.m_ByteCode)),
-          m_Resources(std::move(other.m_Resources))
-    {
-    }
-    
-    ShaderModule::~ShaderModule()
-    {
-        for (const auto& r : m_Resources)
-        {
-            CleanResourceMembersInfo(r.pMembers);
-        }
-        vkDestroyShaderModule(m_Ctx.Device, m_Handle, nullptr);
-    }
-
-    bool ShaderModule::Construct(const Context& ctx)
     {
         size_t cacheTag = m_Hash;
 
@@ -1039,25 +990,49 @@ namespace Coust::Render::VK
             }
 
             auto result = compiler.CompileGlslToSpv(m_Source.GetCode(), GetShaderKind(m_Stage), m_Source.GetPath().string().c_str(), options);
-            if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
-            {
-            	COUST_CORE_ERROR(result.GetErrorMessage().data());
-                return false;
-            }
-            else
-                m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
+            COUST_CORE_PANIC_IF(result.GetCompilationStatus() != shaderc_compilation_status_success, "{}", result.GetErrorMessage().data());
+            m_ByteCode = ShaderByteCode{ m_Source.GetPath().string(), std::vector<uint32_t>{result.cbegin(), result.cend()}, true};
         }
         m_ByteCode.CacheTag = cacheTag;
         
-        if (!SPIRVReflectShaderResource(m_ByteCode.ByteCode, m_Stage, m_Source.GetDesiredDynamicBufferSize(), m_Resources))
+        COUST_CORE_PANIC_IF(!SPIRVReflectShaderResource(m_ByteCode.ByteCode, m_Stage, m_Source.GetDesiredDynamicBufferSize(), m_Resources), "Can't reflect SPIR-V");
+
+        VkShaderModuleCreateInfo ci
         {
-            COUST_CORE_ERROR("Can't reflect SPIR-V");
-            return false;
-        }
-        return true;
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = GetByteCode().size() * sizeof(uint32_t),
+            .pCode = GetByteCode().data(),
+        };
+        VK_CHECK(vkCreateShaderModule(param.ctx.Device, &ci, nullptr, &m_Handle), "Can't create shader module");
+
+#ifndef COUST_FULL_RELEASE
+        if (param.dedicatedName)
+            SetDedicatedDebugName(param.dedicatedName);
+        else if (param.scopeName)
+            SetDefaultDebugName(param.scopeName, ToString(param.stage));
+#endif
+    }
+
+    ShaderModule::ShaderModule(ShaderModule&& other) noexcept
+        : Base(std::forward<Base>(other)),
+          Hashable(std::forward<Hashable>(other)),
+          m_Stage(other.m_Stage),
+          m_Source(std::move(other.m_Source)),
+          m_ByteCode(std::move(other.m_ByteCode)),
+          m_Resources(std::move(other.m_Resources))
+    {
     }
     
-    std::string ShaderModule::GetDisassembledSPIRV()
+    ShaderModule::~ShaderModule() noexcept
+    {
+        for (const auto& r : m_Resources)
+        {
+            CleanResourceMembersInfo(r.pMembers);
+        }
+        vkDestroyShaderModule(m_Ctx.Device, m_Handle, nullptr);
+    }
+    
+    std::string ShaderModule::GetDisassembledSPIRV() noexcept
     {
         std::unique_ptr<spirv_cross::CompilerGLSL> compiler = std::make_unique<spirv_cross::CompilerGLSL>(m_ByteCode.ByteCode);
         return compiler->compile();
@@ -1082,7 +1057,7 @@ namespace Coust::Render::VK
         return source.GetHash();
     }
 
-    const char* ToString(ShaderResourceType type)
+    const char* ToString(ShaderResourceType type) noexcept
     {
         switch (type) 
         {
@@ -1101,7 +1076,7 @@ namespace Coust::Render::VK
         }
     }
     
-    const char* ToString(ShaderResourceBaseType type)
+    const char* ToString(ShaderResourceBaseType type) noexcept
     {
         switch (type)
         {
@@ -1122,7 +1097,7 @@ namespace Coust::Render::VK
         }
     }
     
-    std::string ToString(const ShaderResourceMember* pMem)
+    std::string ToString(const ShaderResourceMember* pMem) noexcept
     {
         if (!pMem)
             return{};
@@ -1168,7 +1143,7 @@ namespace Coust::Render::VK
         return ss.str();
     }
     
-    std::string ToString(const ShaderResource& res)
+    std::string ToString(const ShaderResource& res) noexcept
     {
         std::stringstream ss{};
         std::string indent{ "\n\t" };

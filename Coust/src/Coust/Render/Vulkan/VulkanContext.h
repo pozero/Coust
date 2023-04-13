@@ -13,8 +13,15 @@
 namespace Coust::Render::VK
 {
     constexpr uint32_t INVALID_IDX = ~(0u);
-
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-const-variable"
+#endif
     constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_3;
+    constexpr uint32_t COMMAND_QUEUE_COUNT = 3;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	class CommandBufferCache;
 	class StagePool;
@@ -63,14 +70,17 @@ namespace Coust::Render::VK
    	};
 
 
-	template<typename T, typename VkHanlde, VkObjectType ObjectType>
-	concept IsVulkanResource = std::is_base_of<Resource<VkHanlde, ObjectType>, T>::value;
-
-	template<typename T>
-	concept ImplementedIsValid = requires (const T& a)
+	namespace
 	{
-		{ a.IsValid() } -> std::same_as<bool>;
-	};
+		template<typename T, typename VkHanlde, VkObjectType ObjectType>
+		concept IsVulkanResource = std::is_base_of<Resource<VkHanlde, ObjectType>, T>::value;
+
+		template<typename T>
+		concept ImplementedIsValid = requires (const T& a)
+		{
+			{ a.IsValid() } -> std::same_as<bool>;
+		};
+	}
 
 	/**
 	 * @brief Most of the vulkan object will be wrapped in this class. 

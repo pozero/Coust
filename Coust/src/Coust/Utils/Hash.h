@@ -32,22 +32,25 @@ namespace Coust
             return h;
         }
         
-        // Murmur3 algorithm requires key struct with size of multiple of 4. 
-        // And we also need to ensure the layout of key comes in is the same as it's delcared in code.
-        template <typename T>
-        concept Murmur3Hashable = (sizeof(T) & 3u) == 0u && std::is_standard_layout<T>::value;
-        
-        template <typename T>
-        concept StdHashable = requires (T a)
+        namespace  
         {
-            { std::hash<T>{}(a) } -> std::convertible_to<size_t>;
-        };
-        
-        template <typename T>
-        concept ImplementedGetHash = requires (const T& a)
-        {
-            { a.GetHash() } -> std::convertible_to<size_t>;
-        };
+            // Murmur3 algorithm requires key struct with size of multiple of 4. 
+            // And we also need to ensure the layout of key comes in is the same as it's delcared in code.
+            template <typename T>
+            concept Murmur3Hashable = (sizeof(T) & 3u) == 0u && std::is_standard_layout<T>::value;
+            
+            template <typename T>
+            concept StdHashable = requires (T a)
+            {
+                { std::hash<T>{}(a) } -> std::convertible_to<size_t>;
+            };
+            
+            template <typename T>
+            concept ImplementedGetHash = requires (const T& a)
+            {
+                { a.GetHash() } -> std::convertible_to<size_t>;
+            };
+        }
 
         /**
          * @brief General hash function struct, the hash can come from (has priority):

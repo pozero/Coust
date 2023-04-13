@@ -12,13 +12,12 @@ namespace Coust::Render::VK
     {
     }
 
-    std::shared_ptr<Buffer> StagePool::AcquireStagingBuffer(VkDeviceSize numBytes)
+    std::shared_ptr<Buffer> StagePool::AcquireStagingBuffer(VkDeviceSize numBytes) noexcept
     {
         // Find the buffer meeting the size requirement with the smallest capcacity
         if (auto iter = m_FreeStagingBuf.lower_bound(numBytes); iter != m_FreeStagingBuf.end())
         {
             m_BufferHitCounter.Hit();
-
             auto stage = iter->second;  
             m_FreeStagingBuf.erase(iter);
             stage.lastAccessed = m_Timer.CurrentCount(),
@@ -37,17 +36,13 @@ namespace Coust::Render::VK
             .usage = Buffer::Usage::Staging,
             .scopeName = "VK::StagePool",
         };
-        if (Buffer::Create(buf.buf, param))
-        {
-            buf.lastAccessed = m_Timer.CurrentCount(),
-            m_UsedStagingBuf.push_back(buf);
-            return buf.buf;
-        }
-
-        return nullptr;
+        COUST_CORE_PANIC_IF(!Buffer::Create(buf.buf, param), "Can't create staging buffer");
+        buf.lastAccessed = m_Timer.CurrentCount();
+        m_UsedStagingBuf.push_back(buf);
+        return buf.buf;
     }
 
-    std::shared_ptr<HostImage> StagePool::AcquireStagingImage(VkFormat format, uint32_t width, uint32_t height)
+    std::shared_ptr<HostImage> StagePool::AcquireStagingImage(VkFormat format, uint32_t width, uint32_t height) noexcept
     {
         for (auto iter = m_FreeStagingImage.begin(); iter != m_FreeStagingImage.end(); ++ iter)
         {
@@ -55,7 +50,6 @@ namespace Coust::Render::VK
             if (i.GetFormat() == format && i.GetWidth() == width && i.GetHeight() == height)
             {
                 m_ImageHitCounter.Hit();
-
                 auto stage = *iter;
                 m_FreeStagingImage.erase(iter);
                 stage.lastAccessed = m_Timer.CurrentCount(),
@@ -74,15 +68,13 @@ namespace Coust::Render::VK
             .width = width,
             .height = height,
         };
-        if (!HostImage::Create(image.image, param))
-            return nullptr;
-
-        image.lastAccessed = m_Timer.CurrentCount(),
+        COUST_CORE_PANIC_IF(!HostImage::Create(image.image, param), "Can't create staging image");
+        image.lastAccessed = m_Timer.CurrentCount();
         m_UsedStagingImage.push_back(image);
         return image.image;
     }
 
-    void StagePool::GC()
+    void StagePool::GC() noexcept
     {
         m_Timer.Tick();
 
@@ -99,7 +91,7 @@ namespace Coust::Render::VK
 
         // move the unused staging buffer to the free list
         {
-            std::list<StagingBuffer> usedStageBuf;
+            std::vector<StagingBuffer> usedStageBuf;
             usedStageBuf.swap(m_UsedStagingBuf);
             for (auto& buf : usedStageBuf)
             {
@@ -117,7 +109,7 @@ namespace Coust::Render::VK
         
         // release unused staging image in the free list
         {
-            std::list<StagingImage> freeStageImage; 
+            std::vector<StagingImage> freeStageImage; 
             freeStageImage.swap(m_FreeStagingImage);
             for (auto& image : freeStageImage)
             {
@@ -128,7 +120,7 @@ namespace Coust::Render::VK
         
         // move the unused staging image to the free list
         {
-            std::list<StagingImage> usedStageImage;
+            std::vector<StagingImage> usedStageImage;
             usedStageImage.swap(m_UsedStagingImage);
             for (auto& image : usedStageImage)
             {
