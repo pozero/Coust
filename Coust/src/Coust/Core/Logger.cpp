@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "Coust/Core/Logger.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -5,6 +7,28 @@
 
 namespace Coust
 {
+	Logger::Logger(const char* fileName, const char* pattern, bool outputToStdout) noexcept
+	{
+		std::vector<spdlog::sink_ptr> sinks;
+		sinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_st>(fileName, true));
+		sinks[0]->set_pattern(pattern);
+		if (outputToStdout)
+		{
+			sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_st>());
+			sinks[1]->set_pattern(pattern);
+		}
+		m_Log = std::make_unique<spdlog::logger>(fileName, begin(sinks), end(sinks));
+		m_Log->set_level(spdlog::level::trace);
+	}
+
+	Logger::~Logger() noexcept
+	{
+		if (m_Log)
+			m_Log->flush();
+	}
+
+	spdlog::logger& Logger::Get() const noexcept { return *m_Log; }
+
 	std::shared_ptr<spdlog::logger> Logger::s_CoreLogger;
 	std::shared_ptr<spdlog::logger> Logger::s_ClientLogger;
 
@@ -30,7 +54,7 @@ namespace Coust
 			coreLoggerCreated = true;
 		}
 		else
-			COUST_CORE_ERROR("Core Logger Initialization Failed");
+			std::cerr << "Core Logger Initialization Failed\n";
 
 		s_ClientLogger = std::make_shared<spdlog::logger>("APP", begin(sinks), end(sinks));
 		if (s_ClientLogger)

@@ -31,9 +31,4 @@
 #include <atomic>
 #include <condition_variable>
 
-// #include <Windows.h>
-
-#include "Coust/Event/Event.h"
 #include "Coust/Core/Logger.h"
-#include "Coust/Core/Application.h"
-#include "Coust/Core/GlobalContext.h"

@@ -5,7 +5,9 @@
 #include "Coust/Render/Vulkan/VulkanUtils.h"
 
 #include "Coust/Event/ApplicationEvent.h"
+
 #include "Coust/Core/Window.h"
+#include "Coust/Core/GlobalContext.h"
 
 #include <GLFW/glfw3.h>
 
@@ -22,7 +24,8 @@ namespace Coust::Render::VK
 		{
 			VkSurfaceFormatKHR bestSurfaceFormat{};
 			uint32_t surfaceFormatCount = 0;
-			std::vector<VkSurfaceFormatKHR> surfaceFormats{};
+			DEF_STLALLOC(VkSurfaceFormatKHR, *m_Ctx.StkArena, allocator);
+			std::vector<VkSurfaceFormatKHR, decltype(allocator)> surfaceFormats{ allocator };
 			vkGetPhysicalDeviceSurfaceFormatsKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfaceFormatCount, nullptr);
 			surfaceFormats.resize(surfaceFormatCount);
 			vkGetPhysicalDeviceSurfaceFormatsKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfaceFormatCount, surfaceFormats.data());
@@ -41,7 +44,8 @@ namespace Coust::Render::VK
 		{
 			VkPresentModeKHR bestSurfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
 			uint32_t surfacePresentModeCount = 0;
-			std::vector<VkPresentModeKHR> surfacePresentModes{};
+			DEF_STLALLOC(VkPresentModeKHR, *m_Ctx.StkArena, allocator);
+			std::vector<VkPresentModeKHR, decltype(allocator)> surfacePresentModes{ allocator };
 			vkGetPhysicalDeviceSurfacePresentModesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfacePresentModeCount, nullptr);
 			surfacePresentModes.resize(surfacePresentModeCount);    // `surfacePresentModeCount` might be 0?
 			vkGetPhysicalDeviceSurfacePresentModesKHR(m_Ctx.PhysicalDevice, m_Ctx.Surface, &surfacePresentModeCount, surfacePresentModes.data());
@@ -150,7 +154,9 @@ namespace Coust::Render::VK
 		uint32_t imageCount;
 		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, nullptr), "Can't get images attched to swapchain");
 		m_Images.resize(imageCount);
-		std::vector<VkImage> rawImg(imageCount, VK_NULL_HANDLE);
+		DEF_STLALLOC(VkImage, *m_Ctx.StkArena, imgHandleAlloc);
+		std::vector<VkImage, decltype(imgHandleAlloc)> rawImg{ imgHandleAlloc };
+		rawImg.resize(imageCount);
 		VK_CHECK(vkGetSwapchainImagesKHR(m_Ctx.Device, m_Handle, &imageCount, rawImg.data()), "Can't get images attached to swapchain");
 		for (uint32_t i = 0; i < imageCount; ++ i)
 		{

@@ -80,7 +80,7 @@ namespace Coust::Render::VK
 
         // release unused staging buffer in the free list
         {
-            std::multimap<VkDeviceSize, StagingBuffer> freeStageBuf;
+            std::multimap<VkDeviceSize, StagingBuffer> freeStageBuf{};
             freeStageBuf.swap(m_FreeStagingBuf);
             for (auto& pair : freeStageBuf)
             {

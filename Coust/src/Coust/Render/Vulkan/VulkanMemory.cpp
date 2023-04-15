@@ -399,7 +399,8 @@ namespace Coust::Render::VK
             }
             if (allQueues.size() > 1)
             {
-                std::vector<uint32_t> queue(allQueues.begin(), allQueues.end());
+                DEF_STLALLOC(uint32_t, *param.ctx.StkArena, allocator);
+                std::vector<uint32_t, decltype(allocator)> queue(allQueues.begin(), allQueues.end(), allocator);
                 CI.sharingMode = VK_SHARING_MODE_CONCURRENT;
                 CI.queueFamilyIndexCount = (uint32_t) queue.size();
                 CI.pQueueFamilyIndices = queue.data();

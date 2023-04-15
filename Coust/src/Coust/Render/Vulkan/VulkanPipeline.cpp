@@ -16,10 +16,15 @@ namespace Coust::Render::VK
 		  m_ShaderResources(param.shaderResources), 
 		  m_SetToResourceIdxLookup(param.setToResourceIdxLookup)
 	{
+		DEF_STLALLOC(ShaderResource, *param.ctx->StkArena, shaderResAllocator);
+		DEF_STLALLOC(VkDescriptorSetLayout, *param.ctx->StkArena, descSetLayoutAllocator);
+		DEF_STLALLOC(VkPushConstantRange, *param.ctx->StkArena, pushConstRangeAllocator);
+
 		for (auto& pair : m_SetToResourceIdxLookup)
 		{
 			uint32_t set = pair.first;
-			std::vector<ShaderResource> resources{};
+			std::vector<ShaderResource, decltype(shaderResAllocator)> resources{ shaderResAllocator };
+			resources.reserve(sizeof(pair.second));
 			for (uint64_t i = 0; i < sizeof(pair.second); ++ i)
 			{
 				if (((uint64_t(1) << i) & pair.second) != 0)
@@ -38,22 +43,25 @@ namespace Coust::Render::VK
 			{
             	.ctx = *param.ctx,
             	.set = set,
-            	.shaderModules = param.shaderModules,
-            	.shaderResources = resources,
+				.shaderModulesCount = param.shaderModules.size(),
+            	.shaderModules = param.shaderModules.data(),
+				.shaderResourcesCount = resources.size(),
+            	.shaderResources = resources.data(),
             	.dedicatedName = debugName.c_str(),
 			};
 			m_DescriptorLayouts.emplace_back(p);
 
 			COUST_CORE_PANIC_IF(!DescriptorSetLayout::CheckValidation(m_DescriptorLayouts.back()), "Can't create descriptor set layout for shader resources: {}", debugName);
 		}
-		std::vector<VkDescriptorSetLayout> setLayouts{};
+		std::vector<VkDescriptorSetLayout, decltype(descSetLayoutAllocator)> setLayouts{ descSetLayoutAllocator };
 		setLayouts.reserve(m_DescriptorLayouts.size());
 		for (const auto& l : m_DescriptorLayouts)
 		{
 			setLayouts.push_back(l.GetHandle());
 		}
 
-    	std::vector<VkPushConstantRange> pushConstantRanges{};
+    	std::vector<VkPushConstantRange, decltype(pushConstRangeAllocator)> pushConstantRanges{ pushConstRangeAllocator };
+		pushConstantRanges.reserve(m_ShaderResources.size());
 		for (const auto& res : m_ShaderResources)
 		{
 			if (res.Type == ShaderResourceType::PushConstant)
@@ -144,15 +152,22 @@ namespace Coust::Render::VK
 		  m_RenderPass(*param.renderPass),
 		  m_SubpassIdx(param.subpassIdx)
 	{
+		DEF_STLALLOC(VkPipelineShaderStageCreateInfo, *param.ctx->StkArena, shaderStageCIAllocator);
+		DEF_STLALLOC(VkVertexInputBindingDescription, *param.ctx->StkArena, vtxInBindDescAllocator);
+		DEF_STLALLOC(VkVertexInputAttributeDescription, *param.ctx->StkArena, vtxInAtribDescAllocator);
+
 		bool noFragmentShader = true;
-		std::vector<VkPipelineShaderStageCreateInfo> stageInfos{};
+		const auto& shaderModules = param.layout->GetShaderModules();
+		std::vector<VkPipelineShaderStageCreateInfo, decltype(shaderStageCIAllocator)> stageInfos{ shaderStageCIAllocator };
+		stageInfos.reserve(shaderModules.size());
+
 		VkSpecializationInfo specializationConstantInfo = param.specializationConstantInfo ? 
 			param.specializationConstantInfo->Get() :
 			VkSpecializationInfo{};
 		VkSpecializationInfo* pSpecializationInfo = param.specializationConstantInfo ? 
 			&specializationConstantInfo :
 			nullptr;
-		for (const auto& s : param.layout->GetShaderModules())
+		for (const auto& s : shaderModules)
 		{
 			if (s->GetStage() == VK_SHADER_STAGE_FRAGMENT_BIT)
 				noFragmentShader = false;
@@ -168,9 +183,12 @@ namespace Coust::Render::VK
 				});
 		}
 
-		std::vector<VkVertexInputBindingDescription> vertexBindingDescriptions{};
-		std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};
-		ShaderModule::CollectShaderInputs(param.layout->GetShaderModules(), 0u, vertexBindingDescriptions, vertexAttributeDescriptions);
+		uint32_t perInstanceInputMask = 0u;
+		std::vector<VkVertexInputBindingDescription, decltype(vtxInBindDescAllocator)> vertexBindingDescriptions{ vtxInBindDescAllocator };
+        vertexBindingDescriptions.reserve(sizeof(perInstanceInputMask));
+		std::vector<VkVertexInputAttributeDescription, decltype(vtxInAtribDescAllocator)> vertexAttributeDescriptions{ vtxInAtribDescAllocator };
+        vertexAttributeDescriptions.reserve(4 * sizeof(perInstanceInputMask));
+		ShaderModule::CollectShaderInputs(shaderModules, perInstanceInputMask, vertexBindingDescriptions, vertexAttributeDescriptions, *param.ctx->StkArena);
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo
 		{
@@ -594,8 +612,13 @@ namespace Coust::Render::VK
 
 	bool GraphicsPipelineCache::BindDescriptorSet(VkCommandBuffer cmdBuf) noexcept
 	{
-		std::vector<VkDescriptorSet> setToBind{};
-		std::vector<uint32_t> dynamicOffsets{};
+		DEF_STLALLOC(VkDescriptorSet, *m_Ctx.StkArena, dscSetAllocator);
+		DEF_STLALLOC(uint32_t, *m_Ctx.StkArena, u32Allocator);
+
+		std::vector<VkDescriptorSet, decltype(dscSetAllocator)> setToBind{ dscSetAllocator };
+		setToBind.reserve(m_DescriptorSetRequirement.size());
+		std::vector<uint32_t, decltype(u32Allocator)> dynamicOffsets{ u32Allocator };
+		dynamicOffsets.reserve(m_DescriptorSetRequirement.size());
 		// The descriptor requriement has already been sorted by set index. The spec says:
 		// Values are taken from pDynamicOffsets in an order such that all entries for set N come before set
 		// N+1; within a set, entries are ordered by the binding numbers in the descriptor set layouts; and

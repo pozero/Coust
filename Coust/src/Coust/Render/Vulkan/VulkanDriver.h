@@ -9,6 +9,8 @@
 #include "Coust/Render/Vulkan/VulkanPipeline.h"
 #include "Coust/Render/Vulkan/VulkanSampler.h"
 
+#include "Coust/Utils/Memory.h"
+
 namespace Coust::Render::VK
 {
     class Driver : public Coust::Render::Driver
@@ -112,5 +114,7 @@ namespace Coust::Render::VK
 		SamplerCache m_SamplerCache;
 
 		Refrigerator m_Refrigerator;
+
+		StackArena m_StackArena;
     };
 }

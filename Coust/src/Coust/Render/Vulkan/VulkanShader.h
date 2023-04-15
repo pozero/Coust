@@ -225,8 +225,9 @@ namespace Coust::Render::VK
         static void CollectShaderInputs(const std::vector<ShaderModule*>& modules,
             uint32_t perInstanceInputMask,  // (1 << l) & perInstanceInputMask != 0 means the input rate of data in location l is per instance
                                             // Also, the maxVertexInputAttributes for 1050 is just 32, so a uint32_t mask is just fine
-            std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
-            std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions) noexcept;
+            std::vector<VkVertexInputBindingDescription, Memory::STLAllocator<VkVertexInputBindingDescription, StackArena>>& out_VertexBindingDescriptions,
+            std::vector<VkVertexInputAttributeDescription, Memory::STLAllocator<VkVertexInputAttributeDescription, StackArena>>& out_VertexAttributeDescriptions,
+            StackArena& stkArena) noexcept;
         
     public:
         struct ConstructParm

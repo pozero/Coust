@@ -7,8 +7,9 @@
 #include <concepts>
 #include <atomic>
 
-#include "Coust/Utils/Random.h"
 #include "Coust/Render/Vulkan/VulkanUtils.h"
+
+#include "Coust/Utils/Memory.h"
 
 namespace Coust::Render::VK
 {
@@ -19,8 +20,16 @@ namespace Coust::Render::VK
 #endif
     constexpr uint32_t VULKAN_API_VERSION = VK_API_VERSION_1_3;
     constexpr uint32_t COMMAND_QUEUE_COUNT = 3;
+	constexpr size_t STACK_ARENA_SIZE = 1 * Memory::Mib;
 #ifdef __clang__
 #pragma clang diagnostic pop
+#endif
+
+#ifndef COUST_FULL_RELEASE
+	using StackArena = Memory::Arena<Memory::StackAllocator, Memory::NoLock, 
+		(Memory::TrackType)((int) Memory::TrackType::Access | (int) Memory::TrackType::Occupancy | (int) Memory::TrackType::Allocation ), Memory::AreaType::Static>;
+#else
+	using StackArena = Memory::Arena<Memory::StackAllocator, Memory::NoLock, Memory::TrackType::None, Memory::AreaType::Static>;
 #endif
 
 	class CommandBufferCache;
@@ -67,6 +76,8 @@ namespace Coust::Render::VK
 		class RenderTarget* RenderTargetCurrent = nullptr;
 		// Internal render target, the present target is managed by driver
 		class RenderTarget* PresentRenderTarget = nullptr;
+
+		StackArena* StkArena = nullptr;
    	};
 
 
@@ -341,7 +352,7 @@ namespace Coust::Render::VK
 			if (m_HitCount + m_MissCount == 0)
 				return;
 
-			double hitPercentage = (double(m_HitCount) / double(m_HitCount + m_MissCount)) * 100.0;
+			auto hitPercentage = (m_HitCount * 100.0) / (m_HitCount + m_MissCount) ;
 			COUST_CORE_INFO("{} Hit Percentage: {}%", m_DebugName, hitPercentage);
 		}
 

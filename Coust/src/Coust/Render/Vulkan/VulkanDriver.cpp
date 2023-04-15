@@ -10,8 +10,10 @@
 #include "Coust/Render/Vulkan/VulkanPipeline.h"
 #include "Coust/Render/Vulkan/RenderTarget.h"
 
-#include "Coust/Core/Window.h"
 #include "Coust/Utils/FileSystem.h"
+
+#include "Coust/Core/Window.h"
+#include "Coust/Core/GlobalContext.h"
 
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
@@ -97,7 +99,8 @@ namespace Coust::Render::VK
         : m_StagePool(m_Context),
           m_Swapchain(m_Context),
           m_GraphicsPipeCache(m_Context),
-          m_SamplerCache(m_Context)
+          m_SamplerCache(m_Context),
+          m_StackArena("Vulkan Driver Stack", STACK_ARENA_SIZE, Memory::StackAllocator::ALIGNMENT)
     {
         VK_CHECK(volkInitialize(), "Can't initialize volk");
 
@@ -108,6 +111,7 @@ namespace Coust::Render::VK
         CreateSurface();
         SelectPhysicalDeviceAndCreateDevice();
 
+        m_Context.StkArena = &m_StackArena;
         m_Context.CmdBufCacheGraphics = new CommandBufferCache{ m_Context, false };
         m_Context.PresentRenderTarget = new RenderTarget();
         m_Swapchain.Prepare();
@@ -149,9 +153,13 @@ namespace Coust::Render::VK
 
     void Driver::CreateInstance() noexcept
     {
+        DEF_STLALLOC(const char*, m_StackArena, constCharAllocator);
+        DEF_STLALLOC(VkExtensionProperties, m_StackArena, extPropAllocator);
+        DEF_STLALLOC(VkLayerProperties, m_StackArena, layerPropAllocator);
+
         VkApplicationInfo appInfo
         {
-              .pApplicationName    = "Coust",
+            .pApplicationName    = "Coust",
             .applicationVersion  = VK_MAKE_VERSION(1, 0, 0),
             .pEngineName         = "No Engine",
             .engineVersion       = VK_MAKE_VERSION(1, 0, 0),
@@ -164,7 +172,7 @@ namespace Coust::Render::VK
             .pApplicationInfo = &appInfo
         };
 
-          std::vector<const char*> requiredExtensions
+        const char* fixedRequiredExtensions[] = 
         { 
 #ifndef COUST_FULL_RELEASE
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -172,43 +180,48 @@ namespace Coust::Render::VK
 #endif
             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
         };
+        uint32_t glfwRequiredExtensionCount = 0;
+        const char** glfwRequiredExtensionNames = nullptr;
+        glfwRequiredExtensionNames = glfwGetRequiredInstanceExtensions(&glfwRequiredExtensionCount);
+        std::vector<const char*, decltype(constCharAllocator)> requiredExtensions{ constCharAllocator };
+        requiredExtensions.reserve(sizeof(fixedRequiredExtensions) / sizeof(fixedRequiredExtensions[0]) + glfwRequiredExtensionCount);
+        for (const char* ext : fixedRequiredExtensions)
         {
-            uint32_t glfwRequiredExtensionCount = 0;
-            const char** glfwRequiredExtensionNames = nullptr;
-            glfwRequiredExtensionNames = glfwGetRequiredInstanceExtensions(&glfwRequiredExtensionCount);
-            requiredExtensions.reserve(1 + glfwRequiredExtensionCount);
-            for (uint32_t i = 0; i < glfwRequiredExtensionCount; ++i)
-            {
-                requiredExtensions.push_back(glfwRequiredExtensionNames[i]);
-            }
-            uint32_t providedExtensionCount = 0;
-            vkEnumerateInstanceExtensionProperties(nullptr, &providedExtensionCount, nullptr);
-            std::vector<VkExtensionProperties> providedExtensions(providedExtensionCount);
-            vkEnumerateInstanceExtensionProperties(nullptr, &providedExtensionCount, providedExtensions.data());
-            for (const char* requiredEXT : requiredExtensions)
-            {
-                bool found = false;
-                for (const auto& providedEXT : providedExtensions)
-                {
-                    if (strcmp(requiredEXT, providedEXT.extensionName) == 0)
-                        found = true;
-                }
-                COUST_CORE_PANIC_IF(!found, "Required extension not found when creating vulkan instance");
-            }
-            instanceInfo.enabledExtensionCount   = (uint32_t) requiredExtensions.size();
-            instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
+            requiredExtensions.push_back(ext);
         }
- 
-        std::vector<const char*> requiredLayers = 
+        for (uint32_t i = 0; i < glfwRequiredExtensionCount; ++i)
         {
+            requiredExtensions.push_back(glfwRequiredExtensionNames[i]);
+        }
+        uint32_t providedExtensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &providedExtensionCount, nullptr);
+        std::vector<VkExtensionProperties, decltype(extPropAllocator)> providedExtensions{ extPropAllocator };
+        providedExtensions.resize(providedExtensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &providedExtensionCount, providedExtensions.data());
+        for (const char* requiredEXT : requiredExtensions)
+        {
+            bool found = false;
+            for (const auto& providedEXT : providedExtensions)
+            {
+                if (strcmp(requiredEXT, providedEXT.extensionName) == 0)
+                    found = true;
+            }
+            COUST_CORE_PANIC_IF(!found, "Required extension not found when creating vulkan instance");
+        }
+        instanceInfo.enabledExtensionCount   = (uint32_t) requiredExtensions.size();
+        instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
+ 
+        std::vector<const char*, decltype(constCharAllocator)> requiredLayers{ constCharAllocator };
+        // Please make sure the capacity is big enough that there's no other allocation other than this!
+        requiredLayers.reserve(4);
 #ifndef COUST_FULL_RELEASE
-            "VK_LAYER_KHRONOS_validation"
+        requiredLayers.push_back("VK_LAYER_KHRONOS_validation");
 #endif
-        };
         {
             uint32_t providedLayerCount = 0;
             vkEnumerateInstanceLayerProperties(&providedLayerCount, nullptr);
-            std::vector<VkLayerProperties> providedLayers(providedLayerCount);
+            std::vector<VkLayerProperties, decltype(layerPropAllocator)> providedLayers{ layerPropAllocator };
+            providedLayers.resize(providedLayerCount);
             vkEnumerateInstanceLayerProperties(&providedLayerCount, providedLayers.data());
             for (const char* requiredLayer : requiredLayers)
             {
@@ -254,7 +267,12 @@ namespace Coust::Render::VK
 
     void Driver::SelectPhysicalDeviceAndCreateDevice() noexcept
     {
-        std::vector <const char*> requiredDeviceExtensions
+        DEF_STLALLOC(VkPhysicalDevice, m_StackArena,  physDevAlloc);
+        DEF_STLALLOC(VkQueueFamilyProperties, m_StackArena, queueFamPropAlloc);
+        DEF_STLALLOC(VkExtensionProperties, m_StackArena, extPropAlloc);
+        DEF_STLALLOC(VkDeviceQueueCreateInfo, m_StackArena, queueCIAlloc);
+
+        const char* requiredDeviceExtensions[]
         {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
@@ -263,7 +281,8 @@ namespace Coust::Render::VK
             uint32_t physicalDeviceCount = 0;
             vkEnumeratePhysicalDevices(m_Context.Instance, &physicalDeviceCount, nullptr);
             COUST_CORE_PANIC_IF(physicalDeviceCount == 0, "Not physical device with vulkan support found");
-            std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+            std::vector<VkPhysicalDevice, decltype(physDevAlloc)> physicalDevices{ physDevAlloc };
+            physicalDevices.resize(physicalDeviceCount);
             vkEnumeratePhysicalDevices(m_Context.Instance, &physicalDeviceCount, physicalDevices.data());
 
             int highestScore = -1;
@@ -273,7 +292,8 @@ namespace Coust::Render::VK
                 {
                     uint32_t physicalDeviceQueueFamilyCount = 0;
                     vkGetPhysicalDeviceQueueFamilyProperties(device, &physicalDeviceQueueFamilyCount, nullptr);
-                    std::vector<VkQueueFamilyProperties> queueFamilyProperties(physicalDeviceQueueFamilyCount);
+                    std::vector<VkQueueFamilyProperties, decltype(queueFamPropAlloc)> queueFamilyProperties{ queueFamPropAlloc };
+                    queueFamilyProperties.resize(physicalDeviceQueueFamilyCount);
                     vkGetPhysicalDeviceQueueFamilyProperties(device, &physicalDeviceQueueFamilyCount, queueFamilyProperties.data());
                     for (uint32_t i = 0; i < queueFamilyProperties.size(); ++i)
                     {
@@ -307,8 +327,6 @@ namespace Coust::Render::VK
                                 break;
                             }
                         }
-                        
-
                     }
                 }
 
@@ -316,9 +334,10 @@ namespace Coust::Render::VK
                 {
                     uint32_t deviceExtensionCount = 0;
                     vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionCount, nullptr);
-                    std::vector<VkExtensionProperties> deviceExtensions(deviceExtensionCount);
+                    std::vector<VkExtensionProperties, decltype(extPropAlloc)> deviceExtensions{ extPropAlloc };
+                    deviceExtensions.resize(deviceExtensionCount);
                     vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionCount, deviceExtensions.data());
-                    std::unordered_set<std::string> requiredExtensions{ requiredDeviceExtensions.begin(), requiredDeviceExtensions.end() };
+                    std::unordered_set<std::string> requiredExtensions{ requiredDeviceExtensions, requiredDeviceExtensions + sizeof(requiredDeviceExtensions) / sizeof(requiredDeviceExtensions[0]) };
                     for (const auto& extension : deviceExtensions)
                     {
                         requiredExtensions.erase(std::string{ extension.extensionName });
@@ -384,7 +403,8 @@ namespace Coust::Render::VK
                 m_Context.GraphicsQueueFamilyIndex,
                 m_Context.ComputeQueueFamilyIndex,
             };
-            std::vector<VkDeviceQueueCreateInfo> deviceQueueInfo{};
+            std::vector<VkDeviceQueueCreateInfo, decltype(queueCIAlloc)> deviceQueueInfo{ queueCIAlloc };
+            deviceQueueInfo.reserve(queueFamilyIndices.size());
             float queuePriority = 1.0f;
             for (const auto& familyIndex : queueFamilyIndices)
             {
@@ -432,8 +452,8 @@ namespace Coust::Render::VK
                     .queueCreateInfoCount = (uint32_t)deviceQueueInfo.size(),
                     .pQueueCreateInfos = deviceQueueInfo.data(),
                     .enabledLayerCount = 0,
-                    .enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size(),
-                    .ppEnabledExtensionNames = requiredDeviceExtensions.data(),
+                    .enabledExtensionCount = (uint32_t) sizeof(requiredDeviceExtensions) / sizeof(requiredDeviceExtensions[0]),
+                    .ppEnabledExtensionNames = requiredDeviceExtensions,
                     .pEnabledFeatures = &physicalDeviceFeatures,
                 };
                 VK_CHECK(vkCreateDevice(m_Context.PhysicalDevice, &deviceInfo, nullptr, &m_Context.Device), "Can't create vulkan device");

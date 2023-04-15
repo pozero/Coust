@@ -8,6 +8,26 @@ namespace Coust
 	class Logger
 	{
 	public:
+		Logger(const Logger&) = delete;
+		Logger& operator=(Logger&&) = delete;
+		Logger& operator=(const Logger&) = delete;
+
+	public:
+		Logger() noexcept = default;
+		Logger(Logger&&) noexcept = default;
+
+#undef stdout
+#undef stderr
+		Logger(const char* fileName, const char* pattern, bool outputToStdout) noexcept;
+
+		~Logger() noexcept;
+
+		spdlog::logger& Get() const noexcept;
+	
+	private:
+		std::unique_ptr<spdlog::logger> m_Log{};
+
+	public:
 		[[nodiscard]] static bool Initialize();
 		static void Shutdown();
 
@@ -32,14 +52,15 @@ namespace Coust
 #define COUST_ERROR(...)				::Coust::Logger::GetClientLogger()->error(__VA_ARGS__)
 #define COUST_CRITICAL(...)				::Coust::Logger::GetClientLogger()->critical(__VA_ARGS__)
 
-#define COUST_CORE_PANIC_IF(x, ...) 		do { if ((x)) [[unlikely]] { COUST_CORE_CRITICAL("Panic: \n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); std::abort(); }} while (false)
-
-#define COUST_TODO(...)						do { COUST_CORE_ERROR("Code Unfinished:\n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, __VA_ARGS__); std::abort(); }
-
 #ifndef COUST_FULL_RELEASE
 	#define COUST_CORE_ASSERT(x, ...)		do { if (!(x)) [[unlikely]] { COUST_CORE_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); __debugbreak(); }} while (false)
 	#define COUST_ASSERT(x, ...)			do { if (!(x)) [[unlikely]] { COUST_ERROR("Assertion Failed:\n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); __debugbreak(); }} while (false)
+	#define COUST_CORE_PANIC_IF(x, ...) 	do { if ((x)) [[unlikely]] { COUST_CORE_CRITICAL("Panic: \n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); __debugbreak(); }} while (false)
+	#define COUST_TODO(...)					do { COUST_CORE_ERROR("Code Unfinished:\n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); __debugbreak(); } while (false)
 #else
 	#define COUST_CORE_ASSERT(x, ...)
 	#define COUST_ASSERT(x, ...)
+	#define COUST_CORE_PANIC_IF(x, ...) 	do { if ((x)) [[unlikely]] { COUST_CORE_CRITICAL("Panic: \n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, fmt::format(__VA_ARGS__)); std::abort(); }} while (false)
+	#define COUST_TODO(...)					do { COUST_CORE_ERROR("Code Unfinished:\n\t{0}, {1}\n\t{2}\n\t", __FILE__, __LINE__, __VA_ARGS__); std::abort(); } while (false)
 #endif
+

@@ -9,6 +9,8 @@
 #include "Coust/Utils/Macro.h"
 #include "Coust/Utils/FileSystem.h"
 
+#include "Coust/Core/GlobalContext.h"
+
 namespace Coust::Render::VK 
 {
 	class Includer : public shaderc::CompileOptions::IncluderInterface
@@ -356,7 +358,7 @@ namespace Coust::Render::VK
                                     const std::unordered_map<std::string, size_t>& desiredDynamicBufferSize, 
 								   std::vector<ShaderResource>& out_ShaderResources) noexcept
     {
-        COUST_CORE_WARN("ReadShaderResource<{}> Not implemented!", ToString(Type));
+        COUST_TODO("ReadShaderResource<{}> Not implemented!", ToString(Type));
     }
 
  	template <>
@@ -667,23 +669,23 @@ namespace Coust::Render::VK
     {
         try
         {
-            std::unique_ptr<spirv_cross::CompilerGLSL> compiler = std::make_unique<spirv_cross::CompilerGLSL>(spirv);
-            auto options = compiler->get_common_options();
-            compiler->set_common_options(options);
+            spirv_cross::CompilerGLSL compiler{ spirv.data(), spirv.size() };
+            auto options = compiler.get_common_options();
+            compiler.set_common_options(options);
             
-            spirv_cross::ShaderResources resources = compiler->get_shader_resources();
+            spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-            ReadShaderResource<ShaderResourceType::Input>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);              
-            ReadShaderResource<ShaderResourceType::InputAttachment>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);    
-            ReadShaderResource<ShaderResourceType::Output>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);             
-            ReadShaderResource<ShaderResourceType::Image>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);              
-            ReadShaderResource<ShaderResourceType::Sampler>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);            
-            ReadShaderResource<ShaderResourceType::ImageAndSampler>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);    
-            ReadShaderResource<ShaderResourceType::ImageStorage>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);       
-            ReadShaderResource<ShaderResourceType::UniformBuffer>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);      
-            ReadShaderResource<ShaderResourceType::StorageBuffer>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);      
-            ReadShaderResource<ShaderResourceType::PushConstant>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);       
-            ReadShaderResource<ShaderResourceType::SpecializationConstant>(*compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);       
+            ReadShaderResource<ShaderResourceType::Input>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);              
+            ReadShaderResource<ShaderResourceType::InputAttachment>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);    
+            ReadShaderResource<ShaderResourceType::Output>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);             
+            ReadShaderResource<ShaderResourceType::Image>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);              
+            ReadShaderResource<ShaderResourceType::Sampler>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);            
+            ReadShaderResource<ShaderResourceType::ImageAndSampler>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);    
+            ReadShaderResource<ShaderResourceType::ImageStorage>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);       
+            ReadShaderResource<ShaderResourceType::UniformBuffer>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);      
+            ReadShaderResource<ShaderResourceType::StorageBuffer>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);      
+            ReadShaderResource<ShaderResourceType::PushConstant>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);       
+            ReadShaderResource<ShaderResourceType::SpecializationConstant>(compiler, resources, stage, desiredDynamicBufferSize, out_ShaderResource);       
         }
         catch (const std::exception& e)
         {
@@ -865,8 +867,9 @@ namespace Coust::Render::VK
 
     void ShaderModule::CollectShaderInputs(const std::vector<ShaderModule*>& modules,
         uint32_t perInstanceInputMask,  
-        std::vector<VkVertexInputBindingDescription>& out_VertexBindingDescriptions,
-        std::vector<VkVertexInputAttributeDescription>& out_VertexAttributeDescriptions) noexcept
+        std::vector<VkVertexInputBindingDescription, Memory::STLAllocator<VkVertexInputBindingDescription, StackArena>>& out_VertexBindingDescriptions,
+        std::vector<VkVertexInputAttributeDescription, Memory::STLAllocator<VkVertexInputAttributeDescription, StackArena>>& out_VertexAttributeDescriptions,
+        StackArena& stkArena) noexcept
     {
         // For question related to the "binding" of vertex input, the mannual for `vkCmdBindVertexBuffers` says:
         // The values taken from elements i of pBuffers and pOffsets replace the current state for the vertex
@@ -897,16 +900,18 @@ namespace Coust::Render::VK
         // layout(location = 0, component = 2) out vec2 arr2[4]; //Different sizes are fine.
         // layout(location = 4, component = 2) out float val;    //A non-array takes the last two fields from location 4.
 
-        // **The following codes assume there ISN'T any alias happening in the input of vertex shader.** In other words, each variable will not overlap each other.
+        // **The following codes assume there ISN'T any alias happening in the input of vertex shader.** In other words, variables will not overlap each other.
 
         // Also, we assume there's no gap or padding between each component and location, 
         // which means the last byte of last component / location will be followed by the first byte of the next component / location.
         // So basically we don't support array of input, which would cause skipping location number.
         // By the way if the array is small enough like an array of vec2 with size 2 then it's still ok, but why don't just use vec4?
 
-        std::vector<ShaderResource> inputResource{};
-        std::unordered_set<uint32_t> allLocations{};
+        Memory::STLAllocator<ShaderResource, StackArena> shaderResAllocator{ stkArena };
+
+        std::vector<ShaderResource, decltype(shaderResAllocator)> inputResource{ shaderResAllocator };
         inputResource.reserve(sizeof(perInstanceInputMask));
+        std::unordered_set<uint32_t> allLocations{};
         for (auto m : modules)
         {
             for (const auto& res : m->GetResource())
@@ -923,7 +928,6 @@ namespace Coust::Render::VK
             {
                 return left.Location < right.Location;
             });
-
         for (const auto location : allLocations)
         {
             auto begin = std::find_if(inputResource.begin(), inputResource.end(), 
@@ -942,27 +946,27 @@ namespace Coust::Render::VK
             {
                 const auto& res = *iter;
                 out_VertexAttributeDescriptions.push_back(
-                VkVertexInputAttributeDescription
-                {
-                    .location = location,
-                    .binding = location,
-                    // Here we assume all the type of 1 byte is integer, since we can't get information about whether the data is normalized through spir-v reflection.
-                    // This is because the normalized byte isn't part of the standard glsl.
-                    .format = GetInputResourceFormat(res.VecSize, res.BaseType),
-                    .offset = totalSizeInLocation,
-                });
+                    VkVertexInputAttributeDescription
+                    {
+                        .location = location,
+                        .binding = location,
+                        // Here we assume all the type of 1 byte is integer, since we can't get information about whether the data is normalized through spir-v reflection.
+                        // This is because the normalized byte isn't part of the standard glsl.
+                        .format = GetInputResourceFormat(res.VecSize, res.BaseType),
+                        .offset = totalSizeInLocation,
+                    });
                 uint32_t componentSize = res.ArraySize * res.Columns * res.VecSize * GetShaderResourceBaseTypeSize(res.BaseType);
                 totalSizeInLocation += componentSize;
             }
             out_VertexBindingDescriptions.push_back(
-            VkVertexInputBindingDescription
-            {
-                .binding = location,
-                .stride = totalSizeInLocation,
-                .inputRate = ((1u << location) & perInstanceInputMask) == 0 ?
-                    VK_VERTEX_INPUT_RATE_VERTEX :
-                    VK_VERTEX_INPUT_RATE_INSTANCE,
-            });
+                VkVertexInputBindingDescription
+                {
+                    .binding = location,
+                    .stride = totalSizeInLocation,
+                    .inputRate = ((1u << location) & perInstanceInputMask) == 0 ?
+                        VK_VERTEX_INPUT_RATE_VERTEX :
+                        VK_VERTEX_INPUT_RATE_INSTANCE,
+                });
         }
     }
 
@@ -1034,8 +1038,8 @@ namespace Coust::Render::VK
     
     std::string ShaderModule::GetDisassembledSPIRV() noexcept
     {
-        std::unique_ptr<spirv_cross::CompilerGLSL> compiler = std::make_unique<spirv_cross::CompilerGLSL>(m_ByteCode.ByteCode);
-        return compiler->compile();
+        spirv_cross::CompilerGLSL compiler{ m_ByteCode.ByteCode };
+        return compiler.compile();
     }
 
     VkShaderStageFlagBits ShaderModule::GetStage() const noexcept { return m_Stage; }

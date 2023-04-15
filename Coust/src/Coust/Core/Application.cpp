@@ -2,9 +2,10 @@
 
 #include "Application.h"
 
-#include "Coust/Render/Driver.h"
-#include "Coust/Event/ApplicationEvent.h"
 #include "Coust/Core/Window.h"
+#include "Coust/Core/GlobalContext.h"
+#include "Coust/Event/ApplicationEvent.h"
+#include "Coust/Render/Driver.h"
 #include "Coust/Utils/FileSystem.h"
 
 #include <glad/glad.h>

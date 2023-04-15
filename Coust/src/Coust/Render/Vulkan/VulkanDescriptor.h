@@ -55,8 +55,10 @@ namespace Coust::Render::VK
         {
             const Context&                                      ctx;
             uint32_t                                            set;                // Descriptor set number. Usually a unique descriptor set layout is corresponding to a unique set number, so we store it in the layout for convenience.
-            const std::vector<ShaderModule*>&                   shaderModules;      // The correspondent shader modules. Passed for hashing.
-            const std::vector<ShaderResource>&                  shaderResources;    // Shader resources from SPIR-V reflection contains binding information for construction.
+            size_t                                              shaderModulesCount;
+            const ShaderModule* const *                         shaderModules;      // The correspondent shader modules. Passed for hashing.
+            size_t                                              shaderResourcesCount;
+            const ShaderResource*                               shaderResources;    // Shader resources from SPIR-V reflection contains binding information for construction.
             const char*                                         scopeName = nullptr;
             const char*                                         dedicatedName = nullptr;
 

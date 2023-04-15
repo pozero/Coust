@@ -35,10 +35,12 @@ namespace Coust::Render::VK
     DescriptorSetLayout::DescriptorSetLayout(const ConstructParam& param)  noexcept
         : Base(param.ctx, VK_NULL_HANDLE), Hashable(param.GetHash()), m_Set(param.set)
     {
-        std::vector<VkDescriptorSetLayoutBinding> bindingsVec{};
+        DEF_STLALLOC(VkDescriptorSetLayoutBinding, *param.ctx.StkArena, allocator);
+        std::vector<VkDescriptorSetLayoutBinding, decltype(allocator)> bindingsVec{ allocator };
         bindingsVec.reserve(m_Bindings.size());
-        for (const auto& res : param.shaderResources)
+        for (size_t i = 0; i < param.shaderResourcesCount; ++ i)
         {
+            const auto& res = param.shaderResources[i];
             // skip resources without binding point
             if (res.Type == ShaderResourceType::Input ||
                 res.Type == ShaderResourceType::Output ||
@@ -188,7 +190,8 @@ namespace Coust::Render::VK
 
     void DescriptorSet::ApplyWrite(uint32_t bindingsToUpdateMask) noexcept
     {   
-        std::vector<VkWriteDescriptorSet> writeNotYetApplied;
+        DEF_STLALLOC(VkWriteDescriptorSet,*m_Ctx.StkArena, allocator);
+        std::vector<VkWriteDescriptorSet, decltype(allocator)> writeNotYetApplied{ allocator };
         writeNotYetApplied.reserve(sizeof(bindingsToUpdateMask));
         for (uint32_t i = 0; i < m_Writes.size(); ++ i)
         {
@@ -211,7 +214,7 @@ namespace Coust::Render::VK
 
     void DescriptorSet::ApplyWrite(bool overwrite) noexcept
     {
-        if (overwrite)
+        if (overwrite) [[likely]]
         {
             vkUpdateDescriptorSets(m_Ctx.Device, ToU32(m_Writes.size()), m_Writes.data(), 0, nullptr);
             for (size_t i = 0; i < m_Writes.size(); ++i)
@@ -222,7 +225,8 @@ namespace Coust::Render::VK
         }
         else
         {
-            std::vector<VkWriteDescriptorSet> writeNotYetApplied{};
+            DEF_STLALLOC(VkWriteDescriptorSet,*m_Ctx.StkArena, allocator);
+            std::vector<VkWriteDescriptorSet, decltype(allocator)> writeNotYetApplied{ allocator };
             writeNotYetApplied.reserve(m_Writes.size());
             for (size_t i = 0; i < m_Writes.size(); ++i)
             {
@@ -262,57 +266,53 @@ namespace Coust::Render::VK
                 continue;
             uint32_t bindingIdx = arr.bindingIdx;
             std::vector<BoundElement<Buffer>>& buffers = arr.elements;
-            if (std::optional<VkDescriptorSetLayoutBinding> bindingInfo = m_Layout.GetBinding(bindingIdx); bindingInfo.has_value())
+            VkDescriptorSetLayoutBinding bindingInfo = m_Layout.GetBinding(bindingIdx);
+            for (auto& b : buffers)
             {
-                for (auto& b : buffers)
+                if (b.buffer == VK_NULL_HANDLE)
+                    continue;
+
+                // clamp the binding range to the GPU limit
+                VkDeviceSize clampedRange = b.range;
+                if (uint32_t uniformBufferRangeLimit = m_GPUProerpties.limits.maxUniformBufferRange;
+                    (bindingInfo.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+                        bindingInfo.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) &&
+                    clampedRange > uniformBufferRangeLimit )
                 {
-                    if (b.buffer == VK_NULL_HANDLE)
-                        continue;
-
-                    // clamp the binding range to the GPU limit
-                    VkDeviceSize clampedRange = b.range;
-                    if (uint32_t uniformBufferRangeLimit = m_GPUProerpties.limits.maxUniformBufferRange;
-                        (bindingInfo->descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-                         bindingInfo->descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) &&
-                        clampedRange > uniformBufferRangeLimit )
-                    {
-                        COUST_CORE_WARN("The range (which is {}) of uniform buffer (Set {}, Binding {}) to bind exceeds GPU limit (which is {})", 
-                            clampedRange, m_Layout.GetSetIndex(), bindingIdx, uniformBufferRangeLimit);
-                        clampedRange = uniformBufferRangeLimit;
-                    }
-                    else if (uint32_t storageBufferRangeLimit = m_GPUProerpties.limits.maxStorageBufferRange;
-                             (bindingInfo->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-                              bindingInfo->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) &&
-                             clampedRange > storageBufferRangeLimit)
-                    {
-                        COUST_CORE_WARN("The range (which is {}) of storage buffer (Set {}, Binding {}) to bind exceeds GPU limit (which is {})", 
-                            clampedRange, m_Layout.GetSetIndex(), bindingIdx, storageBufferRangeLimit);
-                        clampedRange = storageBufferRangeLimit;
-                    }
-                    b.range = clampedRange;
-
-                    // https://en.cppreference.com/w/cpp/language/data_members#Standard-layout
-                    // A pointer to an object of standard-layout class type can be reinterpret_cast to pointer to its first non-static non-bitfield data member 
-                    // (if it has non-static data members) or otherwise any of its base class subobjects (if it has any), and vice versa. 
-                    // In other words, padding is not allowed before the first data member of a standard-layout type.
-                    static_assert(std::is_standard_layout_v<BoundElement<Buffer>>, "");
-                    VkWriteDescriptorSet write
-                    {
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .dstSet = m_Handle,
-                        .dstBinding = bindingInfo->binding,
-                        // record one element at a time
-                        .dstArrayElement = b.dstArrayIdx,
-                        .descriptorCount = 1,
-                        .descriptorType = bindingInfo->descriptorType,
-                        // `BoundElement<*>` is a standard-layout class type so we can convert its pointer directly to `VkDescriptorBufferInfo*`
-                        .pBufferInfo = (const VkDescriptorBufferInfo*) &b,
-                    };
-                    m_Writes.push_back(write);
+                    COUST_CORE_WARN("The range (which is {}) of uniform buffer (Set {}, Binding {}) to bind exceeds GPU limit (which is {})", 
+                        clampedRange, m_Layout.GetSetIndex(), bindingIdx, uniformBufferRangeLimit);
+                    clampedRange = uniformBufferRangeLimit;
                 }
+                else if (uint32_t storageBufferRangeLimit = m_GPUProerpties.limits.maxStorageBufferRange;
+                            (bindingInfo.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+                            bindingInfo.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) &&
+                            clampedRange > storageBufferRangeLimit)
+                {
+                    COUST_CORE_WARN("The range (which is {}) of storage buffer (Set {}, Binding {}) to bind exceeds GPU limit (which is {})", 
+                        clampedRange, m_Layout.GetSetIndex(), bindingIdx, storageBufferRangeLimit);
+                    clampedRange = storageBufferRangeLimit;
+                }
+                b.range = clampedRange;
+
+                // https://en.cppreference.com/w/cpp/language/data_members#Standard-layout
+                // A pointer to an object of standard-layout class type can be reinterpret_cast to pointer to its first non-static non-bitfield data member 
+                // (if it has non-static data members) or otherwise any of its base class subobjects (if it has any), and vice versa. 
+                // In other words, padding is not allowed before the first data member of a standard-layout type.
+                static_assert(std::is_standard_layout_v<BoundElement<Buffer>>, "");
+                VkWriteDescriptorSet write
+                {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = m_Handle,
+                    .dstBinding = bindingInfo.binding,
+                    // record one element at a time
+                    .dstArrayElement = b.dstArrayIdx,
+                    .descriptorCount = 1,
+                    .descriptorType = bindingInfo.descriptorType,
+                    // `BoundElement<*>` is a standard-layout class type so we can convert its pointer directly to `VkDescriptorBufferInfo*`
+                    .pBufferInfo = (const VkDescriptorBufferInfo*) &b,
+                };
+                m_Writes.push_back(write);
             }
-            else
-                COUST_CORE_WARN("Buffer Binding {} isn't used at descriptor Set {}", bindingIdx, m_Layout.GetSetIndex());
         }
 
         for (auto& arr : m_ImageInfos)
@@ -321,31 +321,27 @@ namespace Coust::Render::VK
                 continue;
             uint32_t bindingIdx = arr.bindingIdx;
             std::vector<BoundElement<Image>>& images = arr.elements;
-            if (std::optional<VkDescriptorSetLayoutBinding> bindingInfo = m_Layout.GetBinding(bindingIdx); bindingInfo.has_value())
+            VkDescriptorSetLayoutBinding bindingInfo = m_Layout.GetBinding(bindingIdx);
+            for (auto& i : images)
             {
-                for (auto& i : images)
-                {
-                    if (i.imageView == VK_NULL_HANDLE)
-                        continue;
+                if (i.imageView == VK_NULL_HANDLE)
+                    continue;
 
-                    static_assert(std::is_standard_layout_v<BoundElement<Image>>, "");
-                    VkWriteDescriptorSet write
-                    {
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .dstSet = m_Handle,
-                        .dstBinding = bindingInfo->binding,
-                        // record one element at a time
-                        .dstArrayElement = i.dstArrayIdx,
-                        .descriptorCount = 1,
-                        .descriptorType = bindingInfo->descriptorType,
-                        // `BoundElement<*>` is a standard-layout class type so we can convert its pointer directly to `VkDescriptorBufferInfo*`
-                        .pImageInfo = (const VkDescriptorImageInfo*) &i,
-                    };
-                    m_Writes.push_back(write);
-                }
+                static_assert(std::is_standard_layout_v<BoundElement<Image>>, "");
+                VkWriteDescriptorSet write
+                {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = m_Handle,
+                    .dstBinding = bindingInfo.binding,
+                    // record one element at a time
+                    .dstArrayElement = i.dstArrayIdx,
+                    .descriptorCount = 1,
+                    .descriptorType = bindingInfo.descriptorType,
+                    // `BoundElement<*>` is a standard-layout class type so we can convert its pointer directly to `VkDescriptorBufferInfo*`
+                    .pImageInfo = (const VkDescriptorImageInfo*) &i,
+                };
+                m_Writes.push_back(write);
             }
-            else
-                COUST_CORE_WARN("Image Binding {} isn't used at descriptor Set {}", bindingIdx, m_Layout.GetSetIndex());
         }
     }
 
@@ -531,9 +527,9 @@ namespace Coust::Render::VK
     size_t DescriptorSetLayout::ConstructParam::GetHash() const noexcept
     {
         size_t h = 0;
-        for (const auto& s : shaderModules)
+        for (size_t i = 0; i < shaderModulesCount; ++ i)
         {
-            Hash::Combine(h, *s);
+            Hash::Combine(h, *shaderModules[i]);
         }
         return h;
     }

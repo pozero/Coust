@@ -11,7 +11,7 @@ namespace Coust
     class EventManager
     {
     public:
-        using mask = uint32_t;
+        using Mask = uint32_t;
 
         template<typename T>
         struct EventRegisterar
@@ -42,7 +42,7 @@ namespace Coust
                     }
                 }
 
-                mask eventCategory = 0;
+                Mask eventCategory = 0;
                 std::vector<std::string>& categoryName = GetInstance().CategoryName;
                 std::vector<int>& eventCategories = GetInstance().EventCategory;
                 for (const auto& category : parsedCategories)
@@ -55,7 +55,7 @@ namespace Coust
                         if (categoryName[categoryIndex] == category)
                             break;
                     }
-                    if (categoryIndex >= 8 * sizeof(mask))
+                    if (categoryIndex >= 8 * sizeof(Mask))
                     {
                         std::cerr << "Too Much Event Category Defined\n";
                         return;

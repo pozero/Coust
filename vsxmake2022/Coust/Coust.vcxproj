@@ -146,7 +146,10 @@ xmake version 2.7.6+master.882cb4e03
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\KeyEvent.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Event\MouseEvent.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Driver.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\Refrigerator.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\RenderTarget.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\StagePool.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\Vertex.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanCommand.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanContext.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VulkanDescriptor.h" />
@@ -161,6 +164,7 @@ xmake version 2.7.6+master.882cb4e03
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileSystem.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Hash.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Macro.h" />
+    <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Memory.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Random.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Timer.h" />
     <ClInclude Include="$(XmakeProjectDir)\Coust\src\pch.h" />
@@ -193,7 +197,16 @@ xmake version 2.7.6+master.882cb4e03
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Driver.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\Refrigerator.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\RenderTarget.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\StagePool.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\Vertex.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Render\Vulkan\VmaBuild.cpp">
@@ -236,6 +249,9 @@ xmake version 2.7.6+master.882cb4e03
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\FileSystem.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Memory.cpp">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="$(XmakeProjectDir)\Coust\src\Coust\Utils\Random.cpp">
