@@ -1,11 +1,8 @@
 # Directories
-.xmake
 build
-vsxmake2022/.vs
 .vscode
 .cache/
 .coustcache/
-.codebackup/
 
 # Files
 *.user
