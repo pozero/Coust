@@ -12,7 +12,7 @@ project(Coust
     DESCRIPTION "Painful switch to CMake"
     LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -27,6 +27,21 @@ else()
 endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# change binary directory by build type
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/lib")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/lib")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/bin")
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/RelWithDebInfo/lib")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/RelWithDebInfo/lib")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/RelWithDebInfo/bin")
+else()
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Release/lib")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Release/lib")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Release/bin")
+endif()
 
 # link time optimization / interprocedual optimization
 option(COUST_IPO "Enable linke time optimization (might significantly increase build time)")
@@ -65,8 +80,6 @@ function(COMPILATION_CONFIG TARGET)
             # https://github.com/google/sanitizers/wiki/AddressSanitizerWindowsPort
             # _DISABLE_STRING_ANNOTATION
             # _DISABLE_VECTOR_ANNOTATION
-            # Disable exception in stl (microsoft implementation)
-            _HAS_EXCEPTIONS=0
             $<$<BOOL:${COUST_TEST}>:COUST_TEST>
     )
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -90,6 +103,7 @@ function(COMPILATION_CONFIG TARGET)
                 -Wno-c++14-compat
                 -Wno-c++17-compat
                 -Wno-c++20-compat
+                -Wno-c++20-extensions
                 -Wno-old-style-cast
                 -Wno-newline-eof
                 -ffast-math 

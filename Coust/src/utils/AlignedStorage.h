@@ -1,6 +1,9 @@
 #pragma once
 
+#include <mutex>
+
 #include "utils/TypeName.h"
+#include "utils/Compiler.h"
 
 namespace coust {
 
@@ -11,7 +14,7 @@ public:
 
     ~AlignedStorage() noexcept {
         if (is_initialized())
-            t.~T();
+            std::destroy_at(&t);
     }
 
     template <typename... Args>
@@ -19,8 +22,10 @@ public:
         requires(std::constructible_from<T, Args...>)
     {
         T* const p = &t;
-        if (!is_initialized()) [[likely]]
-            new (p) T{std::forward<Args>(args)...};
+        // static intialization can't work here, since we need to call the ctor
+        // once per obejct instead of per instantiation of this template class
+        std::call_once(m_init_flag, std::construct_at<T, Args...>, p,
+            std::forward<Args>(args)...);
         m_initialized = true;
         return *p;
     }
@@ -28,7 +33,8 @@ public:
     T& get() noexcept {
 #if !defined(COUST_REL)
         if (!is_initialized()) [[unlikely]] {
-            fmt::print(stderr, "{} not initialized yet", type_name<T>());
+            std::cerr << std::format(
+                "{} not initialized yet\n", type_name<T>());
             DEBUG_BREAK();
         }
 #endif
@@ -39,7 +45,8 @@ public:
     const T& get() const noexcept {
 #if !defined(COUST_REL)
         if (!is_initialized()) [[unlikely]] {
-            fmt::print(stderr, "{} not initialized yet", type_name<T>());
+            std::cerr << std::format(
+                "{} not initialized yet\n", type_name<T>());
             DEBUG_BREAK();
         }
 #endif
@@ -50,7 +57,8 @@ public:
     T* ptr() noexcept {
 #if !defined(COUST_REL)
         if (!is_initialized()) [[unlikely]] {
-            fmt::print(stderr, "{} not initialized yet", type_name<T>());
+            std::cerr << std::format(
+                "{} not initialized yet\n", type_name<T>());
             DEBUG_BREAK();
         }
 #endif
@@ -61,7 +69,8 @@ public:
     const T* ptr() const noexcept {
 #if !defined(COUST_REL)
         if (!is_initialized()) [[unlikely]] {
-            fmt::print(stderr, "{} not initialized yet", type_name<T>());
+            std::cerr << std::format(
+                "{} not initialized yet\n", type_name<T>());
             DEBUG_BREAK();
         }
 #endif
@@ -72,15 +81,11 @@ public:
     bool is_initialized() const noexcept { return m_initialized; }
 
 private:
-    static constexpr size_t round_up_to_alinged(
-        size_t size, size_t alignment) noexcept {
-        return ((size - 1) & ~(alignment - 1)) + alignment;
-    }
-
     union {
-        char bytes[round_up_to_alinged(sizeof(T), alignof(T))];
+        alignas(T) char bytes[sizeof(T)];
         T t;
     };
+    std::once_flag m_init_flag{};
     bool m_initialized = false;
 };
 

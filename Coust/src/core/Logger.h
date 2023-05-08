@@ -2,6 +2,8 @@
 
 #include "utils/Compiler.h"
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 WARNING_PUSH
 DISABLE_ALL_WARNING
 #include "spdlog/spdlog.h"
@@ -19,6 +21,12 @@ public:
     Logger(const Logger&) = delete;
     Logger& operator=(Logger&&) = delete;
     Logger& operator=(const Logger&) = delete;
+
+public:
+    // since we use async logger here, we must ensure all the messages are
+    // flushed to screen before terminate or debug break in assertion \ panic
+    static void flush_all() noexcept;
+    static void shutdown_all() noexcept;
 
 public:
     enum class Target {

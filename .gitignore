@@ -8,3 +8,4 @@ build
 *.user
 compile_commands.json
 *.spv
+Coust.log

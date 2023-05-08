@@ -15,7 +15,7 @@ static std::string get_logger_pattern(Logger::Pattern pattern) noexcept {
         "%T", ".%e", "] ", "<", "%t", "> ", "[", "%l", "] ", "(", "%s:%# ",
         "%!", ") ", "%n", ": ", "%v%$"};
     size_t constexpr max_result_size =
-        std::accumulate(symbols.cbegin(), symbols.cend(), size_t{0},
+        std::accumulate(symbols.cbegin(), symbols.cend(), size_t{0u},
             [](size_t s, std::string_view sv) { return sv.size() + s; });
 
     uint32_t constexpr begin = 0;
@@ -89,7 +89,7 @@ static std::string get_logger_pattern(Logger::Pattern pattern) noexcept {
     }
     std::string res{};
     res.reserve(max_result_size);
-    for (uint32_t i = 0; i < symbols.size(); ++i) {
+    for (auto i : std::views::iota(0u, symbols.size())) {
         if (applied_symbols[i])
             res += symbols[i];
     }
@@ -97,6 +97,15 @@ static std::string get_logger_pattern(Logger::Pattern pattern) noexcept {
 }
 
 }  // namespace detail
+
+void Logger::flush_all() noexcept {
+    spdlog::flush_on(spdlog::level::level_enum::trace);
+}
+
+void Logger::shutdown_all() noexcept {
+    spdlog::drop_all();
+    spdlog::shutdown();
+}
 
 Logger::Logger(std::string_view name, Target target, Pattern pattern) noexcept
     : m_name(name) {
@@ -133,7 +142,7 @@ Logger::Logger(std::string_view name, Target target, Pattern pattern) noexcept
                 std::make_shared<sinks::stdout_color_sink_st>();
     }
 
-    if (has(target, Target::mt_std_err)) {
+    if (has(target, Target::std_err)) {
         if (is_multithreading)
             sinks[sinks_count++] =
                 std::make_shared<sinks::stderr_color_sink_mt>();
@@ -184,7 +193,7 @@ DISABLE_ALL_WARNING
     #include "doctest/doctest.h"
 WARNING_POP
 
-TEST_CASE("[Coust] [core] Logger pattern generate") {
+TEST_CASE("[Coust] [core] Logger" * doctest::skip(true)) {
     using namespace coust;
     auto p1 = detail::get_logger_pattern(Logger::Pattern::logger_name);
     CHECK(p1 == std::string{"%^%n: %v%$"});

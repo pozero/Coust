@@ -1,6 +1,3 @@
-[submodule "Coust/third_party/fmt"]
-	path = Coust/third_party/fmt
-	url = https://github.com/fmtlib/fmt
 [submodule "Coust/third_party/spdlog"]
 	path = Coust/third_party/spdlog
 	url = https://github.com/gabime/spdlog

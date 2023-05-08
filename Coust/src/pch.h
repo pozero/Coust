@@ -1,8 +1,17 @@
 #pragma once
 
-#include "fmt/core.h"
+// Disable exception in stl (microsoft implementation)
+#if defined(__clang__)
+    #pragma clang diagnostic ignored "-Wreserved-macro-identifier"
+#endif
+#define _HAS_EXCEPTIONS 0
+
+#include <expected>
+
+#include <format>
 #include <string>
 #include <fstream>
+#include <iostream>
 #include <string_view>
 
 #include <random>

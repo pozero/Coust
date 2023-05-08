@@ -30,7 +30,8 @@ WARNING_POP
 inline std::pair<bool, int> run_tests(int argc, const char* const* argv) {
     doctest::Context ctx{argc, argv};
     const int result = ctx.run();
-    return {ctx.shouldExit(), result};
+    // test run should be exclusive
+    return {/*ctx.shouldExit()*/ true, result};
 }
 
 }  // namespace coust

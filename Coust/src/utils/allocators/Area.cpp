@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include "utils/Assert.h"
+
 #include "utils/allocators/Allocator.h"
 #include "utils/allocators/Area.h"
 
@@ -16,10 +18,32 @@ Area::Area(void* begin, void* end) noexcept
     : m_begin(begin), m_end(end), m_scoped(true) {
 }
 
+Area::Area(Area&& other) noexcept {
+    std::swap(m_begin, other.m_begin);
+    std::swap(m_end, other.m_end);
+    std::swap(m_scoped, other.m_scoped);
+}
+
+Area& Area::operator=(Area&& other) noexcept {
+    std::swap(m_begin, other.m_begin);
+    std::swap(m_end, other.m_end);
+    std::swap(m_scoped, other.m_scoped);
+    return *this;
+}
+
 Area::~Area() noexcept {
     if (!m_scoped) {
         aligned_free(m_begin);
     }
+}
+
+std::pair<void*, void*> Area::steal() noexcept {
+    void* ret_begin;
+    void* ret_end;
+    std::swap(m_begin, ret_begin);
+    std::swap(m_end, ret_end);
+    m_scoped = true;
+    return {ret_begin, ret_end};
 }
 
 void* Area::begin() const noexcept {
@@ -28,6 +52,10 @@ void* Area::begin() const noexcept {
 
 void* Area::end() const noexcept {
     return m_end;
+}
+
+size_t Area::size() const noexcept {
+    return ptr_math::sub(m_end, m_begin);
 }
 
 bool Area::contained(void* p) const noexcept {

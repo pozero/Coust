@@ -10,6 +10,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
     if (should_exit)
         return test_result;
 #endif
+    coust::GlobalContext::get();
     auto app = coust::create_application();
     app->run();
     return 0;

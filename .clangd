@@ -12,4 +12,5 @@ CompileFlags:
     -Wno-newline-eof
     -Wno-reserved-identifier,
     -Wno-c++20-compat
+    -Wno-c++20-extensions
   ]
