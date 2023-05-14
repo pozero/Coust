@@ -3,6 +3,22 @@
 # https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
 if (COUST_TEST)
     add_library(Coust OBJECT)
+target_sources(Coust
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_AlignedStorage.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_allocators_GrowthPolicy.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_containers_GrowthPolicy.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_FreeListAllocator.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_Logger_static.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_MemoryPool.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_MonotonicAllocator.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_RobinHash.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_PoolAllocator.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_SmartPointer.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_StdAdapter_StdContainer.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/doctest_impl.cpp
+)
 else()
     add_library(Coust STATIC)
 endif()
@@ -27,6 +43,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/TypeName.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/AlignedStorage.h
 
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/GrowthPolicy.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/RobinHash.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/RobinMap.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/RobinSet.h
@@ -48,10 +65,6 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/allocators/SmartPtr.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/allocators/StlAdaptor.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/allocators/StlContainer.h
-
-        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test.h
-        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test.cpp
-        ${PROJECT_SOURCE_DIR}/Coust/src/test/doctest_impl.cpp
 )
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog EXCLUDE_FROM_ALL)

@@ -1,185 +1,15 @@
-// Tests for codes in header files will be put here, while other codes in
-// transilation unit will be tested in place (for convenience)
-#if defined(COUST_TEST)
-    #include "pch.h"
+#include "pch.h"
 
-    #include "utils/Compiler.h"
-WARNING_PUSH
-DISABLE_ALL_WARNING
-    #include "doctest/doctest.h"
-WARNING_POP
-
-    #include "utils/AlignedStorage.h"
-TEST_CASE("[Coust] [utils] AlingedStorage" * doctest::skip(true)) {
-    using namespace coust;
-    struct foo {
-        int i;
-        float f;
-        char c;
-        int* p;
-
-        foo(int ii, float ff, char cc, int* pp) noexcept
-            : i(ii), f(ff), c(cc), p(pp) {}
-
-        foo(const foo& other) noexcept = default;
-
-        foo(foo&& other) noexcept = default;
-
-        ~foo() noexcept {
-            if (p)
-                *p += 1;
-        }
-
-        int emm() const noexcept { return i * 2 + int(f); }
-    };
-    struct bar {
-        foo f1;
-        foo f2;
-        int i3;
-        bar() = delete;
-        bar(foo const& ff, foo&& fff, int k) noexcept
-            : f1(ff), f2(std::move(fff)), i3(k) {}
-    };
-    int destruction_count = 0;
-    {
-        AlignedStorage<bar> bb{};
-        [[maybe_unused]] auto constexpr bar_size = sizeof(bb);
-        AlignedStorage<bar> bb2{};
-        auto const ff = foo{1, 1.0f, 'a', &destruction_count};
-        bb.initialize(ff, foo{2, 2.0f, 'b', nullptr}, 3);
-        // reinitialization should be ignored
-        auto const ff2 = foo{4, 4.0f, 'd', &destruction_count};
-        bb.initialize(ff2, foo{5, 5.0, 'e', nullptr}, 6);
-        CHECK(bb.get().f1.i == 1);
-        CHECK(bb.get().f1.f == 1.0f);
-        CHECK(bb.get().f1.c == 'a');
-        CHECK(bb.get().f1.p == &destruction_count);
-        CHECK(bb.get().f1.emm() == 3);
-        CHECK(bb.get().f2.i == 2);
-        CHECK(bb.get().f2.f == 2.0f);
-        CHECK(bb.get().f2.c == 'b');
-        CHECK(bb.get().f2.p == nullptr);
-        CHECK(bb.get().f2.emm() == 6);
-        CHECK(bb.get().i3 == 3);
-        bb2.initialize(ff2, foo{5, 5.0, 'e', nullptr}, 6);
-        CHECK(bb2.get().f1.i == 4);
-        CHECK(bb2.get().f1.f == 4.0f);
-        CHECK(bb2.get().f1.c == 'd');
-        CHECK(bb2.get().f1.p == &destruction_count);
-        CHECK(bb2.get().f1.emm() == 12);
-        CHECK(bb2.get().f2.i == 5);
-        CHECK(bb2.get().f2.f == 5.0f);
-        CHECK(bb2.get().f2.c == 'e');
-        CHECK(bb2.get().f2.p == nullptr);
-        CHECK(bb2.get().f2.emm() == 15);
-        CHECK(bb2.get().i3 == 6);
-    }
-    CHECK(destruction_count == 4);
-}
-
-    #include "utils/allocators/GrowthPolicy.h"
-TEST_CASE("[Coust] [utils] [allocators] GrowthPolicy" * doctest::skip(true)) {
-    using namespace coust::memory;
-    SUBCASE("Scoped growth policy") {
-        size_t constexpr area_count = 5;
-        {
-            Size constexpr area_size = byte_32;
-            {
-                std::array<char, area_count * area_size> stack_area;
-                GrowthPolicy<GrowthType::scope, area_size> growth{stack_area};
-                for ([[maybe_unused]] auto i :
-                    std::views::iota(0u, area_count)) {
-                    auto [ptr, size] = growth.do_growth(DEFAULT_ALIGNMENT);
-                    CHECK(size == area_size);
-                }
-            }
-            {
-                auto heap_area =
-                    std::make_unique<char[]>(area_count * area_size);
-                GrowthPolicy<GrowthType::scope, area_size> growth{
-                    heap_area.get(),
-                    ptr_math::add(heap_area.get(), area_count * area_size)};
-                for ([[maybe_unused]] auto i :
-                    std::views::iota(0u, area_count)) {
-                    auto [ptr, size] = growth.do_growth(DEFAULT_ALIGNMENT);
-                    CHECK(size == area_size);
-                }
-            }
-        }
-        {
-            Size constexpr area_size = byte_64;
-            {
-                std::array<char, area_count * area_size> stack_area;
-                GrowthPolicy<GrowthType::scope, area_size> growth{stack_area};
-                for ([[maybe_unused]] auto i :
-                    std::views::iota(0u, area_count)) {
-                    auto [ptr, size] = growth.do_growth(DEFAULT_ALIGNMENT);
-                    CHECK(size == area_size);
-                }
-            }
-            {
-                auto heap_area =
-                    std::make_unique<char[]>(area_count * area_size);
-                GrowthPolicy<GrowthType::scope, area_size> growth{
-                    heap_area.get(),
-                    ptr_math::add(heap_area.get(), area_count * area_size)};
-                for ([[maybe_unused]] auto i :
-                    std::views::iota(0u, area_count)) {
-                    auto [ptr, size] = growth.do_growth(DEFAULT_ALIGNMENT);
-                    CHECK(size == area_size);
-                }
-            }
-        }
-    }
-
-    SUBCASE("Attached growth policy") {
-        Size constexpr area_size = byte_64;
-        MemoryPool mp{byte_32, byte_64, byte_128};
-        void* p1 = nullptr;
-        void* p2 = nullptr;
-        void* p3 = nullptr;
-        void* p4 = nullptr;
-        {
-            GrowthPolicy<GrowthType::attached, area_size> gp{mp};
-            auto [p1_, s1] = gp.do_growth(DEFAULT_ALIGNMENT);
-            auto [p2_, s2] = gp.do_growth(DEFAULT_ALIGNMENT);
-            auto [p3_, s3] = gp.do_growth(DEFAULT_ALIGNMENT);
-            auto [p4_, s4] = gp.do_growth(DEFAULT_ALIGNMENT);
-            p1 = p1_;
-            p2 = p2_;
-            p3 = p3_;
-            p4 = p4_;
-            CHECK(s1 == area_size);
-            CHECK(s2 == area_size);
-            CHECK(s3 == area_size);
-            CHECK(s4 == area_size);
-        }
-        {
-            GrowthPolicy<GrowthType::attached, area_size> gp{mp};
-            auto [p1_, s1] = gp.do_growth(DEFAULT_ALIGNMENT);
-            auto [p2_, s2] = gp.do_growth(DEFAULT_ALIGNMENT);
-            auto [p3_, s3] = gp.do_growth(DEFAULT_ALIGNMENT);
-            auto [p4_, s4] = gp.do_growth(DEFAULT_ALIGNMENT);
-            CHECK(p1_ == p1);
-            CHECK(p2_ == p2);
-            CHECK(p3_ == p3);
-            CHECK(p4_ == p4);
-        }
-    }
-
-    SUBCASE("Heap growth policy") {
-        Size constexpr area_size = byte_128;
-        GrowthPolicy<GrowthType::heap, area_size> gp{};
-        for (int i = 0; i < 12; ++i) {
-            auto [ptr, size] = gp.do_growth(DEFAULT_ALIGNMENT);
-            CHECK(size == area_size);
-        }
-    }
-}
+#include "test/Test.h"
 
 // pool allocator isn't suitable for stl container, so we don't test it here
-    #include "utils/allocators/StlContainer.h"
-    #include "utils/allocators/FreeListAllocator.h"
+#include "utils/allocators/StlContainer.h"
+#include "utils/allocators/FreeListAllocator.h"
+#include "utils/allocators/MemoryPool.h"
+#include "utils/allocators/GrowthPolicy.h"
+#include "utils/allocators/HeapAllocator.h"
+#include "utils/allocators/MonotonicAllocator.h"
+
 TEST_CASE("[Coust] [utils] [allocators] StdAllocator FreeListAllocator" *
           doctest::skip(true)) {
     using namespace coust;
@@ -323,7 +153,6 @@ TEST_CASE("[Coust] [utils] [allocators] StdAllocator FreeListAllocator" *
     }
 }
 
-    #include "utils/allocators/HeapAllocator.h"
 TEST_CASE("[Coust] [utils] [allocators] StdAllocator HeapAllocator" *
           doctest::skip(true)) {
     using namespace coust;
@@ -464,7 +293,6 @@ TEST_CASE("[Coust] [utils] [allocators] StdAllocator HeapAllocator" *
     }
 }
 
-    #include "utils/allocators/MonotonicAllocator.h"
 TEST_CASE("[Coust] [utils] [allocators] StdAllocator MonotonicAllocator" *
           doctest::skip(true)) {
     using namespace coust;
@@ -607,48 +435,3 @@ TEST_CASE("[Coust] [utils] [allocators] StdAllocator MonotonicAllocator" *
         }
     }
 }
-
-    #include "utils/allocators/SmartPtr.h"
-TEST_CASE("[Coust] [utils] [allocators] Smart Pointer" * doctest::skip(false)) {
-    class Obj {
-    public:
-        Obj() = delete;
-
-        Obj(int* pb) noexcept : destruct_count(pb) {}
-
-        ~Obj() { (*destruct_count)++; }
-
-    private:
-        int* destruct_count;
-    };
-
-    using namespace coust;
-    memory::MemoryPool mp{memory::byte_512};
-    memory::GrowableAllocator<memory::GrowthType::attached, memory::byte_512,
-        memory::FreeListAllocator>
-        ga{mp};
-
-    int count = 0;
-    SUBCASE("unique pointer") {
-        {
-            auto unique = memory::allocate_unique<Obj>(ga, &count);
-            Obj* p1 = unique.release();
-            unique = memory::allocate_unique<Obj>(ga, &count);
-            p1->~Obj();
-            ga.deallocate(p1, sizeof(Obj));
-        }
-        CHECK(count == 2);
-    }
-
-    SUBCASE("shared pointer") {
-        {
-            std::shared_ptr<Obj> shared =
-                memory::allocate_shared<Obj>(ga, &count);
-            std::shared_ptr<Obj> shared_1{shared};
-            std::shared_ptr<Obj> shared_2{shared};
-        }
-        CHECK(count == 1);
-    }
-}
-
-#endif

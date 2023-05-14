@@ -15,9 +15,7 @@ constexpr bool has(E lhs, E rhs) noexcept
 }
 
 WARNING_PUSH
-#if defined(_MSC_VER) and !defined(__clang__)
-    #pragma warning(disable : 4702)
-#endif
+MSVC_DISABLE_WARNING(4702)
 template <typename E, typename... REST>
 constexpr E merge(E first, E second, REST... rest) noexcept
     requires(std::is_enum_v<E> &&

@@ -8,14 +8,12 @@
 namespace coust {
 
 WARNING_PUSH
-#if defined(__clang__)
-    #pragma clang diagnostic ignored "-Wexit-time-destructors"
-#endif
+CLANG_DISABLE_WARNING("-Wexit-time-destructors")
 GlobalContext& GlobalContext::get() noexcept {
     static GlobalContext s_global_ctx(
         merge(Logger::Target::mt_file, Logger::Target::mt_std_out),
         merge(Logger::Pattern::iso_time, Logger::Pattern::mili_sec,
-            Logger::Pattern::level, Logger::Pattern::func_name,
+            Logger::Pattern::level, Logger::Pattern::file_name_line,
             Logger::Pattern::logger_name));
     return s_global_ctx;
 }

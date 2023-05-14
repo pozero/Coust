@@ -214,6 +214,12 @@ public:
             m_raw_allocator.deallocate(p, size);
     }
 
+    Raw_Alloc const& get_raw_allocator() const noexcept {
+        return m_raw_allocator;
+    }
+
+    Raw_Alloc& get_raw_allocator() noexcept { return m_raw_allocator; }
+
 private:
     GrowthPolicy<Type, Growth_Factor> m_growth_policy;
     Raw_Alloc m_raw_allocator;

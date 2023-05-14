@@ -12,9 +12,7 @@ WARNING_POP
 namespace coust {
 
 WARNING_PUSH
-#if defined(__clang__)
-    #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
-#endif
+CLANG_DISABLE_WARNING("-Wunsafe-buffer-usage")
 // all commands related to doctest are placed after "-doctest" option
 inline std::pair<int, const char* const*> parse_test_cmds(
     int argc, const char* const* argv) {
