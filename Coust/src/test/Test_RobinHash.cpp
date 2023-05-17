@@ -66,8 +66,10 @@ TEST_CASE(
         e1.fill(1, 0, s1);
         CHECK(e0.get_value() == s0);
         CHECK(e1.get_value() == s1);
-        e0.swap(1, 0, s1);
-        e1.swap(1, 0, s0);
+        decltype(e0)::distance_type d0 = 1, d1 = 1;
+        detail::hash_type h0 = 0, h1 = 0;
+        e0.swap(d0, h0, s1);
+        e1.swap(d1, h1, s0);
         CHECK(e0.get_value() == s0);
         CHECK(e1.get_value() == s1);
     }
@@ -353,6 +355,18 @@ TEST_CASE("[Coust] [utils] [containers] RobinHash" * doctest::skip(true)) {
 }
 
 TEST_CASE("[Coust] [utils] [containers] Robin Set" * doctest::skip(true)) {
+    SUBCASE("Bulky Insertion") {
+        coust::container::robin_set<std::string> s0{};
+        uint32_t constexpr exp_cnt = 100;
+        for (uint32_t i = 0; i < exp_cnt; ++i) {
+            s0.insert(std::to_string(i));
+        }
+        CHECK(s0.size() == 100);
+        for (uint32_t i = 8; i < exp_cnt; ++i) {
+            CHECK(s0.contains(std::to_string(i)));
+        }
+    }
+
     SUBCASE("Construction ans Assignment") {
         coust::container::robin_set<uint32_t> s0 = {1u, 2u, 3u, 3u, 2u, 1u, 0u};
         CHECK(s0.size() == 4);

@@ -29,14 +29,6 @@ public:
     };
 
 public:
-    template <typename U>
-    StdAllocator(StdAllocator<U, Alloc>&& other) noexcept
-        : m_alloc_ptr(other.m_alloc_ptr) {}
-
-    StdAllocator(StdAllocator&& other) noexcept
-        : m_alloc_ptr(other.m_alloc_ptr) {}
-
-public:
     // std::scoped_allocator requires a default constructor
     StdAllocator() noexcept = default;
 
@@ -49,6 +41,36 @@ public:
     StdAllocator(StdAllocator const& other) noexcept
         : m_alloc_ptr(other.m_alloc_ptr) {}
 
+    template <typename U>
+    StdAllocator& operator=(StdAllocator<U, Alloc> const& other) noexcept {
+        m_alloc_ptr = other.m_alloc_ptr;
+        return *this;
+    }
+
+    StdAllocator& operator=(StdAllocator const& other) noexcept {
+        m_alloc_ptr = other.m_alloc_ptr;
+        return *this;
+    }
+
+    template <typename U>
+    StdAllocator(StdAllocator<U, Alloc>&& other) noexcept
+        : m_alloc_ptr(other.m_alloc_ptr) {}
+
+    StdAllocator(StdAllocator&& other) noexcept
+        : m_alloc_ptr(other.m_alloc_ptr) {}
+
+    template <typename U>
+    StdAllocator& operator=(StdAllocator<U, Alloc>&& other) noexcept {
+        m_alloc_ptr = other.m_alloc_ptr;
+        return *this;
+    }
+
+    StdAllocator& operator=(StdAllocator&& other) noexcept {
+        m_alloc_ptr = other.m_alloc_ptr;
+        return *this;
+    }
+
+public:
     T* allocate(std::size_t n) noexcept {
         return (T*) m_alloc_ptr->allocate(n * sizeof(T), alignof(T));
     }

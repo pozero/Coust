@@ -1,6 +1,7 @@
 #pragma once
 
-extern std::unique_ptr<coust::Application> coust::create_application();
+extern coust::memory::unique_ptr<coust::Application, coust::DefaultAlloc>
+    coust::create_application();
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 #if defined(COUST_TEST)
@@ -10,7 +11,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
     if (should_exit)
         return test_result;
 #endif
-    coust::GlobalContext::get();
     auto app = coust::create_application();
     app->run();
     return 0;

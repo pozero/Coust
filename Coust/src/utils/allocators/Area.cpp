@@ -1,7 +1,5 @@
 #include "pch.h"
 
-#include "utils/Assert.h"
-
 #include "utils/allocators/Allocator.h"
 #include "utils/allocators/Area.h"
 
@@ -38,8 +36,8 @@ Area::~Area() noexcept {
 }
 
 std::pair<void*, void*> Area::steal() noexcept {
-    void* ret_begin;
-    void* ret_end;
+    void* ret_begin = nullptr;
+    void* ret_end = nullptr;
     std::swap(m_begin, ret_begin);
     std::swap(m_end, ret_end);
     m_scoped = true;
@@ -64,6 +62,23 @@ bool Area::contained(void* p) const noexcept {
 
 bool Area::is_scope() const noexcept {
     return m_scoped;
+}
+
+std::vector<Area> Area::split_areas(
+    Area const& base_area, size_t sub_area_size) noexcept {
+    size_t const sub_area_count = base_area.size() / sub_area_size;
+    void* const sub_area_begin_begin = base_area.begin();
+    std::vector<Area> ret{};
+    ret.reserve(sub_area_count);
+
+    for (void* sub_area_begin = sub_area_begin_begin;
+         sub_area_begin != base_area.end();) {
+        void* const sub_area_end = std::min(
+            ptr_math::add(sub_area_begin, sub_area_size), base_area.end());
+        ret.push_back(Area{sub_area_begin, sub_area_end});
+        sub_area_begin = sub_area_end;
+    }
+    return ret;
 }
 
 }  // namespace memory

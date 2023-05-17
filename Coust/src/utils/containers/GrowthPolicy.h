@@ -17,24 +17,25 @@ concept growth_policy = std::constructible_from<T, size_t&> && requires(T& t) {
     { t.next_idx(size_t{}) } noexcept -> std::same_as<size_t>;
 };
 
-static size_t constexpr is_power_of_two(size_t val) {
-    return val != 0 && (val & (val - 1)) == 0;
-}
-
-static size_t round_up_to_power_of_two(size_t val) {
-    if (val == 0)
-        return 1;
-    else if (is_power_of_two(val))
-        return val;
-    --val;
-    for (size_t i = 1; i < sizeof(size_t) * 8; i = i << 1) {
-        val |= val >> i;
-    }
-    return val + 1;
-}
-
 template <size_t Grwoth_Factor>
 class power_of_two_growth {
+private:
+    static size_t constexpr is_power_of_two(size_t val) {
+        return val != 0 && (val & (val - 1)) == 0;
+    }
+
+    static size_t constexpr round_up_to_power_of_two(size_t val) {
+        if (val == 0)
+            return 1;
+        else if (is_power_of_two(val))
+            return val;
+        --val;
+        for (size_t i = 1; i < sizeof(size_t) * 8; i = i << 1) {
+            val |= val >> i;
+        }
+        return val + 1;
+    }
+
 public:
     static_assert(Grwoth_Factor >= 2 && is_power_of_two(Grwoth_Factor),
         "Growth factor must be 2 ^ k, where k >= 1");

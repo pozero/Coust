@@ -2,6 +2,9 @@
 
 #include "utils/allocators/StlAdaptor.h"
 
+#include "utils/containers/RobinSet.h"
+#include "utils/containers/RobinMap.h"
+
 #include <scoped_allocator>
 
 #include <vector>
@@ -30,6 +33,23 @@ using vector_nested =
 template <detail::Allocator Alloc>
 using string =
     std::basic_string<char, std::char_traits<char>, StdAllocator<char, Alloc>>;
+
+template <typename T, detail::Allocator Alloc>
+using robin_set = container::robin_set<T, std::hash<T>, std::equal_to<T>,
+    StdAllocator<T, Alloc>>;
+
+template <typename T, detail::Allocator Alloc>
+using robin_set_nested = container::robin_set<T, std::hash<T>, std::equal_to<T>,
+    std::scoped_allocator_adaptor<StdAllocator<T, Alloc>>>;
+
+template <typename Key, typename Mapped, detail::Allocator Alloc>
+using robin_map = container::robin_map<Key, Mapped, std::hash<Key>,
+    std::equal_to<Key>, StdAllocator<std::pair<Key, Mapped>, Alloc>>;
+
+template <typename Key, typename Mapped, detail::Allocator Alloc>
+using robin_map_nested = container::robin_map<Key, Mapped, std::hash<Key>,
+    std::equal_to<Key>,
+    std::scoped_allocator_adaptor<StdAllocator<std::pair<Key, Mapped>, Alloc>>>;
 
 template <typename T, detail::Allocator Alloc>
 using deque = std::deque<T, StdAllocator<T, Alloc>>;

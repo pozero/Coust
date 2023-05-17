@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/Logger.h"
-#include "core/GlobalContext.h"
 #include "utils/Compiler.h"
 
 #include <exception>
@@ -11,8 +10,7 @@
     #define COUST_PANIC_IF(exp, ...)                                           \
         do {                                                                   \
             if ((exp)) [[unlikely]] {                                          \
-                SPDLOG_LOGGER_CRITICAL(                                        \
-                    GlobalContext::get().get_core_logger().raw_ptr(),          \
+                SPDLOG_LOGGER_CRITICAL((get_core_logger().ptr().lock()),       \
                     "True condition PANIC: {}\n\t{}", #exp,                    \
                     fmt::format(__VA_ARGS__));                                 \
                 Logger::flush_all();                                           \
@@ -23,8 +21,7 @@
     #define COUST_PANIC_IF_NOT(exp, ...)                                       \
         do {                                                                   \
             if (!(exp)) [[unlikely]] {                                         \
-                SPDLOG_LOGGER_CRITICAL(                                        \
-                    GlobalContext::get().get_core_logger().raw_ptr(),          \
+                SPDLOG_LOGGER_CRITICAL((get_core_logger().ptr().lock()),       \
                     "False condition PANIC: {}\n\t{}", #exp,                   \
                     fmt::format(__VA_ARGS__));                                 \
                 Logger::flush_all();                                           \
@@ -36,8 +33,7 @@
     #define COUST_ASSERT(exp, ...)                                             \
         do {                                                                   \
             if (!(exp)) [[unlikely]] {                                         \
-                SPDLOG_LOGGER_ERROR(                                           \
-                    GlobalContext::get().get_core_logger().raw_ptr(),          \
+                SPDLOG_LOGGER_ERROR((get_core_logger().ptr().lock()),          \
                     "Assertion {} failed\n\t{}", #exp,                         \
                     fmt::format(__VA_ARGS__));                                 \
                 Logger::flush_all();                                           \
@@ -47,8 +43,7 @@
     #define COUST_PANIC_IF(exp, ...)                                           \
         do {                                                                   \
             if ((exp)) [[unlikely]] {                                          \
-                SPDLOG_LOGGER_CRITICAL(                                        \
-                    GlobalContext::get().get_core_logger().raw_ptr(),          \
+                SPDLOG_LOGGER_CRITICAL((get_core_logger().ptr().lock()),       \
                     "True condition PANIC: {}\n\t{}", #exp,                    \
                     fmt::format(__VA_ARGS__));                                 \
                 Logger::flush_all();                                           \
@@ -58,8 +53,7 @@
     #define COUST_PANIC_IF_NOT(exp, ...)                                       \
         do {                                                                   \
             if (!(exp)) [[unlikely]] {                                         \
-                SPDLOG_LOGGER_CRITICAL(                                        \
-                    GlobalContext::get().get_core_logger().raw_ptr(),          \
+                SPDLOG_LOGGER_CRITICAL((get_core_logger().ptr().lock()),       \
                     "False condition PANIC: {}\n\t{}", #exp,                   \
                     fmt::format(__VA_ARGS__));                                 \
                 Logger::flush_all();                                           \

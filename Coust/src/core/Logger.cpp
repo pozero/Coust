@@ -1,6 +1,8 @@
 #include "pch.h"
 
 #include "core/Logger.h"
+#include "core/Memory.h"
+#include "utils/allocators/SmartPtr.h"
 #include "utils/Enums.h"
 #include "utils/Compiler.h"
 
@@ -127,31 +129,37 @@ Logger::Logger(std::string_view name, Target target, Pattern pattern) noexcept
     if (has(target, Target::file)) {
         if (is_multithreading)
             sinks[sinks_count++] =
-                std::make_shared<sinks::basic_file_sink_mt>(file_name, true);
+                memory::allocate_shared<sinks::basic_file_sink_mt>(
+                    get_default_alloc(), file_name, true);
         else
             sinks[sinks_count++] =
-                std::make_shared<sinks::basic_file_sink_st>(file_name, true);
+                memory::allocate_shared<sinks::basic_file_sink_st>(
+                    get_default_alloc(), file_name, true);
     }
 
     if (has(target, Target::std_out)) {
         if (is_multithreading)
             sinks[sinks_count++] =
-                std::make_shared<sinks::stdout_color_sink_mt>();
+                memory::allocate_shared<sinks::stdout_color_sink_mt>(
+                    get_default_alloc());
         else
             sinks[sinks_count++] =
-                std::make_shared<sinks::stdout_color_sink_st>();
+                memory::allocate_shared<sinks::stdout_color_sink_st>(
+                    get_default_alloc());
     }
 
     if (has(target, Target::std_err)) {
         if (is_multithreading)
             sinks[sinks_count++] =
-                std::make_shared<sinks::stderr_color_sink_mt>();
+                memory::allocate_shared<sinks::stderr_color_sink_mt>(
+                    get_default_alloc());
         else
             sinks[sinks_count++] =
-                std::make_shared<sinks::stderr_color_sink_st>();
+                memory::allocate_shared<sinks::stderr_color_sink_st>(
+                    get_default_alloc());
     }
 
-    m_logger = std::make_shared<async_logger>(
+    m_logger = memory::allocate_shared<async_logger>(get_default_alloc(),
         name.data(), begin(sinks), begin(sinks) + sinks_count, thread_pool());
     auto pat = detail::get_logger_pattern(pattern);
     m_logger->set_pattern(pat);
@@ -183,6 +191,18 @@ spdlog::async_logger* Logger::raw_ptr() noexcept {
 const spdlog::async_logger* Logger::raw_ptr() const noexcept {
     return m_logger.get();
 }
+
+WARNING_PUSH
+CLANG_DISABLE_WARNING("-Wexit-time-destructors")
+Logger& get_core_logger() noexcept {
+    static Logger s_core_logger{"Coust",
+        merge(Logger::Target::mt_file, Logger::Target::mt_std_out),
+        merge(Logger::Pattern::iso_time, Logger::Pattern::mili_sec,
+            Logger::Pattern::level, Logger::Pattern::file_name_line,
+            Logger::Pattern::logger_name)};
+    return s_core_logger;
+}
+WARNING_POP
 
 }  // namespace coust
 

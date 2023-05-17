@@ -2,8 +2,8 @@
 
 namespace coust {
 
-std::unique_ptr<Application> create_application() {
-    return std::make_unique<Application>();
+memory::unique_ptr<Application, DefaultAlloc> create_application() {
+    return memory::allocate_unique<Application>(get_default_alloc());
 }
 
 }  // namespace coust

@@ -28,21 +28,6 @@ endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# change binary directory by build type
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/lib")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/lib")
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/bin")
-elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/RelWithDebInfo/lib")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/RelWithDebInfo/lib")
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/RelWithDebInfo/bin")
-else()
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Release/lib")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Release/lib")
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Release/bin")
-endif()
-
 # link time optimization / interprocedual optimization
 option(COUST_IPO "Enable linke time optimization (might significantly increase build time)")
 include(CheckIPOSupported)
@@ -57,12 +42,16 @@ endif()
 # test
 option(COUST_TEST "Enable test in source code")
 message(STATUS "COUST_TEST: ${COUST_TEST}")
+option(COUST_TEST_ALL "Enable all tests in source code if test is enabled, otherwise the option is omitted")
+if (COUST_TEST)
+    message(STATUS "COUST_TEST_ALL: ${COUST_TEST_ALL}")
+endif()
 
 # sanitizer
 option(COUST_SANITIZER_ADDRESS "Turn on compiler address sanitier")
 option(COUST_SANITIZER_THREAD "Turn on compiler thread sanitier")
 option(COUST_SANITIZER_MEMORY "Turn on compiler memory sanitier")
-option(COUST_SANITIZER_UNDEFINED "Turn on compiler undefined sanitier")
+option(COUST_SANITIZER_UNDEFINED "Turn on compiler undefined behaviour sanitier")
 
 message(STATUS "COUST_SANITIZER_ADDRESS: ${COUST_SANITIZER_ADDRESS}")
 message(STATUS "COUST_SANITIZER_THREAD: ${COUST_SANITIZER_THREAD}")
@@ -74,13 +63,14 @@ function(COMPILATION_CONFIG TARGET)
         set_property(TARGET ${TARGET} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     endif()
     target_compile_definitions(${TARGET} 
-    PRIVATE 
+        PRIVATE 
             # https://github.com/llvm/llvm-project/issues/56300
             # https://github.com/llvm/llvm-project/commit/8fa0cfeb61a12ad5ca7830a8228155de32aa7ab2
             # https://github.com/google/sanitizers/wiki/AddressSanitizerWindowsPort
             # _DISABLE_STRING_ANNOTATION
             # _DISABLE_VECTOR_ANNOTATION
             $<$<BOOL:${COUST_TEST}>:COUST_TEST>
+            $<$<BOOL:${COUST_TEST_ALL}>:COUST_TEST_ALL>
     )
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         target_compile_options(${TARGET} 
@@ -146,6 +136,6 @@ compilation_config(Coust)
 compilation_config(Coustol)
 
 # Copy the compile_commands.json to the project root directory
-if (EXISTS "${PROJECT_SOURCE_DIR}/build/compile_commands.json")
-    file(COPY_FILE build/compile_commands.json ${PROJECT_SOURCE_DIR}/compile_commands.json)
+if (EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
+    file(COPY_FILE ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json ${PROJECT_SOURCE_DIR}/compile_commands.json)
 endif()

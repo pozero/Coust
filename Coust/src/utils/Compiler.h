@@ -28,10 +28,10 @@
     #define RESTRICT __restrict
     #define ASSUME(exp) (__assume(exp))
     #define PRETTY_FUNC __FUNCSIG__
-    // There no such thing as "disabling all warning" in msvc, so the macro is
-    // lying here
     #define WARNING_PUSH COUST_IMPL_DO_PRAGMA(warning(push, 0))
     #define WARNING_POP COUST_IMPL_DO_PRAGMA(warning(pop))
+    // There no such thing as "disabling all warning" in msvc, so the macro is
+    // lying here
     #define DISABLE_ALL_WARNING
     #define CLANG_DISABLE_WARNING(warn)
     #define MSVC_DISABLE_WARNING(warn)                                         \

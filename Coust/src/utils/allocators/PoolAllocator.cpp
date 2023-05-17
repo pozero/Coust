@@ -24,7 +24,9 @@ PoolAllocator::PoolAllocator(void* begin, void* end, size_t node_size) noexcept
 }
 
 void* PoolAllocator::allocate(
-    [[maybe_unused]] size_t size, [[maybe_unused]] size_t) noexcept {
+    // the alignment of pool allocator is the same as the alignment of the
+    // memory block it attaching to
+    [[maybe_unused]] size_t size, [[maybe_unused]] size_t alignment) noexcept {
     COUST_ASSERT(size <= m_node_size,
         "size requirement exceeds node size of pool allocator, requirement: "
         "{}, node_size: {}",
@@ -32,12 +34,16 @@ void* PoolAllocator::allocate(
     if (m_first) {
         void* const ret = m_first;
         m_first = m_first->next;
+        COUST_ASSERT(uintptr_t(ret) % alignment == 0,
+            "Pool Allocator can't meet the allocation alignment requirement");
         return ret;
     }
     void* const next_begin = ptr_math::add(m_unindexed_begin, m_node_size);
     if (next_begin <= m_unindexed_end) {
         void* const ret = m_unindexed_begin;
         m_unindexed_begin = next_begin;
+        COUST_ASSERT(uintptr_t(ret) % alignment == 0,
+            "Pool Allocator can't meet the allocation alignment requirement");
         return ret;
     } else {
         return nullptr;

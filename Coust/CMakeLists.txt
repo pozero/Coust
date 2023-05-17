@@ -8,7 +8,9 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_AlignedStorage.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_allocators_GrowthPolicy.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_containers_GrowthPolicy.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_Events.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_FreeListAllocator.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_GlobalAllocation.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_Logger_static.h
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_MemoryPool.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_MonotonicAllocator.cpp
@@ -31,10 +33,21 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/core/EntryPoint.h
         ${PROJECT_SOURCE_DIR}/Coust/src/core/Application.h
         ${PROJECT_SOURCE_DIR}/Coust/src/core/Application.cpp
-        ${PROJECT_SOURCE_DIR}/Coust/src/core/GlobalContext.h
-        ${PROJECT_SOURCE_DIR}/Coust/src/core/GlobalContext.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/core/Logger.h
         ${PROJECT_SOURCE_DIR}/Coust/src/core/Logger.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/Memory.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/Memory.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/Window.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/Window.cpp
+
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/ApplicationEvent.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/ApplicationEvent.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/Event.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/EventBus.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/KeyEvent.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/KeyEvent.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/MouseEvent.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/event/MouseEvent.cpp
 
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/Assert.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/Compiler.h
@@ -69,11 +82,15 @@ target_sources(Coust
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog EXCLUDE_FROM_ALL)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/doctest EXCLUDE_FROM_ALL)
+set(SDL_STATIC ON)
+set(SDL_SHARED OFF)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/sdl EXCLUDE_FROM_ALL)
 
 target_link_libraries(Coust 
     PRIVATE 
         spdlog::spdlog_header_only
         doctest
+        SDL2::SDL2-static
 )
 
 target_include_directories(Coust 
@@ -81,6 +98,7 @@ target_include_directories(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src
         ${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog/include
         ${PROJECT_SOURCE_DIR}/Coust/third_party/doctest/
+        ${PROJECT_SOURCE_DIR}/Coust/third_party/sdl/include
 )
 
 target_precompile_headers(Coust 

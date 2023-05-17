@@ -2,6 +2,8 @@
 
 #include "utils/Compiler.h"
 
+#include <vector>
+
 namespace coust {
 namespace memory {
 
@@ -36,6 +38,10 @@ public:
     bool contained(void* p) const noexcept;
 
     bool is_scope() const noexcept;
+
+    // split N areas (scoped) from `base_area`
+    static std::vector<Area> split_areas(
+        Area const& base_area, size_t sub_area_size) noexcept;
 
 private:
     void* m_begin = nullptr;

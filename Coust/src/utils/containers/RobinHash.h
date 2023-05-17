@@ -77,23 +77,13 @@ public:
         m_hash = hash;
     }
 
-    void swap(distance_type dist, hash_type hash, value_type& value) noexcept
+    void swap(distance_type& dist, hash_type& hash, value_type& value) noexcept
         requires(std::swappable<value_type>)
     {
         COUST_ASSERT(!empty(), "Swap operation requried a filled bucket entry");
         std::swap(m_distance_from_home, dist);
         std::swap(m_hash, hash);
         std::swap(m_value, value);
-    }
-
-    void swap(
-        distance_type dist, hash_type hash, value_type const& value) noexcept
-        requires(std::copyable<value_type>)
-    {
-        COUST_ASSERT(!empty(), "Swap operation requried a filled bucket entry");
-        std::swap(m_distance_from_home, dist);
-        std::swap(m_hash, hash);
-        m_value = value;
     }
 
     void clear() noexcept {
@@ -716,7 +706,8 @@ private:
     }
 
     size_t key_to_hash(key_type const& key) const noexcept {
-        return Hash::operator()(key);
+        size_t ret = Hash::operator()(key);
+        return ret;
     }
 
     bool compare_keys(key_type const& k1, key_type const& k2) const noexcept {
@@ -877,16 +868,9 @@ private:
             m_buckets[bucket_idx].fill(dist_from_home, truncated_hash,
                 std::forward<Args>(value_args)...);
         } else {
-            // Args is the same as value_type, so just forward it to the lambda
-            if constexpr (std::conjunction_v<std::is_same<std::decay_t<Args>,
-                              value_type>...>) {
-                insert_value_to_filled_bucket(bucket_idx, dist_from_home,
-                    truncated_hash, std::forward<Args>(value_args)...);
-            } else {
-                value_type value{std::forward<Args>(value_args)...};
-                insert_value_to_filled_bucket(
-                    bucket_idx, dist_from_home, truncated_hash, value);
-            }
+            value_type value{std::forward<Args>(value_args)...};
+            insert_value_to_filled_bucket(
+                bucket_idx, dist_from_home, truncated_hash, value);
         }
         ++m_filled_bucket_count;
         return std::make_pair(iterator(m_buckets + bucket_idx), true);
@@ -968,10 +952,10 @@ private:
         size_t bucket_idx = hash_to_index(truncated_hash);
         distance_type dist_from_home = bucket_entry::IDEAL_DIST_FROM_HOME;
         // our search begins from the home, so if the following buckets have
-        // the same hash value, we should expect their `m_dist_from_home` is the
-        // same as our local var `dist_from_home`
+        // the same hash value, we should expect their `m_dist_from_home` be
+        // not less than as our local var `dist_from_home`
         while (
-            m_buckets[bucket_idx].get_distance_from_home() == dist_from_home) {
+            m_buckets[bucket_idx].get_distance_from_home() >= dist_from_home) {
             if (m_buckets[bucket_idx].get_hash() == truncated_hash &&
                 compare_keys(m_buckets[bucket_idx].get_key(), key)) [[likely]]
                 return const_iterator(m_buckets + bucket_idx);

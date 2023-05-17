@@ -74,4 +74,6 @@ private:
     std::string_view m_name;
 };
 
+Logger& get_core_logger() noexcept;
+
 }  // namespace coust

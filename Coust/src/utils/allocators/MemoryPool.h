@@ -26,7 +26,14 @@ public:
     void deallocate_area(Area&& free_area) noexcept;
 
 private:
-    std::deque<std::deque<Area>> m_areas;
+    static size_t constexpr RAW_AREA_SIZE_MULTIPLIER = 2u;
+
+private:
+    // raw areas control the actual allocation and deallocation (system call)
+    std::deque<Area> m_raw_areas;
+    // to reduce fragmentation and allocation call, we split the raw areas into
+    // smaller scoped areas and provide them to allocators instead of raw areas
+    std::deque<std::deque<Area>> m_split_areas;
     std::deque<Size> m_sizes;
     [[maybe_unused]] size_t const m_alignement;
 

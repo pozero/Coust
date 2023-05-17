@@ -11,7 +11,7 @@ MemoryPool::MemoryPool(
     std::initializer_list<Size> const& all_sizes, size_t alignment) noexcept
     : m_sizes(all_sizes), m_alignement(alignment) {
     std::ranges::sort(m_sizes);
-    m_areas.resize(all_sizes.size());
+    m_split_areas.resize(all_sizes.size());
 }
 
 Area MemoryPool::allocate_area(size_t size, size_t alignment) noexcept {
@@ -20,20 +20,27 @@ Area MemoryPool::allocate_area(size_t size, size_t alignment) noexcept {
         "alignment is {}",
         alignment);
     size_t const pool_idx = find_pool(size);
-    std::deque<Area>& pool = m_areas[pool_idx];
+    size_t const actual_allocation_size = m_sizes[pool_idx];
+    std::deque<Area>& pool = m_split_areas[pool_idx];
     if (!pool.empty()) {
         Area area = std::move(pool.front());
         pool.pop_front();
         return area;
     } else {
-        return Area{m_sizes[pool_idx], alignment};
+        auto const& raw_area = m_raw_areas.emplace_back(
+            m_sizes.back() * RAW_AREA_SIZE_MULTIPLIER, alignment);
+        auto split_areas = Area::split_areas(raw_area, actual_allocation_size);
+        Area ret = std::move(split_areas.back());
+        split_areas.pop_back();
+        std::ranges::move(split_areas, std::back_inserter(pool));
+        return ret;
     }
 }
 
 void MemoryPool::deallocate_area(Area&& free_area) noexcept {
     size_t const free_size = free_area.size();
     size_t const pool_idx = find_pool(free_size);
-    std::deque<Area>& pool = m_areas[pool_idx];
+    std::deque<Area>& pool = m_split_areas[pool_idx];
     pool.push_front(std::move(free_area));
 }
 

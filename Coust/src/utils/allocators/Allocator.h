@@ -11,16 +11,26 @@ namespace memory {
 size_t constexpr DEFAULT_ALIGNMENT = 16u;
 
 enum Size : size_t {
+    byte_8 = 8u,
+    byte_16 = 16u,
     byte_32 = 32u,
     byte_64 = 64u,
     byte_128 = 128u,
     byte_256 = 256u,
     byte_512 = 512u,
     kbyte_1 = 1024u,
+    kbyte_3 = 3 * 1024u,
+    kbyte_5 = 5 * 1024u,
+    kbyte_10 = 10 * 1024u,
+    kbyte_50 = 50 * 1024u,
 };
 
 std::string_view constexpr to_string_view(Size s) {
     switch (s) {
+        case byte_8:
+            return "byte_8";
+        case byte_16:
+            return "byte_16";
         case byte_32:
             return "byte_32";
         case byte_64:
@@ -33,6 +43,14 @@ std::string_view constexpr to_string_view(Size s) {
             return "byte_512";
         case kbyte_1:
             return "kbyte_1";
+        case kbyte_3:
+            return "kbyte_3";
+        case kbyte_5:
+            return "kbyte_5";
+        case kbyte_10:
+            return "kbyte_10";
+        case kbyte_50:
+            return "kbyte_50";
     }
     ASSUME(0);
 }
