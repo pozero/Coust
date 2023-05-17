@@ -78,6 +78,11 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/allocators/SmartPtr.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/allocators/StlAdaptor.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/allocators/StlContainer.h
+
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileCache.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileCache.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.cpp
 )
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog EXCLUDE_FROM_ALL)

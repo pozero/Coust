@@ -48,14 +48,24 @@ if (COUST_TEST)
 endif()
 
 # sanitizer
+# llvm on windows don't support memory sanitizer and thread sanitizer
 option(COUST_SANITIZER_ADDRESS "Turn on compiler address sanitier")
-option(COUST_SANITIZER_THREAD "Turn on compiler thread sanitier")
-option(COUST_SANITIZER_MEMORY "Turn on compiler memory sanitier")
 option(COUST_SANITIZER_UNDEFINED "Turn on compiler undefined behaviour sanitier")
 
+# We have to disable debug in runtime library, or will get errors similar to the following:
+# [build] lld-link: error: /failifmismatch: mismatch detected for '_ITERATOR_DEBUG_LEVEL':
+# [build] >>> clang_rt.asan_cxx-x86_64.lib(ubsan_type_hash_win.cpp.obj) has value 0
+# [build] >>> Coust/CMakeFiles/Coust.dir/src/test/Test_AlignedStorage.cpp.obj has value 2
+# that's because llvm on windows do not provide sanitizer library built in debug mode...
+# also stated here:
+# https://github.com/google/sanitizers/wiki/AddressSanitizerWindowsPort#debug-crt-incompatibility
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if (COUST_SANITIZER_ADDRESS OR COUST_SANITIZER_UNDEFINED)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    endif()
+endif()
+
 message(STATUS "COUST_SANITIZER_ADDRESS: ${COUST_SANITIZER_ADDRESS}")
-message(STATUS "COUST_SANITIZER_THREAD: ${COUST_SANITIZER_THREAD}")
-message(STATUS "COUST_SANITIZER_MEMORY: ${COUST_SANITIZER_MEMORY}")
 message(STATUS "COUST_SANITIZER_UNDEFINED: ${COUST_SANITIZER_UNDEFINED}")
 
 function(COMPILATION_CONFIG TARGET)
@@ -64,11 +74,6 @@ function(COMPILATION_CONFIG TARGET)
     endif()
     target_compile_definitions(${TARGET} 
         PRIVATE 
-            # https://github.com/llvm/llvm-project/issues/56300
-            # https://github.com/llvm/llvm-project/commit/8fa0cfeb61a12ad5ca7830a8228155de32aa7ab2
-            # https://github.com/google/sanitizers/wiki/AddressSanitizerWindowsPort
-            # _DISABLE_STRING_ANNOTATION
-            # _DISABLE_VECTOR_ANNOTATION
             $<$<BOOL:${COUST_TEST}>:COUST_TEST>
             $<$<BOOL:${COUST_TEST_ALL}>:COUST_TEST_ALL>
     )
@@ -101,6 +106,9 @@ function(COMPILATION_CONFIG TARGET)
                 $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:/fsanitize=address>
         )
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16.0.3")
+            message(FATAL_ERROR "clang version ${CMAKE_CXX_COMPILER_VERSION} is too low to use address sanitizer, minimum version required: 16.0.3: https://github.com/llvm/llvm-project/issues/56300")
+        endif()
         target_compile_options(${TARGET} 
             PRIVATE 
                 -Werror
@@ -119,10 +127,13 @@ function(COMPILATION_CONFIG TARGET)
                 -fno-rtti
                 $<$<CONFIG:Debug>:-fstandalone-debug>
                 $<$<CONFIG:RelWithDebInfo>:-fstandalone-debug>
-                # $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:-fsanitize=address>
-                # $<$<BOOL:${COUST_SANITIZER_THREAD}>:-fsanitize=thread>
-                # $<$<BOOL:${COUST_SANITIZER_MEMORY}>:-fsanitize=memory>
-                # $<$<BOOL:${COUST_SANITIZER_UNDEFINED}>:-fsanitize=undefined>
+                $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:-fsanitize=address>
+                $<$<BOOL:${COUST_SANITIZER_UNDEFINED}>:-fsanitize=undefined>
+        )
+        target_link_options(${TARGET}
+            PRIVATE 
+                $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:-fsanitize=address>
+                $<$<BOOL:${COUST_SANITIZER_UNDEFINED}>:-fsanitize=undefined>
         )
     else()
         message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}")
@@ -137,5 +148,8 @@ compilation_config(Coustol)
 
 # Copy the compile_commands.json to the project root directory
 if (EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
+    if (EXISTS "${PROJECT_SOURCE_DIR}/compile_commands.json")
+        file(REMOVE ${PROJECT_SOURCE_DIR}/compile_commands.json)
+    endif()
     file(COPY_FILE ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json ${PROJECT_SOURCE_DIR}/compile_commands.json)
 endif()
