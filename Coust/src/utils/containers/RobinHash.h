@@ -454,14 +454,14 @@ public:
     std::pair<iterator, bool> insert(V&& value) noexcept
         // stl unordered map allowed implicit constrution from V to value_type
         // I think that's ambiguous, so that overload is prohibited here
-        requires(std::same_as<std::decay_t<V>, value_type>)
+        requires(std::same_as<std::remove_cvref_t<V>, value_type>)
     {
         return insert_impl(extract_key(value), std::forward<V>(value));
     }
 
     template <typename V>
     iterator insert(const_iterator hint, V&& value) noexcept
-        requires(std::same_as<std::decay_t<V>, value_type>)
+        requires(std::same_as<std::remove_cvref_t<V>, value_type>)
     {
         if (hint != cend() &&
             compare_keys(extract_key(value), extract_key(*hint)))
@@ -493,7 +493,7 @@ public:
 
     template <typename K, typename M>
     std::pair<iterator, bool> insert_or_assign(K&& key, M&& mapped) noexcept
-        requires(std::same_as<key_type, std::decay_t<K>> &&
+        requires(std::same_as<key_type, std::remove_cvref_t<K>> &&
                  std::is_assignable_v<mapped_type&, M &&>)
     {
         auto iter_success =
@@ -505,7 +505,7 @@ public:
 
     template <typename K, typename M>
     iterator insert_or_assign(const_iterator hint, K&& key, M&& mapped) noexcept
-        requires(std::same_as<key_type, std::decay_t<K>> &&
+        requires(std::same_as<key_type, std::remove_cvref_t<K>> &&
                  std::is_assignable_v<mapped_type&, M &&>)
     {
         if (hint != cend() && compare_keys(key, extract_key(*hint))) {
@@ -534,7 +534,7 @@ public:
     template <typename K, typename... Args>
     std::pair<iterator, bool> try_emplace(
         K&& key, Args&&... mapped_args) noexcept
-        requires(std::same_as<key_type, std::decay_t<K>> &&
+        requires(std::same_as<key_type, std::remove_cvref_t<K>> &&
                  std::constructible_from<mapped_type, Args...>)
     {
         return insert_impl(std::forward<K>(key), std::piecewise_construct,
@@ -545,7 +545,7 @@ public:
     template <typename K, typename... Args>
     iterator try_emplace(
         const_iterator hint, K&& key, Args&&... mapped_args) noexcept
-        requires(std::same_as<key_type, std::decay_t<K>> &&
+        requires(std::same_as<key_type, std::remove_cvref_t<K>> &&
                  std::constructible_from<mapped_type, Args...>)
     {
         if (hint != cend() && compare_keys(key, extract_key(*hint))) {
@@ -787,7 +787,7 @@ private:
     template <typename K, typename... Args>
     std::pair<iterator, bool> insert_impl(
         K const& key, Args&&... value_args) noexcept
-        requires(std::same_as<key_type, std::decay_t<K>>)
+        requires(std::same_as<key_type, std::remove_cvref_t<K>>)
     {
         auto const insert_value_to_filled_bucket =
             [this](size_t bucket_idx, distance_type dist_from_home,

@@ -24,6 +24,7 @@
     #else
         #define DEBUG_BREAK()
     #endif
+    #define FORCE_INLINE __attribute__((always_inline))
 #elif defined(_MSC_VER)
     #define RESTRICT __restrict
     #define ASSUME(exp) (__assume(exp))
@@ -37,6 +38,7 @@
     #define MSVC_DISABLE_WARNING(warn)                                         \
         COUST_IMPL_DO_PRAGMA(warning(disable : warn))
     #define DEBUG_BREAK() __debugbreak()
+    #define FORCE_INLINE __forceinline
 #else
     #error Unsupported compiler
 #endif

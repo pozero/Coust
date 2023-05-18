@@ -24,41 +24,35 @@ public:
 
     ~ByteArray() noexcept;
 
+    void grow_to(size_t new_size) noexcept;
+
     size_t size() const noexcept;
+
+    void* data() noexcept;
+
+    const void* data() const noexcept;
 
     std::string_view to_string_view() const noexcept;
 
-    template <typename T>
-    T* get() noexcept {
-        return (T*) m_bytes;
-    }
-
-    template <typename T>
-    const T* get() const noexcept {
-        return (T*) m_bytes;
-    }
-
 private:
     size_t m_size = 0;
-    char* RESTRICT m_bytes = nullptr;
+    size_t m_alignment = 0;
+    void* RESTRICT m_bytes = nullptr;
 };
 
 ByteArray read_file_whole(std::filesystem::path const& path,
     size_t alignment = alignof(char)) noexcept;
 
-void write_file_whole(
-    std::filesystem::path const& path, ByteArray const& data) noexcept;
+void write_file_whole(std::filesystem::path const& path, ByteArray const& data,
+    size_t size) noexcept;
 
 template <typename... Args>
-std::filesystem::path get_absolute_path_from(
-    const char* first_dir, Args... args) noexcept
-    requires(std::conjunction_v<std::is_same<const char*, Args>...>)
+std::filesystem::path get_absolute_path_from(Args&&... args) noexcept
+    requires(
+        std::conjunction_v<std::is_same<const char*, std::decay_t<Args>>...>)
 {
     std::filesystem::path ret{COUST_ROOT_PATH};
-    ret.append(first_dir);
-    if constexpr (sizeof...(args) > 0) {
-        return get_absolute_path_from(ret.c_str(), args...);
-    }
+    (ret.append(args), ...);
     return ret;
 }
 

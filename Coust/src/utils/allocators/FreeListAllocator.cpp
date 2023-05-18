@@ -38,8 +38,11 @@ void* FreeListAllocator::allocate(size_t size, size_t alignment) noexcept {
         BlockHeader* const cur_available_mem = ptr_math::align(
             ptr_math::add(block, BOOKKEEPING_REQUIREMENT), alignment);
         uint32_t const block_size = block->size;
+        // prevent underflow
         uint32_t const available_size =
-            block_size - (uint32_t) ptr_math::sub(cur_available_mem, block);
+            block_size < (uint32_t) ptr_math::sub(cur_available_mem, block) ?
+                0 :
+                block_size - (uint32_t) ptr_math::sub(cur_available_mem, block);
         if (available_size >= size &&
             (!best_fit_block || block_size < best_fit_block->size)) {
             best_fit_block = block;

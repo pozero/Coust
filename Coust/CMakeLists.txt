@@ -18,6 +18,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_PoolAllocator.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_SmartPointer.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_StdAdapter_StdContainer.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_NaiveSerialization.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test.h
         ${PROJECT_SOURCE_DIR}/Coust/src/test/doctest_impl.cpp
 )
@@ -54,6 +55,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/Log.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/Enums.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/TypeName.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/PtrMath.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/AlignedStorage.h
 
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/GrowthPolicy.h
@@ -83,6 +85,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileCache.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/NaiveSerialization.h
 )
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog EXCLUDE_FROM_ALL)
