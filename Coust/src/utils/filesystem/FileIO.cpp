@@ -59,6 +59,12 @@ std::string_view ByteArray::to_string_view() const noexcept {
     return ret;
 }
 
+ByteArray ByteArray::copy() const noexcept {
+    ByteArray ret{m_size, m_alignment};
+    memcpy(ret.m_bytes, m_bytes, m_size);
+    return ret;
+}
+
 ByteArray read_file_whole(
     std::filesystem::path const& path, size_t alignment) noexcept {
     std::ifstream file{path, std::ios::ate | std::ios::binary};

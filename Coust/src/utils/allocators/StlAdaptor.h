@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/Assert.h"
 #include "utils/allocators/Allocator.h"
 
 namespace coust {
@@ -72,10 +73,12 @@ public:
 
 public:
     T* allocate(std::size_t n) noexcept {
+        COUST_ASSERT(m_alloc_ptr, "You forgot to assign alloctar!");
         return (T*) m_alloc_ptr->allocate(n * sizeof(T), alignof(T));
     }
 
     void deallocate(T* p, std::size_t n) noexcept {
+        COUST_ASSERT(m_alloc_ptr, "You forgot to assign alloctar!");
         m_alloc_ptr->deallocate(p, n * sizeof(T));
     }
 

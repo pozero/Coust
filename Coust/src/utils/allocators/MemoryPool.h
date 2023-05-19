@@ -26,7 +26,7 @@ public:
     void deallocate_area(Area&& free_area) noexcept;
 
 private:
-    static size_t constexpr RAW_AREA_SIZE_MULTIPLIER = 2u;
+    static size_t constexpr RAW_AREA_SIZE_MULTIPLIER = 1u;
 
 private:
     // raw areas control the actual allocation and deallocation (system call)

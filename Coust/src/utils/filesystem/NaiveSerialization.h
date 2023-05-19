@@ -111,6 +111,8 @@ FORCE_INLINE void visit_members(auto&& object, auto&& func) noexcept {
             a16, a17, a18, a19, a20] = object;
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18, a19, a20);
+    } else {
+        static_assert(std::is_void_v<decltype(object)>, "");
     }
     // Look at these beautiful codes, that's why we all love c++!
     // also thanks vim :D
@@ -175,13 +177,13 @@ public:
         // | size  |       ...        |
         // +-------+------------------+
         else if constexpr (is_contiguous_container) {
+            using contained_type = std::ranges::range_value_t<type>;
             auto count = std::ranges::size(object);
             serialize_bytes_of(count);
             if constexpr (std::is_same_v<Kind, ArchiveIn> &&
                           requires(type& t) { t.resize(size_t{}); }) {
                 object.resize(count);
             }
-            using contained_type = std::ranges::range_value_t<type>;
 
             if constexpr (std::is_trivially_copyable_v<contained_type>) {
                 // if the container is contiguous, there's no need to care about

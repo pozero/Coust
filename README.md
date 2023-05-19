@@ -36,5 +36,4 @@ The old Coust isn't written with c++20 and all its good stuff in mind. So I deci
         -   MSVC: [`__restrict`](https://learn.microsoft.com/en-us/cpp/cpp/extension-restrict?view=msvc-170)
 -   Radically optimization: Fast math, no run-time type information and no exception
 -   Replacing `std::unordered_map` (implemented in link list) with robin map
--   Vulkan hpp bind (that's the number one reason why I want to rewrite this project)
 -   Job system

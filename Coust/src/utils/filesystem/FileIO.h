@@ -10,11 +10,12 @@ namespace file {
 
 class ByteArray {
 public:
-    ByteArray() = delete;
     ByteArray(ByteArray const&) = delete;
     ByteArray& operator=(ByteArray const&) = delete;
 
 public:
+    ByteArray() noexcept = default;
+
     // the alignment is both the address alignment and actual size alignment
     ByteArray(size_t size, size_t alignment) noexcept;
 
@@ -33,6 +34,8 @@ public:
     const void* data() const noexcept;
 
     std::string_view to_string_view() const noexcept;
+
+    ByteArray copy() const noexcept;
 
 private:
     size_t m_size = 0;

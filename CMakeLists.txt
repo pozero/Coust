@@ -101,6 +101,7 @@ function(COMPILATION_CONFIG TARGET)
                 /w14905 # wide string literal cast to 'LPSTR'
                 /w14906 # string literal cast to 'LPWSTR'
                 /w14928 # illegal copy-initialization; more than one user-defined conversion has been implicitly applied
+                /wd4714 # disable warning of force inling failed
                 /fp:fast 
                 /GR-
                 $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:/fsanitize=address>

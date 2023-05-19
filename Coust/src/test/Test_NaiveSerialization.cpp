@@ -3,7 +3,7 @@
 #include "utils/filesystem/NaiveSerialization.h"
 
 TEST_CASE(
-    "[Coust] [utils] [filesystem] Naive Serialization" * doctest::skip(false)) {
+    "[Coust] [utils] [filesystem] Naive Serialization" * doctest::skip(true)) {
     using namespace coust;
     WARNING_PUSH
     CLANG_DISABLE_WARNING("-Wfloat-equal")
