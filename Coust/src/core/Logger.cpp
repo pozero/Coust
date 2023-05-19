@@ -129,37 +129,31 @@ Logger::Logger(std::string_view name, Target target, Pattern pattern) noexcept
     if (has(target, Target::file)) {
         if (is_multithreading)
             sinks[sinks_count++] =
-                memory::allocate_shared<sinks::basic_file_sink_mt>(
-                    get_default_alloc(), file_name, true);
+                std::make_shared<sinks::basic_file_sink_mt>(file_name, true);
         else
             sinks[sinks_count++] =
-                memory::allocate_shared<sinks::basic_file_sink_st>(
-                    get_default_alloc(), file_name, true);
+                std::make_shared<sinks::basic_file_sink_st>(file_name, true);
     }
 
     if (has(target, Target::std_out)) {
         if (is_multithreading)
             sinks[sinks_count++] =
-                memory::allocate_shared<sinks::stdout_color_sink_mt>(
-                    get_default_alloc());
+                std::make_shared<sinks::stdout_color_sink_mt>();
         else
             sinks[sinks_count++] =
-                memory::allocate_shared<sinks::stdout_color_sink_st>(
-                    get_default_alloc());
+                std::make_shared<sinks::stdout_color_sink_st>();
     }
 
     if (has(target, Target::std_err)) {
         if (is_multithreading)
             sinks[sinks_count++] =
-                memory::allocate_shared<sinks::stderr_color_sink_mt>(
-                    get_default_alloc());
+                std::make_shared<sinks::stderr_color_sink_mt>();
         else
             sinks[sinks_count++] =
-                memory::allocate_shared<sinks::stderr_color_sink_st>(
-                    get_default_alloc());
+                std::make_shared<sinks::stderr_color_sink_st>();
     }
 
-    m_logger = memory::allocate_shared<async_logger>(get_default_alloc(),
+    m_logger = std::make_shared<async_logger>(
         name.data(), begin(sinks), begin(sinks) + sinks_count, thread_pool());
     auto pat = detail::get_logger_pattern(pattern);
     m_logger->set_pattern(pat);

@@ -33,9 +33,8 @@ void* FreeListAllocator::allocate(size_t size, size_t alignment) noexcept {
     BlockHeader* RESTRICT best_fit_block = nullptr;
     BlockHeader* RESTRICT best_fit_block_pre = nullptr;
     void* best_fit_available_mem = nullptr;
-    uint32_t best_block_available_size = 0;
     while (block) {  // return if reach the end of free list
-        BlockHeader* const cur_available_mem = ptr_math::align(
+        void* const cur_available_mem = ptr_math::align(
             ptr_math::add(block, BOOKKEEPING_REQUIREMENT), alignment);
         uint32_t const block_size = block->size;
         // prevent underflow
@@ -48,7 +47,6 @@ void* FreeListAllocator::allocate(size_t size, size_t alignment) noexcept {
             best_fit_block = block;
             best_fit_block_pre = block_pre;
             best_fit_available_mem = cur_available_mem;
-            best_block_available_size = available_size;
             // if find best possible memory block, early return
             if (available_size == size)
                 break;
@@ -66,12 +64,23 @@ void* FreeListAllocator::allocate(size_t size, size_t alignment) noexcept {
     // +------+-------------------+
     // | size |   residual_size   |
     // +------+-------------------+
-    uint32_t const residual_size = best_block_available_size - (uint32_t) size;
+    void* const best_fit_block_end =
+        ptr_math::add(best_fit_block, best_fit_block->size);
+    auto const [residual_size, possible_new_header] =
+        std::invoke([best_fit_block_end, best_fit_available_mem, size]() {
+            void* const unaligned_new_header =
+                ptr_math::add(best_fit_available_mem, size);
+            void* const _possible_new_header =
+                ptr_math::align(unaligned_new_header, alignof(BlockHeader));
+            return std::make_pair((uint32_t) ptr_math::sub(
+                                      best_fit_block_end, _possible_new_header),
+                _possible_new_header);
+        });
     bool const can_be_trimmed = residual_size > BOOKKEEPING_REQUIREMENT + 1;
     // no enough residual space left, give up trimming
     if (can_be_trimmed) {
         BlockHeader* const RESTRICT new_header =
-            (BlockHeader*) ptr_math::add(best_fit_available_mem, size);
+            (BlockHeader*) possible_new_header;
         new_header->size = residual_size;
         new_header->next = best_fit_block->next;
         best_fit_block->size -= residual_size;

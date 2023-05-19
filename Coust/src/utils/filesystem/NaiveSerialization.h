@@ -10,16 +10,6 @@ namespace coust {
 namespace file {
 namespace detail {
 
-// https://stackoverflow.com/questions/55288555/c-check-if-statement-can-be-evaluated-constexpr
-
-template <typename Lambda, int = (Lambda{}(), 0)>
-constexpr bool is_constexpr(Lambda) {
-    return true;
-}
-constexpr bool is_constexpr(...) {
-    return false;
-}
-
 struct any {
     template <typename T>
     operator T();
@@ -205,7 +195,7 @@ public:
                 }
             }
         } else if constexpr (is_trivially_accessible) {
-            visit_members(object, [this](auto&&... members) {
+            visit_members(object, [this](auto&&... members) FORCE_INLINE {
                 (this->serialize_one(members), ...);
             });
         }
@@ -264,7 +254,7 @@ Archive(ByteArray&, T) -> Archive<T>;
 }  // namespace detail
 
 template <typename T>
-ByteArray to_byte_array(T&& object)
+FORCE_INLINE ByteArray to_byte_array(T&& object)
     requires(std::is_default_constructible_v<std::remove_cvref_t<T>>)
 {
     using type = std::remove_cvref_t<T>;
@@ -288,7 +278,7 @@ ByteArray to_byte_array(T&& object)
 }
 
 template <typename T>
-T from_byte_array(ByteArray& byte_array)
+FORCE_INLINE T from_byte_array(ByteArray& byte_array)
     requires(std::is_default_constructible_v<std::remove_cvref_t<T>>)
 {
     T ret{};
@@ -298,7 +288,7 @@ T from_byte_array(ByteArray& byte_array)
 }
 
 template <typename T>
-void from_byte_array(ByteArray& byte_array, T& out_obj) {
+FORCE_INLINE void from_byte_array(ByteArray& byte_array, T& out_obj) {
     detail::Archive archive{byte_array, detail::ArchiveIn{}};
     archive(out_obj);
 }

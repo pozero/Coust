@@ -19,7 +19,8 @@ TEST_CASE("[Coust] [utils] [allocators] PoolAllocator" * doctest::skip(true)) {
             // * i1; }
         };
         size_t constexpr max_ele_cnt = 50;
-        size_t constexpr area_size = max_ele_cnt * sizeof(Obj);
+        size_t constexpr area_size =
+            max_ele_cnt * ptr_math::round_up_to_alinged(sizeof(Obj), 8);
         size_t constexpr experiment_cnt = 10;
         Area area{area_size, alignof(Obj)};
         PoolAllocator pa{area.begin(), area.end(), sizeof(Obj)};
