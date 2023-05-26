@@ -1,5 +1,7 @@
 #include "test/Test.h"
 
+#include "utils/math/BoundingBox.h"
+
 #include "utils/filesystem/NaiveSerialization.h"
 
 TEST_CASE(
@@ -207,5 +209,34 @@ TEST_CASE(
         auto from_byte =
             file::from_byte_array<std::vector<Monster>>(byte_array);
         CHECK(std::ranges::equal(monsters, from_byte));
+    }
+}
+
+TEST_CASE("[Coust] [utils] [filesystem] Naive Serialization for Bounding Box" *
+          doctest::skip(false)) {
+    using namespace coust;
+    {
+        BoundingBox b{};
+        file::ByteArray byte_array = file::to_byte_array(b);
+        BoundingBox from_bytes = file::from_byte_array<BoundingBox>(byte_array);
+        CHECK(b == from_bytes);
+    }
+    {
+        BoundingBox b{glm::vec3{1.0f}, glm::vec3{2.3f}};
+        file::ByteArray byte_array = file::to_byte_array(b);
+        BoundingBox from_bytes = file::from_byte_array<BoundingBox>(byte_array);
+        CHECK(b == from_bytes);
+    }
+    {
+        std::vector<glm::vec3> vs{};
+        for (uint32_t i = 1; i <= 10; ++i) {
+            vs.emplace_back(float(i));
+        }
+        BoundingBox b{
+            {vs.begin(), vs.end()}
+        };
+        file::ByteArray byte_array = file::to_byte_array(b);
+        BoundingBox from_bytes = file::from_byte_array<BoundingBox>(byte_array);
+        CHECK(b == from_bytes);
     }
 }

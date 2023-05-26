@@ -100,11 +100,11 @@ Caches::~Caches() noexcept {
 }
 
 std::pair<ByteArray, Caches::Status> Caches::get_cache_data(
-    std::string name, size_t tag) noexcept {
-    auto const header_iter =
-        std::ranges::find_if(m_headers.m_headers, [name, tag](Header const& h) {
+    std::string origin_name, size_t tag) noexcept {
+    auto const header_iter = std::ranges::find_if(
+        m_headers.m_headers, [origin_name, tag](Header const& h) {
             return h.cache_tag == tag &&
-                   strcmp(name.data(), h.name.data()) == 0;
+                   strcmp(origin_name.data(), h.name.data()) == 0;
         });
     if (header_iter == m_headers.m_headers.end()) {
         return std::make_pair(ByteArray{}, Status::not_found);
@@ -140,18 +140,18 @@ std::pair<ByteArray, Caches::Status> Caches::get_cache_data(
     return std::make_pair(iter.mapped().copy(), Status::available);
 }
 
-void Caches::add_cache_data(
-    std::string name, size_t tag, ByteArray&& data, bool use_crc32) noexcept {
-    memory::string<DefaultAlloc> name_str{name, get_default_alloc()};
+void Caches::add_cache_data(std::string origin_name, size_t tag,
+    ByteArray&& data, bool use_crc32) noexcept {
+    memory::string<DefaultAlloc> name_str{origin_name, get_default_alloc()};
     memory::string<DefaultAlloc> corresponding_file_last_modified{
         get_default_alloc()};
     size_t corresponding_file_size_in_byte = 0;
     uint32_t crc32 = 0;
     size_t cache_tag = tag;
     size_t cache_size_in_byte = data.size();
-    bool const created_from_file = std::filesystem::exists(name);
+    bool const created_from_file = std::filesystem::exists(origin_name);
     if (created_from_file) {
-        std::filesystem::path corresponding_file_path{name};
+        std::filesystem::path corresponding_file_path{origin_name};
         std::format_to(std::back_inserter(corresponding_file_last_modified),
             "{}", std::filesystem::last_write_time(corresponding_file_path));
         corresponding_file_size_in_byte =
@@ -181,11 +181,11 @@ void Caches::add_cache_data(
     m_cache_data.emplace(tag, std::move(data));
 }
 
-bool Caches::flush_cache_to_disk(std::string name, size_t tag) noexcept {
-    bool const does_header_exist =
-        std::ranges::any_of(m_headers.m_headers, [name, tag](Header const& h) {
+bool Caches::flush_cache_to_disk(std::string origin_name, size_t tag) noexcept {
+    bool const does_header_exist = std::ranges::any_of(
+        m_headers.m_headers, [origin_name, tag](Header const& h) {
             return h.cache_tag == tag &&
-                   strcmp(name.data(), h.name.data()) == 0;
+                   strcmp(origin_name.data(), h.name.data()) == 0;
         });
     if (!does_header_exist)
         return false;

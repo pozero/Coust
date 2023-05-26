@@ -36,16 +36,16 @@ public:
 
     // get cache data from memory or disk if exists
     std::pair<ByteArray, Status> get_cache_data(
-        std::string name, size_t tag) noexcept;
+        std::string origin_name, size_t tag) noexcept;
 
     // add cache data to memory, wait to be flushed to disk later by manually
     // calling `flush_cache_to_disk` or in destructor
-    void add_cache_data(
-        std::string name, size_t tag, ByteArray &&data, bool crc32) noexcept;
+    void add_cache_data(std::string origin_name, size_t tag, ByteArray &&data,
+        bool crc32) noexcept;
 
     // force to flush cache data to disk if corresponding cache exists,
     // otherwise return false;
-    bool flush_cache_to_disk(std::string name, size_t tag) noexcept;
+    bool flush_cache_to_disk(std::string origin_name, size_t tag) noexcept;
 
 private:
     struct Header {

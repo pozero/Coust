@@ -7,3 +7,12 @@
 [submodule "Coust/third_party/sdl"]
 	path = Coust/third_party/sdl
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "Coust/third_party/tinygltf"]
+	path = Coust/third_party/tinygltf
+	url = https://github.com/syoyo/tinygltf.git
+[submodule "Coust/third_party/glm"]
+	path = Coust/third_party/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "Coust/third_party/meshopt"]
+	path = Coust/third_party/meshopt
+	url = https://github.com/zeux/meshoptimizer.git

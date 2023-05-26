@@ -20,6 +20,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_StdAdapter_StdContainer.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_NaiveSerialization.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_FileCache.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_MeshConvertion.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test.h
         ${PROJECT_SOURCE_DIR}/Coust/src/test/doctest_impl.cpp
 )
@@ -87,19 +88,40 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/NaiveSerialization.h
+
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/BoundingBox.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/BoundingBox.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/NormalizedUInteger.h
+
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/Mesh.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/Mesh.cpp
+
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/MeshConvertion.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/MeshConvertion.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/tinygltf_impl.cpp
 )
+
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog EXCLUDE_FROM_ALL)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/doctest EXCLUDE_FROM_ALL)
 set(SDL_STATIC ON)
 set(SDL_SHARED OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/sdl EXCLUDE_FROM_ALL)
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
+set(TINYGLTF_HEADER_ONLY ON)
+set(TINYGLTF_INSTALL OFF)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/tinygltf EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/glm EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/meshopt EXCLUDE_FROM_ALL)
 
 target_link_libraries(Coust 
     PRIVATE 
         spdlog::spdlog_header_only
         doctest
         SDL2::SDL2-static
+        glm::glm
+        meshoptimizer
 )
 
 target_include_directories(Coust 
@@ -108,6 +130,9 @@ target_include_directories(Coust
         ${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog/include
         ${PROJECT_SOURCE_DIR}/Coust/third_party/doctest/
         ${PROJECT_SOURCE_DIR}/Coust/third_party/sdl/include
+        ${PROJECT_SOURCE_DIR}/Coust/third_party/tinygltf
+        ${PROJECT_SOURCE_DIR}/Coust/third_party/glm
+        ${PROJECT_SOURCE_DIR}/Coust/third_party/meshopt/src
 )
 
 target_precompile_headers(Coust 

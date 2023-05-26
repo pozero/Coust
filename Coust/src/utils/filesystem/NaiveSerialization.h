@@ -124,6 +124,7 @@ FORCE_INLINE void visit_members(auto&& object, auto&& func) noexcept {
 // 2) trivial type with all public access of all members
 // 3) containers satisying `std::ranges::contiguous_range` concept
 //    (https://en.cppreference.com/w/cpp/ranges/contiguous_range)
+// 4) type that implements the method `serialize(Archive &) const noexcept`
 
 struct ArchiveIn {};
 struct ArchiveOut {};
@@ -155,22 +156,30 @@ public:
 
     FORCE_INLINE void serialize_one(auto&& object) noexcept {
         using type = std::remove_cvref_t<decltype(object)>;
+        bool constexpr provided_own_implementation =
+            requires(type& t, Archive& archive) {
+                { type::serialize(t, archive) } noexcept;
+            };
         bool constexpr is_simple =
-            std::is_fundamental_v<type> || std::is_enum_v<type>;
+            !provided_own_implementation &&
+            (std::is_fundamental_v<type> || std::is_enum_v<type>);
         bool constexpr is_contiguous_container =
-            std::ranges::contiguous_range<type>;
+            !provided_own_implementation && std::ranges::contiguous_range<type>;
         bool constexpr is_trivially_accessible =
             // std::array would be ragraded as trivially accessible...
-            !is_contiguous_container && requires {
-                requires std::is_arithmetic_v<decltype(member_count<type>())>;
+            (!is_contiguous_container && !provided_own_implementation) &&
+            requires {
+                member_count<type>() > 0;
                 visit_members(std::declval<type>(), [](auto&&...) {});
             };
 
-        static_assert(
-            is_simple || is_trivially_accessible || is_contiguous_container);
+        static_assert(provided_own_implementation || is_simple ||
+                      is_trivially_accessible || is_contiguous_container);
 
-        if constexpr (is_simple) {
-            serialize_bytes_of(std::forward<type>(object));
+        if constexpr (provided_own_implementation) {
+            type::serialize(object, *this);
+        } else if constexpr (is_simple) {
+            serialize_bytes_of(object);
         }
         // the byte layout of containers looks like this:
         // +-------+------------------+
