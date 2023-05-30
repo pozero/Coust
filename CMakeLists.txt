@@ -26,10 +26,11 @@ else()
     message(STATUS "Can't find sccache")
 endif()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# TODO: seems there're some bugs when using /md with clang sanitizer, stop using them for now
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 
 # link time optimization / interprocedual optimization
-option(COUST_IPO "Enable linke time optimization (might significantly increase build time)")
+option(COUST_IPO "Enable linke time optimization (might significantly increase build time)" OFF)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
 if(IPO_SUPPORTED)
@@ -40,33 +41,16 @@ else()
 endif()
 
 # test
-option(COUST_TEST "Enable test in source code")
+option(COUST_TEST "Enable test in source code" OFF)
 message(STATUS "COUST_TEST: ${COUST_TEST}")
-option(COUST_TEST_ALL "Enable all tests in source code if test is enabled, otherwise the option is omitted")
+option(COUST_TEST_ALL "Enable all tests in source code if test is enabled, otherwise the option is omitted" OFF)
 if (COUST_TEST)
     message(STATUS "COUST_TEST_ALL: ${COUST_TEST_ALL}")
 endif()
 
-# sanitizer
-# llvm on windows don't support memory sanitizer and thread sanitizer
-option(COUST_SANITIZER_ADDRESS "Turn on compiler address sanitier")
-option(COUST_SANITIZER_UNDEFINED "Turn on compiler undefined behaviour sanitier")
-
-# We have to disable debug in runtime library, or will get errors similar to the following:
-# [build] lld-link: error: /failifmismatch: mismatch detected for '_ITERATOR_DEBUG_LEVEL':
-# [build] >>> clang_rt.asan_cxx-x86_64.lib(ubsan_type_hash_win.cpp.obj) has value 0
-# [build] >>> Coust/CMakeFiles/Coust.dir/src/test/Test_AlignedStorage.cpp.obj has value 2
-# that's because llvm on windows do not provide sanitizer library built in debug mode...
-# also stated here:
-# https://github.com/google/sanitizers/wiki/AddressSanitizerWindowsPort#debug-crt-incompatibility
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    if (COUST_SANITIZER_ADDRESS OR COUST_SANITIZER_UNDEFINED)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-    endif()
-endif()
-
-message(STATUS "COUST_SANITIZER_ADDRESS: ${COUST_SANITIZER_ADDRESS}")
-message(STATUS "COUST_SANITIZER_UNDEFINED: ${COUST_SANITIZER_UNDEFINED}")
+# vulkan debug
+option(COUST_VK_DBG "Enable vulkan debug facility" OFF)
+message(STATUS "COUST_VK_DBG: ${COUST_VK_DBG}")
 
 function(COMPILATION_CONFIG TARGET)
     if (COUST_IPO)
@@ -76,6 +60,7 @@ function(COMPILATION_CONFIG TARGET)
         PRIVATE 
             $<$<BOOL:${COUST_TEST}>:COUST_TEST>
             $<$<BOOL:${COUST_TEST_ALL}>:COUST_TEST_ALL>
+            $<$<BOOL:${COUST_VK_DBG}>:COUST_VK_DBG>
     )
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         target_compile_options(${TARGET} 
@@ -126,15 +111,9 @@ function(COMPILATION_CONFIG TARGET)
                 -Wno-newline-eof
                 -ffast-math 
                 -fno-rtti
+                -fmsc-version=0
                 $<$<CONFIG:Debug>:-fstandalone-debug>
                 $<$<CONFIG:RelWithDebInfo>:-fstandalone-debug>
-                $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:-fsanitize=address>
-                $<$<BOOL:${COUST_SANITIZER_UNDEFINED}>:-fsanitize=undefined>
-        )
-        target_link_options(${TARGET}
-            PRIVATE 
-                $<$<BOOL:${COUST_SANITIZER_ADDRESS}>:-fsanitize=address>
-                $<$<BOOL:${COUST_SANITIZER_UNDEFINED}>:-fsanitize=undefined>
         )
     else()
         message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}")

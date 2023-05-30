@@ -72,6 +72,15 @@ WARNING_POP
 
 }  // namespace detail
 
+WARNING_PUSH
+CLANG_DISABLE_WARNING("-Wexit-time-destructors")
+Caches& Caches::get_instance() noexcept {
+    static Caches s_instance{
+        file::get_absolute_path_from(".coustcache", "coust_cache_header")};
+    return s_instance;
+}
+WARNING_POP
+
 Caches::Caches(std::filesystem::path headers_path) noexcept
     : m_headers_path(headers_path), m_cache_dir(m_headers_path.parent_path()) {
     if (std::filesystem::exists(headers_path)) {

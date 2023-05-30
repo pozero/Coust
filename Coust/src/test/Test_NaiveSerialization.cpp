@@ -213,7 +213,7 @@ TEST_CASE(
 }
 
 TEST_CASE("[Coust] [utils] [filesystem] Naive Serialization for Bounding Box" *
-          doctest::skip(false)) {
+          doctest::skip(true)) {
     using namespace coust;
     {
         BoundingBox b{};

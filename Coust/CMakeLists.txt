@@ -43,6 +43,10 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/core/Window.h
         ${PROJECT_SOURCE_DIR}/Coust/src/core/Window.cpp
 
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/layers/Layer.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/layers/RenderLayer.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/core/layers/RenderLayer.cpp
+
         ${PROJECT_SOURCE_DIR}/Coust/src/event/ApplicationEvent.h
         ${PROJECT_SOURCE_DIR}/Coust/src/event/ApplicationEvent.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/event/Event.h
@@ -59,6 +63,8 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/TypeName.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/PtrMath.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/AlignedStorage.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/TimeStep.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/TimeStep.cpp
 
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/GrowthPolicy.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/RobinHash.h
@@ -89,12 +95,34 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/FileIO.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/filesystem/NaiveSerialization.h
 
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/Hash.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/BoundingBox.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/BoundingBox.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/math/NormalizedUInteger.h
 
         ${PROJECT_SOURCE_DIR}/Coust/src/render/Mesh.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/Mesh.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/Renderer.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/Renderer.cpp
+
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/volk_impl.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/vma_impl.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDriver.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDriver.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShader.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShader.cpp
+        
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanVersion.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/IncompleteVulkan.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVReflection.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVReflection.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVCompilation.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVCompilation.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanCheck.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanAllocation.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanEnum2String.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanEnum2String.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanTagger.h
 
         ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/MeshConvertion.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/MeshConvertion.cpp
@@ -104,16 +132,28 @@ target_sources(Coust
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog EXCLUDE_FROM_ALL)
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/doctest EXCLUDE_FROM_ALL)
+
 set(SDL_STATIC ON)
 set(SDL_SHARED OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/sdl EXCLUDE_FROM_ALL)
+
 set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
 set(TINYGLTF_HEADER_ONLY ON)
 set(TINYGLTF_INSTALL OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/tinygltf EXCLUDE_FROM_ALL)
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/glm EXCLUDE_FROM_ALL)
-add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/meshopt EXCLUDE_FROM_ALL)
+
+# MSVC would throw a weird fatal error about meshopt: C1033: cannot open program database
+# set(MESHOPT_BUILD_DEMO OFF)
+# set(MESHOPT_BUILD_GLTFPACK OFF)
+# set(MESHOPT_BUILD_SHARED_LIBS OFF)
+# set(MESHOPT_WERROR OFF)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/meshopt EXCLUDE_FROM_ALL)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/Coust/third_party/volk EXCLUDE_FROM_ALL)
 
 target_link_libraries(Coust 
     PRIVATE 
@@ -121,7 +161,11 @@ target_link_libraries(Coust
         doctest
         SDL2::SDL2-static
         glm::glm
-        meshoptimizer
+        # meshoptimizer
+        volk_headers
+        $ENV{VULKAN_SDK}/Lib/shaderc_combined.lib
+        $ENV{VULKAN_SDK}/Lib/spirv-cross-core.lib
+        $ENV{VULKAN_SDK}/Lib/spirv-cross-glsl.lib
 )
 
 target_include_directories(Coust 
@@ -132,7 +176,9 @@ target_include_directories(Coust
         ${PROJECT_SOURCE_DIR}/Coust/third_party/sdl/include
         ${PROJECT_SOURCE_DIR}/Coust/third_party/tinygltf
         ${PROJECT_SOURCE_DIR}/Coust/third_party/glm
-        ${PROJECT_SOURCE_DIR}/Coust/third_party/meshopt/src
+        # ${PROJECT_SOURCE_DIR}/Coust/third_party/meshopt/src
+        ${PROJECT_SOURCE_DIR}/Coust/third_party/vma/include
+        $ENV{VULKAN_SDK}/Include
 )
 
 target_precompile_headers(Coust 

@@ -55,6 +55,21 @@ public:
 
     void deallocate(void* p, size_t size) noexcept;
 
+    template <typename T, typename... Args>
+    T* construct(Args&&... args) noexcept
+        requires(std::is_constructible_v<T, Args...>)
+    {
+        T* ptr = (T*) allocate(sizeof(T), alignof(T));
+        std::construct_at(ptr, std::forward<Args>(args)...);
+        return ptr;
+    }
+
+    template <typename T>
+    void destruct(T* ptr) noexcept {
+        ptr->~T();
+        deallocate(ptr, sizeof(T));
+    }
+
 private:
     HomoAlloc_S m_8byte_alloc;
     HomoAlloc_S m_16byte_alloc;

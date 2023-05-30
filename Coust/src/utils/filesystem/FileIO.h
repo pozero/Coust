@@ -19,6 +19,8 @@ public:
     // the alignment is both the address alignment and actual size alignment
     ByteArray(size_t size, size_t alignment) noexcept;
 
+    ByteArray(const void* data, size_t size, size_t alignment) noexcept;
+
     ByteArray(ByteArray&& other) noexcept;
 
     ByteArray& operator=(ByteArray&& other) noexcept;
@@ -35,6 +37,8 @@ public:
 
     std::string_view to_string_view() const noexcept;
 
+    std::span<const char> to_span() const noexcept;
+
     ByteArray copy() const noexcept;
 
 private:
@@ -48,6 +52,9 @@ ByteArray read_file_whole(std::filesystem::path const& path,
 
 void write_file_whole(std::filesystem::path const& path, ByteArray const& data,
     size_t size) noexcept;
+
+void write_file_whole(
+    std::filesystem::path const& path, std::span<char> data) noexcept;
 
 template <typename... Args>
 std::filesystem::path get_absolute_path_from(Args&&... args) noexcept

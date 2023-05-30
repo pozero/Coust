@@ -9,7 +9,6 @@
 WARNING_PUSH
 DISABLE_ALL_WARNING
 #include "tiny_gltf.h"
-#include "meshoptimizer.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 WARNING_POP

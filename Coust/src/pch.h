@@ -32,6 +32,8 @@
 
 #include <type_traits>
 
+#include <filesystem>
+
 #include <map>
 #include <set>
 #include <list>

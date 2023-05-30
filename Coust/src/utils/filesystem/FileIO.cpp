@@ -15,6 +15,13 @@ ByteArray::ByteArray(size_t size, size_t alignment) noexcept
     memset(m_bytes, 0, m_size);
 }
 
+ByteArray::ByteArray(const void* data, size_t size, size_t alignment) noexcept
+    : m_size(ptr_math::round_up_to_alinged(size, alignment)),
+      m_alignment(alignment),
+      m_bytes(get_default_alloc().allocate(m_size, alignment)) {
+    memcpy(m_bytes, data, size);
+}
+
 ByteArray::ByteArray(ByteArray&& other) noexcept
     : m_size(other.m_size),
       m_alignment(other.m_alignment),
@@ -59,6 +66,10 @@ std::string_view ByteArray::to_string_view() const noexcept {
     return ret;
 }
 
+std::span<const char> ByteArray::to_span() const noexcept {
+    return std::span{(const char*) m_bytes, m_size};
+}
+
 ByteArray ByteArray::copy() const noexcept {
     ByteArray ret{m_size, m_alignment};
     memcpy(ret.m_bytes, m_bytes, m_size);
@@ -84,6 +95,15 @@ void write_file_whole(std::filesystem::path const& path, ByteArray const& data,
     COUST_PANIC_IF_NOT(file.is_open(),
         "Can't open file {} as binary out stream", path.string());
     file.write((const char*) data.data(), (std::streamsize) size);
+    file.close();
+}
+
+void write_file_whole(
+    std::filesystem::path const& path, std::span<char> data) noexcept {
+    std::ofstream file{path, std::ios::binary};
+    COUST_PANIC_IF_NOT(file.is_open(),
+        "Can't open file {} as binary out stream", path.string());
+    file.write(data.data(), (std::streamsize) data.size());
     file.close();
 }
 

@@ -27,6 +27,9 @@ public:
     };
 
 public:
+    static Caches &get_instance() noexcept;
+
+public:
     Caches(std::filesystem::path headers_path) noexcept;
 
     ~Caches() noexcept;

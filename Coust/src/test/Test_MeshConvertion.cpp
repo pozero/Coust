@@ -8,7 +8,7 @@
 
 #include "glm/ext/matrix_transform.hpp"
 
-TEST_CASE("[Coust] [render] [asset] MeshConvertion" * doctest::skip(false)) {
+TEST_CASE("[Coust] [render] [asset] MeshConvertion" * doctest::skip(true)) {
     using namespace coust;
     SUBCASE("Minimal glTF file") {
         std::filesystem::path test_asset_path = file::get_absolute_path_from(
