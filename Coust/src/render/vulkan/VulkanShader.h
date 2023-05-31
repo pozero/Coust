@@ -1,14 +1,17 @@
 #pragma once
 
+#include "utils/Compiler.h"
 #include "core/Memory.h"
 #include "utils/allocators/StlContainer.h"
 #include "utils/allocators/SmartPtr.h"
 #include "utils/containers/RobinMap.h"
 #include "utils/filesystem/FileIO.h"
-#include "render/vulkan/utils/IncompleteVulkan.h"
 #include "render/vulkan/utils/SpirVReflection.h"
 
-VK_DEFINE_HANDLE(VkShaderModule)
+WARNING_PUSH
+DISABLE_ALL_WARNING
+#include "volk.h"
+WARNING_POP
 
 namespace coust {
 namespace render {
@@ -68,13 +71,14 @@ public:
     VulkanShaderModule& operator=(VulkanShaderModule const&) = delete;
 
 public:
-    // VK_OBJECT_TYPE_SHADER_MODULE
-    static int constexpr object_type = 15;
+    static int constexpr object_type = VK_OBJECT_TYPE_SHADER_MODULE;
+
     VkDevice get_device() const noexcept;
+
     VkShaderModule get_handle() const noexcept;
 
     struct Param {
-        int vk_shader_stage;
+        VkShaderStageFlagBits stage;
         ShaderSource source;
     };
 
@@ -86,6 +90,8 @@ public:
     int get_stage() const noexcept;
 
     std::pair<const uint32_t*, size_t> get_code() const noexcept;
+
+    size_t get_byte_code_hash() const noexcept;
 
 private:
     VkDevice m_dev = VK_NULL_HANDLE;
@@ -102,11 +108,15 @@ private:
 
     size_t m_reflection_data_cache_tag = 0;
 
-    int m_vk_shader_stage = 0;
+    VkShaderStageFlagBits m_stage;
 
     bool m_flush_byte_code = false;
 
     bool m_flush_reflection_data = false;
+
+public:
+    auto get_shader_resource() const noexcept
+        -> decltype(m_reflection_data) const&;
 };
 
 }  // namespace render

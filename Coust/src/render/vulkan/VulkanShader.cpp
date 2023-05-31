@@ -18,9 +18,13 @@ WARNING_POP
 namespace coust {
 namespace render {
 
+WARNING_PUSH
+CLANG_DISABLE_WARNING("-Wexit-time-destructors")
+CLANG_DISABLE_WARNING("-Wglobal-constructors")
 memory::robin_map_nested<std::filesystem::path,
     std::pair<memory::string<DefaultAlloc>, size_t>, DefaultAlloc>
     ShaderSource::s_source_contents{get_default_alloc()};
+WARNING_POP
 
 ShaderSource::ShaderSource(std::filesystem::path path) noexcept
     : m_path(std::move(path)) {
@@ -89,12 +93,20 @@ auto ShaderSource::get_dynamic_buffer_sizes() const noexcept
     return m_dynamic_buffer_size;
 }
 
+VkDevice VulkanShaderModule::get_device() const noexcept {
+    return m_dev;
+}
+
+VkShaderModule VulkanShaderModule::get_handle() const noexcept {
+    return m_handle;
+}
+
 VulkanShaderModule::VulkanShaderModule(
     VkDevice dev, Param const& param) noexcept
     : m_dev(dev),
       m_source_path(param.source.get_path()),
-      m_vk_shader_stage(param.vk_shader_stage),
-      m_byte_code_cache_tag(calc_std_hash(param.source)) {
+      m_byte_code_cache_tag(calc_std_hash(param.source)),
+      m_stage(param.stage) {
     {
         auto [byte_array, cache_status] =
             file::Caches::get_instance().get_cache_data(
@@ -103,8 +115,7 @@ VulkanShaderModule::VulkanShaderModule(
             file::from_byte_array(byte_array, m_byte_code);
         } else {
             m_flush_byte_code = true;
-            m_byte_code =
-                detail::compile_glst_to_spv(param.source, m_vk_shader_stage);
+            m_byte_code = detail::compile_glst_to_spv(param.source, m_stage);
         }
     }
     {
@@ -124,7 +135,7 @@ VulkanShaderModule::VulkanShaderModule(
             m_reflection_data = detail::spirv_reflection(
                 std::span<const uint32_t>{
                     m_byte_code.data(), m_byte_code.size()},
-                m_vk_shader_stage, param.source.get_dynamic_buffer_sizes());
+                m_stage, param.source.get_dynamic_buffer_sizes());
         }
     }
     VkShaderModuleCreateInfo module_info{
@@ -151,12 +162,21 @@ VulkanShaderModule::~VulkanShaderModule() noexcept {
 }
 
 int VulkanShaderModule::get_stage() const noexcept {
-    return m_vk_shader_stage;
+    return m_stage;
 }
 
 std::pair<const uint32_t*, size_t> VulkanShaderModule::get_code()
     const noexcept {
     return std::make_pair(m_byte_code.data(), m_byte_code.size());
+}
+
+size_t VulkanShaderModule::get_byte_code_hash() const noexcept {
+    return m_byte_code_cache_tag;
+}
+
+auto VulkanShaderModule::get_shader_resource() const noexcept
+    -> decltype(m_reflection_data) const& {
+    return m_reflection_data;
 }
 
 static_assert(detail::IsVulkanResource<VulkanShaderModule>);
@@ -179,7 +199,7 @@ std::size_t hash<coust::render::ShaderSource>::operator()(
 std::size_t hash<coust::render::VulkanShaderModule::Param>::operator()(
     coust::render::VulkanShaderModule::Param const& key) const noexcept {
     size_t hash = coust::calc_std_hash(key.source);
-    coust::hash_combine(hash, key.vk_shader_stage);
+    coust::hash_combine(hash, key.stage);
     return hash;
 }
 

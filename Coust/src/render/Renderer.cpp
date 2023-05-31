@@ -3,6 +3,7 @@
 #include "utils/Compiler.h"
 #include "utils/allocators/StlContainer.h"
 #include "core/Memory.h"
+#include "render/vulkan/VulkanDriver.h"
 #include "render/Renderer.h"
 
 WARNING_PUSH

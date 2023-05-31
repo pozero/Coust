@@ -111,9 +111,14 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDriver.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShader.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShader.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanCommand.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanCommand.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDescriptor.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDescriptor.cpp
         
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/CacheSetting.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/CacheSetting.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanVersion.h
-        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/IncompleteVulkan.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVReflection.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVReflection.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/SpirVCompilation.h

@@ -2,6 +2,7 @@
 
 #include "utils/Assert.h"
 
+#include "render/vulkan/VulkanDriver.h"
 #include "core/Application.h"
 #include "core/Logger.h"
 

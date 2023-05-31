@@ -1,8 +1,15 @@
 #pragma once
 
+#include "utils/Compiler.h"
 #include "core/Memory.h"
 #include "utils/allocators/StlContainer.h"
-#include "render/vulkan/utils/IncompleteVulkan.h"
+#include "utils/AlignedStorage.h"
+#include "render/vulkan/VulkanCommand.h"
+
+WARNING_PUSH
+DISABLE_ALL_WARNING
+#include "volk.h"
+WARNING_POP
 
 VK_DEFINE_HANDLE(VmaAllocator)
 
@@ -45,6 +52,9 @@ private:
     VkQueue m_present_queue = VK_NULL_HANDLE;
     VkQueue m_compute_queue = VK_NULL_HANDLE;
     VmaAllocator m_vma_alloc = VK_NULL_HANDLE;
+
+private:
+    AlignedStorage<VulkanCommandBufferCache> m_cmdbuf_cache{};
 };
 
 }  // namespace render
