@@ -40,15 +40,13 @@ struct BoundImageArray {
 class VulkanDescriptorSetLayout {
 public:
     VulkanDescriptorSetLayout() = delete;
-    VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&) = delete;
     VulkanDescriptorSetLayout(VulkanDescriptorSetLayout const &) = delete;
     VulkanDescriptorSetLayout &operator=(VulkanDescriptorSetLayout &&) = delete;
     VulkanDescriptorSetLayout &operator=(
         VulkanDescriptorSetLayout const &) = delete;
 
 public:
-    // VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT = 20
-    static int constexpr object_type = 20;
+    static int constexpr object_type = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
 
     VkDevice get_device() const noexcept;
 
@@ -56,7 +54,9 @@ public:
 
 public:
     VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
-        std::span<const VulkanShaderModule> shader_modules) noexcept;
+        std::span<const VulkanShaderModule *const> shader_modules) noexcept;
+
+    VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&) noexcept = default;
 
     ~VulkanDescriptorSetLayout() noexcept;
 
@@ -91,14 +91,11 @@ public:
 class VulkanDescriptorSet {
 public:
     VulkanDescriptorSet() = delete;
-    VulkanDescriptorSet(VulkanDescriptorSet &&) = delete;
     VulkanDescriptorSet(VulkanDescriptorSet const &) = delete;
-    VulkanDescriptorSet &operator=(VulkanDescriptorSet &&) = delete;
     VulkanDescriptorSet &operator=(VulkanDescriptorSet const &) = delete;
 
 public:
-    // VK_OBJECT_TYPE_DESCRIPTOR_SET = 23
-    static int constexpr object_type = 23;
+    static int constexpr object_type = VK_OBJECT_TYPE_DESCRIPTOR_SET;
 
     VkDevice get_device() const noexcept;
 
@@ -111,11 +108,19 @@ public:
         memory::vector<BoundImageArray, DefaultAlloc> image_infos{
             get_default_alloc()};
         uint32_t set;
+
+        bool operator==(Param const &ohter) const noexcept;
+
+        bool operator!=(Param const &ohter) const noexcept;
     };
 
 public:
     VulkanDescriptorSet(
         VkDevice dev, VkPhysicalDevice phy_dev, Param const &param) noexcept;
+
+    VulkanDescriptorSet(VulkanDescriptorSet &&) noexcept = default;
+
+    VulkanDescriptorSet &operator=(VulkanDescriptorSet &&) noexcept = default;
 
     // Lifecycle of descriptor set is managed by descriptor set allocator, so
     // the descructor will release the handle back to its allocator.
@@ -137,7 +142,7 @@ private:
 
     VkDescriptorSet m_handle = VK_NULL_HANDLE;
 
-    VulkanDescriptorSetAllocator &m_alloc;
+    VulkanDescriptorSetAllocator *m_alloc = nullptr;
 
     memory::vector<VkWriteDescriptorSet, DefaultAlloc> m_writes{
         get_default_alloc()};
@@ -151,7 +156,6 @@ private:
 class VulkanDescriptorSetAllocator {
 public:
     VulkanDescriptorSetAllocator() = delete;
-    VulkanDescriptorSetAllocator(VulkanDescriptorSetAllocator &&) = delete;
     VulkanDescriptorSetAllocator(VulkanDescriptorSetAllocator const &) = delete;
     VulkanDescriptorSetAllocator &operator=(
         VulkanDescriptorSetAllocator &&) = delete;
@@ -162,6 +166,9 @@ public:
     VulkanDescriptorSetAllocator(VkDevice dev,
         VulkanDescriptorSetLayout const &layout,
         uint32_t max_sets_per_pool = 16) noexcept;
+
+    VulkanDescriptorSetAllocator(
+        VulkanDescriptorSetAllocator &&) noexcept = default;
 
     ~VulkanDescriptorSetAllocator() noexcept;
 

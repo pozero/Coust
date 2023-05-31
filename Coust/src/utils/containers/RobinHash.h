@@ -265,9 +265,17 @@ public:
             return m_bucket->get_mapped();
         }
 
-        reference operator*() const noexcept { return m_bucket->get_value(); }
+        const_reference operator*() const noexcept {
+            return m_bucket->get_value();
+        }
 
-        pointer operator->() const noexcept {
+        const_pointer operator->() const noexcept {
+            return std::addressof(m_bucket->get_value());
+        }
+
+        reference operator*() noexcept { return m_bucket->get_value(); }
+
+        pointer operator->() noexcept {
             return std::addressof(m_bucket->get_value());
         }
 

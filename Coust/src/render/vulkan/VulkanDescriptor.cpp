@@ -52,13 +52,13 @@ VkDescriptorSetLayout VulkanDescriptorSetLayout::get_handle() const noexcept {
 }
 
 VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
-    std::span<const VulkanShaderModule> shader_modules) noexcept
+    std::span<const VulkanShaderModule *const> shader_modules) noexcept
     : m_dev(dev), m_set(set) {
     memory::vector<VkDescriptorSetLayoutBinding, DefaultAlloc> vk_bindings{
         get_default_alloc()};
     for (auto const &shader : shader_modules) {
-        hash_combine(m_hash, shader.get_byte_code_hash());
-        for (auto const &res : shader.get_shader_resource()) {
+        hash_combine(m_hash, shader->get_byte_code_hash());
+        for (auto const &res : shader->get_shader_resource()) {
             if (res.type == ShaderResourceType::input ||
                 res.type == ShaderResourceType::output ||
                 res.type == ShaderResourceType::push_constant ||
@@ -132,11 +132,61 @@ VkDescriptorSet VulkanDescriptorSet::get_handle() const noexcept {
     return m_handle;
 }
 
+bool VulkanDescriptorSet::Param::operator==(Param const &other) const noexcept {
+    bool other_bol = set == other.set &&
+                     allocator->get_layout().get_handle() ==
+                         other.allocator->get_layout().get_handle() &&
+                     buffer_infos.size() == other.buffer_infos.size() &&
+                     image_infos.size() == other.image_infos.size();
+    if (!other_bol)
+        return false;
+    for (uint32_t i = 0; i < buffer_infos.size(); ++i) {
+        auto const &buf_arrl = buffer_infos[i];
+        auto const &buf_arrr = other.buffer_infos[i];
+        other_bol = buf_arrl.binding == buf_arrr.binding &&
+                    buf_arrl.buffers.size() == buf_arrr.buffers.size();
+        if (!other_bol)
+            return false;
+        for (uint32_t j = 0; j < buf_arrl.buffers.size(); ++j) {
+            auto const &bl = buf_arrl.buffers[j];
+            auto const &br = buf_arrr.buffers[j];
+            other_bol = bl.buffer == br.buffer &&
+                        bl.dst_array_idx == br.dst_array_idx &&
+                        bl.offset == br.offset && bl.range == br.range;
+            if (!other_bol)
+                return false;
+        }
+    }
+    for (uint32_t i = 0; i < image_infos.size(); ++i) {
+        auto const &img_arrl = image_infos[i];
+        auto const &img_arrr = other.image_infos[i];
+        other_bol = img_arrl.binding == img_arrr.binding &&
+                    img_arrl.images.size() == img_arrr.images.size();
+        if (!other_bol)
+            return false;
+        for (uint32_t j = 0; j < img_arrl.images.size(); ++j) {
+            auto const &il = img_arrl.images[j];
+            auto const &ir = img_arrr.images[j];
+            other_bol = il.image_view == ir.image_view &&
+                        il.dst_array_idx == ir.dst_array_idx &&
+                        il.image_layout == ir.image_layout &&
+                        il.sampler == ir.sampler;
+            if (!other_bol)
+                return false;
+        }
+    }
+    return true;
+}
+
+bool VulkanDescriptorSet::Param::operator!=(Param const &other) const noexcept {
+    return !(*this == other);
+}
+
 VulkanDescriptorSet::VulkanDescriptorSet(
     VkDevice dev, VkPhysicalDevice phy_dev, Param const &param) noexcept
     : m_dev(dev),
       m_handle(param.allocator->allocate()),
-      m_alloc(*param.allocator),
+      m_alloc(param.allocator),
       m_set(param.set) {
     VkPhysicalDeviceProperties phy_dev_props{};
     vkGetPhysicalDeviceProperties(phy_dev, &phy_dev_props);
@@ -235,7 +285,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(
 
 VulkanDescriptorSet::~VulkanDescriptorSet() noexcept {
     if (m_handle != VK_NULL_HANDLE) {
-        m_alloc.release(m_handle);
+        m_alloc->release(m_handle);
     }
 }
 

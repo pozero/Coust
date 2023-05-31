@@ -65,9 +65,7 @@ public:
 class VulkanShaderModule {
 public:
     VulkanShaderModule() = delete;
-    VulkanShaderModule(VulkanShaderModule&&) = delete;
     VulkanShaderModule(VulkanShaderModule const&) = delete;
-    VulkanShaderModule& operator=(VulkanShaderModule&&) = delete;
     VulkanShaderModule& operator=(VulkanShaderModule const&) = delete;
 
 public:
@@ -80,14 +78,24 @@ public:
     struct Param {
         VkShaderStageFlagBits stage;
         ShaderSource source;
+
+        bool operator==(Param const& other) const noexcept;
+
+        bool operator!=(Param const& other) const noexcept;
     };
 
 public:
     VulkanShaderModule(VkDevice dev, Param const& param) noexcept;
 
+    VulkanShaderModule(VulkanShaderModule&&) noexcept = default;
+
+    VulkanShaderModule& operator=(VulkanShaderModule&&) noexcept = default;
+
     ~VulkanShaderModule() noexcept;
 
-    int get_stage() const noexcept;
+    void set_dynamic_buffer(std::string_view name) noexcept;
+
+    VkShaderStageFlagBits get_stage() const noexcept;
 
     std::pair<const uint32_t*, size_t> get_code() const noexcept;
 

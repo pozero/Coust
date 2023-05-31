@@ -101,6 +101,17 @@ VkShaderModule VulkanShaderModule::get_handle() const noexcept {
     return m_handle;
 }
 
+bool VulkanShaderModule::Param::operator==(Param const& other) const noexcept {
+    return stage == other.stage &&
+           // early return
+           source.get_code_hash() == other.source.get_code_hash() &&
+           source.get_code() == other.source.get_code();
+}
+
+bool VulkanShaderModule::Param::operator!=(Param const& other) const noexcept {
+    return !(*this == other);
+}
+
 VulkanShaderModule::VulkanShaderModule(
     VkDevice dev, Param const& param) noexcept
     : m_dev(dev),
@@ -161,7 +172,18 @@ VulkanShaderModule::~VulkanShaderModule() noexcept {
     vkDestroyShaderModule(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
 }
 
-int VulkanShaderModule::get_stage() const noexcept {
+void VulkanShaderModule::set_dynamic_buffer(std::string_view name) noexcept {
+    for (auto& res : m_reflection_data) {
+        if (std::string_view{res.name} == name &&
+            (res.type == ShaderResourceType::storage_buffer ||
+                res.type == ShaderResourceType::uniform_buffer)) {
+            res.update_mode = ShaderResourceUpdateMode::dyna;
+            break;
+        }
+    }
+}
+
+VkShaderStageFlagBits VulkanShaderModule::get_stage() const noexcept {
     return m_stage;
 }
 

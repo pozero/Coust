@@ -115,6 +115,14 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanCommand.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDescriptor.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDescriptor.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanPipeline.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanPipeline.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanRenderPass.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanRenderPass.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanPipelineCache.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanPipelineCache.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanBuffer.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanBuffer.cpp
         
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/CacheSetting.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/CacheSetting.cpp
@@ -128,6 +136,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanEnum2String.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanEnum2String.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanTagger.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanAttachment.h
 
         ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/MeshConvertion.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/asset/MeshConvertion.cpp
