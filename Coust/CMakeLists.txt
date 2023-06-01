@@ -127,6 +127,10 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanImage.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/StagePool.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/StagePool.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFramebuffer.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFramebuffer.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFBOCache.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFBOCache.cpp
         
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.cpp
