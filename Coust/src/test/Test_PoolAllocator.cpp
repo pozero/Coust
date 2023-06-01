@@ -20,7 +20,7 @@ TEST_CASE("[Coust] [utils] [allocators] PoolAllocator" * doctest::skip(true)) {
         };
         size_t constexpr max_ele_cnt = 50;
         size_t constexpr area_size =
-            max_ele_cnt * ptr_math::round_up_to_alinged(sizeof(Obj), 8);
+            max_ele_cnt * coust::ptr_math::round_up_to_alinged(sizeof(Obj), 8);
         size_t constexpr experiment_cnt = 10;
         Area area{area_size, alignof(Obj)};
         PoolAllocator pa{area.begin(), area.end(), sizeof(Obj)};
@@ -56,7 +56,7 @@ TEST_CASE("[Coust] [utils] [allocators] PoolAllocator" * doctest::skip(true)) {
         GrowthPolicy<GrowthType::attached, byte_32> gp{mp};
         std::array<char, byte_32> stack_area{};
         PoolAllocator ma{stack_area.data(),
-            ptr_math::add(stack_area.data(), stack_area.size()),
+            coust::ptr_math::add(stack_area.data(), stack_area.size()),
             sizeof(double)};
         std::vector<double*> fps{};
         fps.reserve(experiment_cnt);

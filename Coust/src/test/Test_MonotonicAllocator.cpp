@@ -16,7 +16,7 @@ TEST_CASE(
         GrowthPolicy<GrowthType::attached, byte_32> gp{mp};
         std::array<char, byte_32> stack_area{};
         MonotonicAllocator ma{stack_area.data(),
-            ptr_math::add(stack_area.data(), stack_area.size())};
+            coust::ptr_math::add(stack_area.data(), stack_area.size())};
         std::vector<float*> fps{};
         fps.reserve(experiment_cnt);
         for (size_t i = 0; i < experiment_cnt; ++i) {

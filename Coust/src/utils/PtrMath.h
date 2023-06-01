@@ -1,5 +1,9 @@
 #pragma once
 
+#include "utils/Compiler.h"
+
+WARNING_PUSH
+namespace coust {
 namespace ptr_math {
 
 template <typename P, typename N>
@@ -36,3 +40,5 @@ inline constexpr bool is_aligned(size_t size, size_t alignment) noexcept {
 }
 
 }  // namespace ptr_math
+}  // namespace coust
+WARNING_POP

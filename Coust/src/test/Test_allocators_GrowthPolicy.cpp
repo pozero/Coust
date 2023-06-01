@@ -22,8 +22,8 @@ TEST_CASE("[Coust] [utils] [allocators] GrowthPolicy" * doctest::skip(true)) {
                 auto heap_area =
                     std::make_unique<char[]>(area_count * area_size);
                 GrowthPolicy<GrowthType::scope, area_size> growth{
-                    heap_area.get(),
-                    ptr_math::add(heap_area.get(), area_count * area_size)};
+                    heap_area.get(), coust::ptr_math::add(heap_area.get(),
+                                         area_count * area_size)};
                 for ([[maybe_unused]] auto i :
                     std::views::iota(0u, area_count)) {
                     auto [ptr, size] = growth.do_growth(DEFAULT_ALIGNMENT);
@@ -46,8 +46,8 @@ TEST_CASE("[Coust] [utils] [allocators] GrowthPolicy" * doctest::skip(true)) {
                 auto heap_area =
                     std::make_unique<char[]>(area_count * area_size);
                 GrowthPolicy<GrowthType::scope, area_size> growth{
-                    heap_area.get(),
-                    ptr_math::add(heap_area.get(), area_count * area_size)};
+                    heap_area.get(), coust::ptr_math::add(heap_area.get(),
+                                         area_count * area_size)};
                 for ([[maybe_unused]] auto i :
                     std::views::iota(0u, area_count)) {
                     auto [ptr, size] = growth.do_growth(DEFAULT_ALIGNMENT);
