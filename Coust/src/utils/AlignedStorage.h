@@ -21,13 +21,18 @@ public:
     T& initialize(Args&&... args) noexcept
         requires(std::constructible_from<T, Args...>)
     {
-        T* const p = std::addressof(t);
+        T* const p = std::launder(std::addressof(t));
         // static intialization can't work here, since we need to call the ctor
         // once per obejct instead of per instantiation of this template class
         if (!(m_initialized.test_and_set(std::memory_order_seq_cst))) {
             std::construct_at(p, std::forward<Args>(args)...);
         }
         return *p;
+    }
+
+    void destroy() noexcept {
+        std::destroy_at(&t);
+        m_initialized.clear(std::memory_order_seq_cst);
     }
 
     T& get() noexcept {
@@ -79,7 +84,7 @@ public:
     }
 
 private:
-    T* get_raw_ptr() noexcept {
+    constexpr T* get_raw_ptr() noexcept {
         // std::launder used to preventing undesirable optimization from
         // compiler
         T* const p = std::launder(std::addressof(t));

@@ -75,8 +75,7 @@ VulkanDriver::VulkanDriver(
                                    .get_required_vkinstance_extension(
                                        &sdl_required_extension_cnt, nullptr),
                 "Can't get the number of required vulkan instance extension "
-                "needed "
-                "by SDL");
+                "needed by SDL");
             size_t const origin_ext_cnt = instance_extension.size();
             instance_extension.resize(
                 origin_ext_cnt + sdl_required_extension_cnt);
@@ -86,8 +85,7 @@ VulkanDriver::VulkanDriver(
                                        &sdl_required_extension_cnt,
                                        &instance_extension[origin_ext_cnt]),
                 "Can't get the names of required vulkan instance extension "
-                "needed "
-                "by SDL");
+                "needed by SDL");
             uint32_t provided_extension_cnt = 0;
             COUST_VK_CHECK(vkEnumerateInstanceExtensionProperties(
                                nullptr, &provided_extension_cnt, nullptr),
@@ -403,9 +401,44 @@ VulkanDriver::VulkanDriver(
         COUST_VK_CHECK(vmaCreateAllocator(&vma_alloc_info, &m_vma_alloc),
             "Can't create VMA allocator");
     }
+
+    m_cmdbuf_cache.initialize(
+        m_dev, m_graphics_queue, m_graphics_queue_family_idx);
+
+    m_graphics_pipeline_cache.initialize(m_dev, m_phydev);
+
+    m_fbo_cache.initialize(m_dev);
+
+    m_sampler_cache.initialize(m_dev);
+
+    m_stage_pool.initialize(m_dev, m_vma_alloc);
+
+    m_swapchain.initialize(m_dev, m_phydev, m_surface,
+        m_graphics_queue_family_idx, m_present_queue_family_idx,
+        m_cmdbuf_cache.get());
+
+    m_cmdbuf_cache.get().set_command_buffer_changed_callback(
+        [this](VulkanCommandBuffer const& buf) {
+            m_graphics_pipeline_cache.get().gc(buf);
+        });
+
+    m_swapchain.get().prepare();
+    m_swapchain.get().create();
 }
 
 VulkanDriver::~VulkanDriver() noexcept {
+    m_swapchain.get().destroy();
+
+    m_cmdbuf_cache.destroy();
+
+    m_fbo_cache.get().reset();
+
+    m_graphics_pipeline_cache.get().reset();
+
+    m_stage_pool.get().reset();
+
+    m_sampler_cache.get().reset();
+
     vmaDestroyAllocator(m_vma_alloc);
     vkDestroyDevice(m_dev, COUST_VULKAN_ALLOC_CALLBACK);
     vkDestroySurfaceKHR(m_instance, m_surface, COUST_VULKAN_ALLOC_CALLBACK);

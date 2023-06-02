@@ -32,7 +32,7 @@ VulkanCommandBufferCache::VulkanCommandBufferCache(
         .commandBufferCount = 1,
     };
     VkSemaphoreCreateInfo const semaphore_info{
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     };
     VkFenceCreateInfo const fence_info{
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -178,7 +178,8 @@ void VulkanCommandBufferCache::wait() noexcept {
     std::array<VkFence, GARBAGE_COLLECTION_PERIOD> fences_to_wait{};
     uint32_t idx = 0;
     for (uint32_t i = 0; i < GARBAGE_COLLECTION_PERIOD; ++i) {
-        if (m_cmdbuf_idx.has_value() && i == m_cmdbuf_idx.value())
+        if ((m_cmdbuf_idx.has_value() && i == m_cmdbuf_idx.value()) ||
+            m_cmdbufs[i].state != VulkanCommandBuffer::State::pending)
             continue;
         fences_to_wait[idx++] = m_cmdbufs[i].fence;
         m_cmdbufs[i].state = VulkanCommandBuffer::State::invalid;

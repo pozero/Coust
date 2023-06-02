@@ -5,6 +5,11 @@
 #include "utils/allocators/StlContainer.h"
 #include "utils/AlignedStorage.h"
 #include "render/vulkan/VulkanCommand.h"
+#include "render/vulkan/VulkanPipelineCache.h"
+#include "render/vulkan/VulkanFBOCache.h"
+#include "render/vulkan/VulkanSampler.h"
+#include "render/vulkan/VulkanStagePool.h"
+#include "render/vulkan/VulkanSwapchain.h"
 
 WARNING_PUSH
 DISABLE_ALL_WARNING
@@ -55,6 +60,16 @@ private:
 
 private:
     AlignedStorage<VulkanCommandBufferCache> m_cmdbuf_cache{};
+
+    AlignedStorage<VulkanGraphicsPipelineCache> m_graphics_pipeline_cache{};
+
+    AlignedStorage<VulkanFBOCache> m_fbo_cache{};
+
+    AlignedStorage<VulkanSamplerCache> m_sampler_cache{};
+
+    AlignedStorage<VulkanStagePool> m_stage_pool{};
+
+    AlignedStorage<VulkanSwapchain> m_swapchain{};
 };
 
 }  // namespace render

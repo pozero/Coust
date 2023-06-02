@@ -14,5 +14,6 @@ target_include_directories(Coustol
         ${PROJECT_SOURCE_DIR}/Coust/third_party/spdlog/include
         ${PROJECT_SOURCE_DIR}/Coust/third_party/doctest
         ${PROJECT_SOURCE_DIR}/Coust/third_party/volk
+        ${PROJECT_SOURCE_DIR}/Coust/third_party/vma/include
         $ENV{VULKAN_SDK}/Include
 )

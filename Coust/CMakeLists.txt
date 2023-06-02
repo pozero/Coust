@@ -135,6 +135,8 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSwapchain.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanRenderTarget.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanRenderTarget.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSampler.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSampler.cpp
         
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.cpp
