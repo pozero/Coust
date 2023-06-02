@@ -267,7 +267,8 @@ TEST_CASE("[Coust] [utils] [containers] RobinHash" * doctest::skip(true)) {
                     std::erase_if(h0_contents, [&key, &mapped](auto const& p) {
                         return p.first == key && p.second == mapped;
                     });
-                    h0.erase(iter_to_erase);
+                    auto iter_after_erase = h0.erase(iter_to_erase);
+                    CHECK(h0.contains(iter_after_erase.key()));
                     CHECK(h0.size() == h0_contents.size());
                     for (auto iter = h0.begin(); iter != h0.end(); ++iter) {
                         CHECK(std::ranges::any_of(
@@ -319,6 +320,21 @@ TEST_CASE("[Coust] [utils] [containers] RobinHash" * doctest::skip(true)) {
                 CHECK(std::ranges::any_of(h0_contents, [&iter](auto const& p) {
                     return p.first == iter->first && p.second == iter->second;
                 }));
+            }
+        }
+        SUBCASE("Erase by key, iterate by iterator") {
+            std::vector<std::string> element_to_erase{
+                std::to_string(1), std::to_string(3), std::to_string(5)};
+            for (auto iter = h0.begin(); iter != h0.end();) {
+                if (std::ranges::contains(element_to_erase, iter.key())) {
+                    iter = h0.erase(iter);
+                } else {
+                    ++iter;
+                }
+            }
+            CHECK(h0.size() == exp_cnt - element_to_erase.size());
+            for (auto const& [key, mapped] : h0) {
+                CHECK(!std::ranges::contains(element_to_erase, key));
             }
         }
     }

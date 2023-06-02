@@ -2,7 +2,7 @@
 
 #include "utils/math/Hash.h"
 #include "render/vulkan/VulkanImage.h"
-#include "render/vulkan/StagePool.h"
+#include "render/vulkan/VulkanStagePool.h"
 #include "render/vulkan/utils/VulkanTagger.h"
 #include "render/vulkan/utils/VulkanCheck.h"
 #include "render/vulkan/utils/VulkanAllocation.h"
@@ -200,7 +200,7 @@ VulkanImage::~VulkanImage() noexcept {
     }
 }
 
-void VulkanImage::update(StagePool *stage_pool, VkCommandBuffer cmdbuf,
+void VulkanImage::update(VulkanStagePool *stage_pool, VkCommandBuffer cmdbuf,
     VkFormat format, uint32_t width, uint32_t height, const void *data,
     uint32_t dst_layer, uint32_t dst_layer_cnt, uint32_t dst_level) noexcept {
     VkFormat const linear_dst_format = unpack_srgb_format(m_format);

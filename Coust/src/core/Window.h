@@ -13,8 +13,8 @@ class Window {
 public:
     struct Config {
         std::string_view title;
-        uint32_t width;
-        uint32_t height;
+        int width;
+        int height;
         bool resizeable;
     };
 
@@ -26,9 +26,9 @@ public:
 
     struct SDL_Window* get_handle() const noexcept { return m_window; }
 
-    std::pair<uint32_t, uint32_t> get_size() const noexcept {
-        return std::make_pair(m_window_prop.width, m_window_prop.height);
-    }
+    std::pair<int, int> get_size() noexcept;
+
+    std::pair<int, int> get_drawable_size() const noexcept;
 
     void poll_events() noexcept;
     /* common */

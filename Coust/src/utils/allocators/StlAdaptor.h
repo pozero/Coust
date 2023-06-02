@@ -31,7 +31,7 @@ public:
 
 public:
     // std::scoped_allocator requires a default constructor
-    StdAllocator() noexcept = default;
+    explicit StdAllocator() noexcept = default;
 
     StdAllocator(allocator_type& a) noexcept : m_alloc_ptr(&a) {}
 

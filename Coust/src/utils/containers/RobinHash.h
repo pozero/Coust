@@ -254,7 +254,7 @@ public:
 
         // user isn't allowed to modify key
         typename robin_hash::key_type const& key() const noexcept {
-            m_bucket->get_key();
+            return m_bucket->get_key();
         }
 
         auto const& mapped() const noexcept { return m_bucket->get_mapped(); }

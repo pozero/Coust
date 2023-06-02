@@ -4,7 +4,7 @@
 #include "utils/allocators/StlContainer.h"
 #include "utils/PtrMath.h"
 #include "render/vulkan/VulkanBuffer.h"
-#include "render/vulkan/StagePool.h"
+#include "render/vulkan/VulkanStagePool.h"
 #include "render/vulkan/utils/VulkanCheck.h"
 #include "render/vulkan/utils/VulkanTagger.h"
 
@@ -125,8 +125,9 @@ void VulkanBuffer::flush() const noexcept {
     vmaFlushAllocation(m_allocator, m_allocation, 0, VK_WHOLE_SIZE);
 }
 
-void VulkanBuffer::update(class StagePool* stagePool, VkCommandBuffer cmdbuf,
-    std::span<const uint8_t> data, size_t offset) noexcept {
+void VulkanBuffer::update(class VulkanStagePool* stagePool,
+    VkCommandBuffer cmdbuf, std::span<const uint8_t> data,
+    size_t offset) noexcept {
     if (m_domain == MemoryDomain::device) {
         auto staging_buf = stagePool->acquire_staging_buf(data.size());
         staging_buf->update(stagePool, cmdbuf, data, offset);

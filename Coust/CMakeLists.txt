@@ -125,12 +125,16 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanBuffer.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanImage.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanImage.cpp
-        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/StagePool.h
-        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/StagePool.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanStagePool.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanStagePool.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFramebuffer.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFramebuffer.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFBOCache.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanFBOCache.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSwapchain.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSwapchain.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanRenderTarget.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanRenderTarget.cpp
         
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.cpp

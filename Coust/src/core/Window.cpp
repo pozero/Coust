@@ -51,6 +51,18 @@ Window::~Window() noexcept {
     }
 }
 
+std::pair<int, int> Window::get_size() noexcept {
+    SDL_GetWindowSize(m_window, &m_window_prop.width, &m_window_prop.height);
+    return std::make_pair(m_window_prop.width, m_window_prop.height);
+}
+
+std::pair<int, int> Window::get_drawable_size() const noexcept {
+    int w = 0;
+    int h = 0;
+    SDL_Vulkan_GetDrawableSize(m_window, &w, &h);
+    return std::make_pair(w, h);
+}
+
 bool Window::create_vksurface(
     VkInstance vk_instance, VkSurfaceKHR* out_vk_surface) const noexcept {
     return SDL_Vulkan_CreateSurface(m_window, vk_instance, out_vk_surface) ==

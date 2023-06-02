@@ -17,16 +17,16 @@ WARNING_POP
 namespace coust {
 namespace render {
 
-class StagePool {
+class VulkanStagePool {
 public:
-    StagePool() = delete;
-    StagePool(StagePool &&) = delete;
-    StagePool(StagePool const &) = delete;
-    StagePool &operator=(StagePool &&) = delete;
-    StagePool &operator=(StagePool const &) = delete;
+    VulkanStagePool() = delete;
+    VulkanStagePool(VulkanStagePool &&) = delete;
+    VulkanStagePool(VulkanStagePool const &) = delete;
+    VulkanStagePool &operator=(VulkanStagePool &&) = delete;
+    VulkanStagePool &operator=(VulkanStagePool const &) = delete;
 
 public:
-    StagePool(VkDevice dev, VmaAllocator alloc) noexcept;
+    VulkanStagePool(VkDevice dev, VmaAllocator alloc) noexcept;
 
     memory::shared_ptr<VulkanBuffer> acquire_staging_buf(
         VkDeviceSize size) noexcept;

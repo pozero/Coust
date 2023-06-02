@@ -1,11 +1,11 @@
 #include "pch.h"
 
-#include "render/vulkan/StagePool.h"
+#include "render/vulkan/VulkanStagePool.h"
 
 namespace coust {
 namespace render {
 
-StagePool::StagePool(VkDevice dev, VmaAllocator alloc) noexcept
+VulkanStagePool::VulkanStagePool(VkDevice dev, VmaAllocator alloc) noexcept
     : m_dev(dev),
       m_alloc(alloc),
       m_gc_timer(GARBAGE_COLLECTION_PERIOD),
@@ -13,7 +13,7 @@ StagePool::StagePool(VkDevice dev, VmaAllocator alloc) noexcept
       m_image_hit_counter("Stage Pool [Image]") {
 }
 
-memory::shared_ptr<VulkanBuffer> StagePool::acquire_staging_buf(
+memory::shared_ptr<VulkanBuffer> VulkanStagePool::acquire_staging_buf(
     VkDeviceSize size) noexcept {
     std::optional<uint32_t> best_staging_buf{};
     for (uint32_t i = 0; i < m_free_staging_bufs.size(); ++i) {
@@ -50,7 +50,7 @@ memory::shared_ptr<VulkanBuffer> StagePool::acquire_staging_buf(
     }
 }
 
-memory::shared_ptr<VulkanHostImage> StagePool::acquire_staging_img(
+memory::shared_ptr<VulkanHostImage> VulkanStagePool::acquire_staging_img(
     VkCommandBuffer cmdbuf, VkFormat format, uint32_t width,
     uint32_t height) noexcept {
     auto iter = std::ranges::find_if(
@@ -75,7 +75,7 @@ memory::shared_ptr<VulkanHostImage> StagePool::acquire_staging_img(
     }
 }
 
-void StagePool::gc() noexcept {
+void VulkanStagePool::gc() noexcept {
     m_gc_timer.tick();
 
     {
@@ -125,7 +125,7 @@ void StagePool::gc() noexcept {
     }
 }
 
-void StagePool::reset() noexcept {
+void VulkanStagePool::reset() noexcept {
     m_free_staging_bufs.clear();
     m_used_staging_bufs.clear();
     m_free_staging_imgs.clear();
