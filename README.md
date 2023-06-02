@@ -25,7 +25,7 @@ The project can be divided into four main parts by folders:
 
 - `render`: The most interesting part. The Vulkan driver in filament adopts a data-oriented path where the driver class acts like a factory. But here we still wrap most of the Vulkan resources into various classes for the sake of clearer structure. Most Vulkan classes are cached in another cache class and we use the construction parameter as the hash key. The cacher class will check the last access time of each free resource and recycle it when it hasn't been used for a while (controlled by `GARBAGE_COLLECTION_PERIOD`)
 
-	![](others/doc_imgs/driver cache.png)
+    ![](others/doc_imgs/driver_cache.png)
 
 - `utils`: Other useful stuff
 	- `allocators`: All allocators, memory pool, and wrappers around the stl allocator and stl containers
