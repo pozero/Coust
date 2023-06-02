@@ -31,8 +31,10 @@ public:
     }
 
     void destroy() noexcept {
-        std::destroy_at(&t);
-        m_initialized.clear(std::memory_order_seq_cst);
+        if (is_initialized()) {
+            std::destroy_at(&t);
+            m_initialized.clear(std::memory_order_seq_cst);
+        }
     }
 
     T& get() noexcept {
