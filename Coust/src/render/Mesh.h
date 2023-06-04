@@ -38,6 +38,8 @@ uint32_t constexpr INVALID_VERTEX_ATTRIB = std::numeric_limits<uint32_t>::max();
 std::pair<bool, VertexAttrib> to_vertex_attrib(
     std::string_view attribute_name) noexcept;
 
+std::string_view to_string_view(VertexAttrib attrib) noexcept;
+
 uint32_t constexpr MAX_LOD_COUNT = 8u;
 // by supporting different streams in a single mesh data buffer, we can
 // store different attributes seperately.
@@ -45,9 +47,10 @@ uint32_t constexpr MAX_VERTEX_ATTRIB_COUNT = 8;
 
 struct Mesh {
     struct Primitive {
-        size_t index_start_idx = 0;
+        size_t index_offset = 0;
+        size_t index_count = 0;
 
-        //              attrib_start_idx[1] == 1
+        //                  attrib_offset[1] == 1
         //                          |
         //  attrib0                 v                 attrib2
         // +--------------------+--------------------+-------------+
@@ -55,8 +58,8 @@ struct Mesh {
         // +--------------------+--------------------+-------------+
         //                ^       attrib1                ^
         //                |                              |
-        //     attrib_start_idx[0] == 4       attrib_start_idx[2] == 0
-        std::array<size_t, MAX_VERTEX_ATTRIB_COUNT> attrib_start_idx{
+        //        attrib_offset[0] == 4         attrib_offset[2] == 0
+        std::array<size_t, MAX_VERTEX_ATTRIB_COUNT> attrib_offset{
             INVALID_VERTEX_ATTRIB,
             INVALID_VERTEX_ATTRIB,
             INVALID_VERTEX_ATTRIB,
@@ -129,6 +132,8 @@ public:
                 t[3][1], t[3][2], t[3][3]);
         }
     }
+
+    static size_t get_primitve_count(MeshAggregate const& ma);
 };
 
 }  // namespace render

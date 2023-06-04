@@ -96,8 +96,8 @@ inline size_t copy_vertex_data_from_gltf_buffer(tinygltf::Model const& model,
 }
 WARNING_POP
 
-inline size_t copy_index_data_from_gltf_buffer(tinygltf::Model const& model,
-    size_t accessor_idx,
+inline std::pair<size_t, size_t> copy_index_data_from_gltf_buffer(
+    tinygltf::Model const& model, size_t accessor_idx,
     memory::vector<uint32_t, DefaultAlloc>& out_index_data) noexcept {
     auto const& gltf_accessor = model.accessors[accessor_idx];
     auto const& gltf_bufview =
@@ -165,7 +165,7 @@ inline size_t copy_index_data_from_gltf_buffer(tinygltf::Model const& model,
             std::back_inserter(out_index_data));
     }
     COUST_ASSERT((out_index_data.size() - ret) == gltf_accessor.count, "");
-    return ret;
+    return std::make_pair(ret, gltf_accessor.count);
 }
 
 }  // namespace detail
@@ -199,7 +199,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
             Mesh::Primitive primitive{};
             COUST_PANIC_IF(gltf_primitive.indices < 0,
                 "Converter only support meshes with indices");
-            primitive.index_start_idx =
+            std::tie(primitive.index_offset, primitive.index_count) =
                 detail::copy_index_data_from_gltf_buffer(model,
                     (size_t) gltf_primitive.indices,
                     mesh_aggregate.index_buffer);
@@ -214,7 +214,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                 size_t cur_attrib_idx =
                     detail::copy_vertex_data_from_gltf_buffer(model,
                         (size_t) gltf_accessor_idx, destination, is_color);
-                primitive.attrib_start_idx[attrib_idx] = cur_attrib_idx;
+                primitive.attrib_offset[attrib_idx] = cur_attrib_idx;
                 if (!is_color && attrib_idx == VertexAttrib::position) {
                     static_assert(sizeof(glm::vec3) == 3 * sizeof(float));
                     const glm::vec3* const begin =
@@ -249,7 +249,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                 float_count_offset * sizeof(float);
             for (auto& mesh : mesh_aggregate.meshes) {
                 for (auto& primitive : mesh.primitives) {
-                    primitive.attrib_start_idx[i] += float_count_offset;
+                    primitive.attrib_offset[i] += float_count_offset;
                 }
             }
             float_count_offset += all_attrib_data[i].size();

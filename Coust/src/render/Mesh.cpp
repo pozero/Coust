@@ -28,5 +28,35 @@ std::pair<bool, VertexAttrib> to_vertex_attrib(
     return std::make_pair(false, (VertexAttrib) -1);
 }
 
+std::string_view to_string_view(VertexAttrib attrib) noexcept {
+    switch (attrib) {
+        case position:
+            return "POSITION";
+        case normal:
+            return "NORMAL";
+        case tangent:
+            return "TANGENT";
+        case color_0:
+            return "COLOR_0";
+        case texcoord_0:
+            return "TEXCOORD_0";
+        case texcoord_1:
+            return "TEXCOORD_1";
+        case texcoord_2:
+            return "TEXCOORD_2";
+        case texcoord_3:
+            return "TEXCOORD_3";
+    }
+    ASSUME(0);
+}
+
+size_t MeshAggregate::get_primitve_count(MeshAggregate const& ma) {
+    size_t ret = 0;
+    for (Mesh const& m : ma.meshes) {
+        ret += m.primitives.size();
+    }
+    return ret;
+}
+
 }  // namespace render
 }  // namespace coust

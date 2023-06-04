@@ -125,11 +125,11 @@ void VulkanBuffer::flush() const noexcept {
     vmaFlushAllocation(m_allocator, m_allocation, 0, VK_WHOLE_SIZE);
 }
 
-void VulkanBuffer::update(class VulkanStagePool* stagePool,
+void VulkanBuffer::update(class VulkanStagePool& stagePool,
     VkCommandBuffer cmdbuf, std::span<const uint8_t> data,
     size_t offset) noexcept {
     if (m_domain == MemoryDomain::device) {
-        auto staging_buf = stagePool->acquire_staging_buf(data.size());
+        auto staging_buf = stagePool.acquire_staging_buf(data.size());
         staging_buf->update(stagePool, cmdbuf, data, offset);
         staging_buf->flush();
         VkBufferCopy copyInfo{

@@ -257,7 +257,7 @@ void VulkanImage::update(VulkanStagePool *stage_pool, VkCommandBuffer cmdbuf,
         transition_layout(cmdbuf, m_default_layout, range);
     } else {
         auto staging_buf = stage_pool->acquire_staging_buf(data_size);
-        staging_buf->update(stage_pool, cmdbuf, data_span);
+        staging_buf->update(*stage_pool, cmdbuf, data_span);
         VkBufferImageCopy copyInfo{
             .bufferOffset = 0,
             .bufferRowLength = 0,

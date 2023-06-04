@@ -65,6 +65,9 @@ void VulkanGraphicsPipelineCache::gc(
          iter != m_pipeline_layouts.end();) {
         auto &[layout, last_accessed] = iter->second;
         if (m_gc_timer.should_recycle(last_accessed)) {
+            auto alloc_iter =
+                m_descriptor_set_allocators.find(&iter.mapped().first);
+            m_descriptor_set_allocators.erase(alloc_iter);
             iter = m_pipeline_layouts.erase(iter);
         } else {
             ++iter;
@@ -143,15 +146,83 @@ void VulkanGraphicsPipelineCache::bind_render_pass(
     m_graphics_pipelines_requirement.subpass = subpass;
 }
 
-// void VulkanGraphicsPipelineCache::bind_buffer(std::string_view name,
-//     VulkanBuffer const &buffer, uint64_t offset, uint64_t size,
-//     uint32_t arrayIdx) noexcept;
+void VulkanGraphicsPipelineCache::bind_buffer(std::string_view name,
+    VulkanBuffer const &buffer, uint64_t offset, uint64_t size,
+    uint32_t array_idx) noexcept {
+    for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
+        for (auto const &res : shader->get_shader_resource()) {
+            if (res.name == name &&
+                (res.type == ShaderResourceType::storage_buffer ||
+                    res.type == ShaderResourceType::uniform_buffer)) {
+                uint64_t offset_to_write = offset;
+                if (res.update_mode == ShaderResourceUpdateMode::dyna) {
+                    offset_to_write = 0;
+                    m_dynamic_offsets.insert_or_assign(
+                        res.set, (uint32_t) offset);
+                }
+                auto &requirement = m_descriptor_set_requirements[res.set];
+                auto &arr = requirement.buffer_infos[res.binding];
+                auto &buf_info = arr.buffers[array_idx];
+                buf_info.buffer = buffer.get_handle();
+                buf_info.offset = offset_to_write;
+                buf_info.range = size;
+                buf_info.dst_array_idx = array_idx;
+                return;
+            }
+        }
+    }
+    COUST_WARN("Can't find buffer named {} in the following shader:", name);
+    for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
+        COUST_WARN("\t{}", shader->get_source_path().string());
+    }
+}
 
-// void VulkanGraphicsPipelineCache::bind_image(std::string_view name,
-//     VkSampler sampler, VulkanImage const &image, uint32_t arrayIdx) noexcept;
+void VulkanGraphicsPipelineCache::bind_image(std::string_view name,
+    VkSampler sampler, VulkanImage const &image, uint32_t array_idx) noexcept {
+    for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
+        for (auto const &res : shader->get_shader_resource()) {
+            if (res.name == name &&
+                res.type == ShaderResourceType::image_sampler) {
+                auto &requirement = m_descriptor_set_requirements[res.set];
+                auto &arr = requirement.image_infos[res.binding];
+                auto &img_info = arr.images[array_idx];
+                img_info.sampler = sampler;
+                img_info.image_view = image.get_primary_view().get_handle();
+                img_info.image_layout = image.get_primary_layout();
+                img_info.dst_array_idx = array_idx;
+                return;
+            }
+        }
+    }
+    COUST_WARN("Can't find image named {} in the following shader:", name);
+    for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
+        COUST_WARN("\t{}", shader->get_source_path().string());
+    }
+}
 
-// void VulkanGraphicsPipelineCache::bind_input_attachment(
-//     std::string_view name, VulkanImage const &attachment) noexcept;
+void VulkanGraphicsPipelineCache::bind_input_attachment(
+    std::string_view name, VulkanImage const &attachment) noexcept {
+    for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
+        for (auto const &res : shader->get_shader_resource()) {
+            if (res.name == name &&
+                res.type == ShaderResourceType::input_attachment) {
+                auto &requirement = m_descriptor_set_requirements[res.set];
+                auto &arr = requirement.image_infos[res.binding];
+                auto &img_info = arr.images[0];
+                img_info.image_view =
+                    attachment.get_primary_view().get_handle();
+                img_info.image_layout = attachment.get_primary_layout();
+                img_info.dst_array_idx = 0;
+                return;
+            }
+        }
+    }
+    COUST_WARN(
+        "Can't find input attachment named {} in the following shader:", name);
+    for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
+        COUST_WARN("\t{}", shader->get_source_path().string());
+    }
+}
 
 bool VulkanGraphicsPipelineCache::bind_descriptor_set(
     VkCommandBuffer cmdBuf) noexcept {

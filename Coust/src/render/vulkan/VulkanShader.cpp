@@ -196,6 +196,10 @@ size_t VulkanShaderModule::get_byte_code_hash() const noexcept {
     return m_byte_code_cache_tag;
 }
 
+std::filesystem::path VulkanShaderModule::get_source_path() const noexcept {
+    return m_source_path;
+}
+
 auto VulkanShaderModule::get_shader_resource() const noexcept
     -> decltype(m_reflection_data) const& {
     return m_reflection_data;

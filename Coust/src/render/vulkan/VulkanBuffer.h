@@ -66,7 +66,7 @@ public:
     // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/memory_mapping.html#memory_mapping_persistently_mapped_memory
     void flush() const noexcept;
 
-    void update(class VulkanStagePool* stagePool, VkCommandBuffer cmdbuf,
+    void update(class VulkanStagePool& stagePool, VkCommandBuffer cmdbuf,
         std::span<const uint8_t> data, size_t offset = 0) noexcept;
 
     std::span<const uint8_t> get_mapped() const noexcept;

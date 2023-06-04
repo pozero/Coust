@@ -239,7 +239,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(
             // of its base class subobjects (if it has any), and vice versa. In
             // other words, padding is not allowed before the first data member
             // of a standard-layout type.
-            static_assert(std::is_standard_layout_v<BoundBuffer>, "");
+            static_assert(std::is_standard_layout_v<BoundBuffer>);
             VkWriteDescriptorSet write{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = m_handle,
@@ -265,7 +265,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(
         for (auto &i : images) {
             if (i.image_view == VK_NULL_HANDLE)
                 continue;
-            static_assert(std::is_standard_layout_v<BoundImage>, "");
+            static_assert(std::is_standard_layout_v<BoundImage>);
             VkWriteDescriptorSet write{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = m_handle,

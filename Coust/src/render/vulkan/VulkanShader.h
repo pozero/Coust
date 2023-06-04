@@ -101,6 +101,8 @@ public:
 
     size_t get_byte_code_hash() const noexcept;
 
+    std::filesystem::path get_source_path() const noexcept;
+
 private:
     VkDevice m_dev = VK_NULL_HANDLE;
     VkShaderModule m_handle = VK_NULL_HANDLE;

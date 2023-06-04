@@ -8,7 +8,7 @@
 
 #include "glm/ext/matrix_transform.hpp"
 
-TEST_CASE("[Coust] [render] [asset] MeshConvertion" * doctest::skip(true)) {
+TEST_CASE("[Coust] [render] [asset] MeshConvertion" * doctest::skip(false)) {
     using namespace coust;
     SUBCASE("Minimal glTF file") {
         std::filesystem::path test_asset_path = file::get_absolute_path_from(
@@ -26,20 +26,22 @@ TEST_CASE("[Coust] [render] [asset] MeshConvertion" * doctest::skip(true)) {
         REQUIRE(ma.vertex_buffer.size() == 9);
         REQUIRE(ma.meshes.size() == 1);
         REQUIRE(ma.meshes[0].primitives.size() == 1);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[0] == 0);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[1] ==
+        CHECK(ma.meshes[0].primitives[0].index_offset == 0);
+        CHECK(ma.meshes[0].primitives[0].index_count == 3);
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[0] == 0);
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[1] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[2] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[2] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[3] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[3] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[4] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[4] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[5] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[5] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[6] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[6] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[7] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[7] ==
               render::INVALID_VERTEX_ATTRIB);
         CHECK(ma.meshes[0].primitives[0].bounding_box.m_min ==
               glm::vec3{0.0f, 0.0f, 0.0f});
@@ -79,20 +81,21 @@ TEST_CASE("[Coust] [render] [asset] MeshConvertion" * doctest::skip(true)) {
         REQUIRE(ma.vertex_buffer.size() == 18);
         REQUIRE(ma.meshes.size() == 1);
         REQUIRE(ma.meshes[0].primitives.size() == 1);
-        CHECK(ma.meshes[0].primitives[0].index_start_idx == 0);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[0] == 0);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[1] == 9);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[2] ==
+        CHECK(ma.meshes[0].primitives[0].index_offset == 0);
+        CHECK(ma.meshes[0].primitives[0].index_count == 3);
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[0] == 0);
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[1] == 9);
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[2] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[3] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[3] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[4] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[4] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[5] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[5] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[6] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[6] ==
               render::INVALID_VERTEX_ATTRIB);
-        CHECK(ma.meshes[0].primitives[0].attrib_start_idx[7] ==
+        CHECK(ma.meshes[0].primitives[0].attrib_offset[7] ==
               render::INVALID_VERTEX_ATTRIB);
         CHECK(ma.meshes[0].primitives[0].bounding_box.m_min ==
               glm::vec3{0.0f, 0.0f, 0.0f});

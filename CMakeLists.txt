@@ -29,6 +29,9 @@ endif()
 # TODO: seems there're some bugs when using /md with clang sanitizer, stop using them for now
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 
+option(COUST_SANITIZER_ADDRESS OFF)
+message(STATUS "COUST_SANITIZER_ADDRESS: ${COUST_SANITIZER_ADDRESS}")
+
 # link time optimization / interprocedual optimization
 option(COUST_IPO "Enable linke time optimization (might significantly increase build time)" OFF)
 include(CheckIPOSupported)
@@ -56,6 +59,10 @@ function(COMPILATION_CONFIG TARGET)
     if (COUST_IPO)
         set_property(TARGET ${TARGET} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     endif()
+    target_compile_definitions(${TARGET}
+        PRIVATE
+            COUST_ROOT_PATH="${PROJECT_SOURCE_DIR}"
+    )
     target_compile_definitions(${TARGET} 
         PRIVATE 
             $<$<BOOL:${COUST_TEST}>:COUST_TEST>
