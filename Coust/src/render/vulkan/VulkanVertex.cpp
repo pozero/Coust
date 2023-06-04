@@ -74,7 +74,7 @@ VulkanVertexBuffer::VulkanVertexBuffer(VkDevice dev, VmaAllocator alloc,
                 .vertexCount = (uint32_t) primitive.index_count,
                 .instanceCount = 1,
                 .firstVertex = (uint32_t) primitive.index_offset,
-                .firstInstance = 0,
+                .firstInstance = (uint32_t) draw_cmds.size(),
             });
             attrib_offsets.push_back(primitive.attrib_offset);
         }
