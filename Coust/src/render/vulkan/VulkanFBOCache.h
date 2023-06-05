@@ -23,8 +23,7 @@ public:
     VulkanRenderPass const &get_render_pass(
         VulkanRenderPass::Param const &param) noexcept;
 
-    VulkanFramebuffer const &get_render_pass(
-        VulkanRenderPass const &render_pass,
+    VulkanFramebuffer const &get_framebuffer(
         VulkanFramebuffer::Param const &param) noexcept;
 
     void gc() noexcept;

@@ -32,8 +32,7 @@ VulkanRenderPass const &VulkanFBOCache::get_render_pass(
     }
 }
 
-VulkanFramebuffer const &VulkanFBOCache::get_render_pass(
-    VulkanRenderPass const &render_pass,
+VulkanFramebuffer const &VulkanFBOCache::get_framebuffer(
     VulkanFramebuffer::Param const &param) noexcept {
     auto iter = m_framebuffer.find(param);
     if (iter != m_framebuffer.end()) {
@@ -44,10 +43,10 @@ VulkanFramebuffer const &VulkanFBOCache::get_render_pass(
     } else {
         m_framebuffer_hit_counter.miss();
         auto [insert_iter, success] = m_framebuffer.emplace(
-            param, std::make_pair(VulkanFramebuffer{m_dev, render_pass, param},
+            param, std::make_pair(VulkanFramebuffer{m_dev, param},
                        m_gc_timer.current_count()));
         COUST_PANIC_IF_NOT(success, "");
-        m_render_pass_ref_counts.at(&render_pass) += 1;
+        m_render_pass_ref_counts.at(param.render_pass) += 1;
         auto const &[framebuffer, last_access] = insert_iter.mapped();
         return framebuffer;
     }

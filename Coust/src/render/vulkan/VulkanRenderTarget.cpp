@@ -5,6 +5,39 @@
 namespace coust {
 namespace render {
 
+VulkanAttachment::VulkanAttachment(
+    VulkanImage& image, uint32_t level, uint32_t layer) noexcept
+    : m_image(&image), m_level(level), m_layer(layer) {
+}
+
+VkImageSubresourceRange VulkanAttachment::get_subresource_range(
+    VkImageAspectFlags aspect) const noexcept {
+    uint32_t level_cnt = 1;
+    uint32_t layer_cnt = 1;
+    if (aspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
+        auto const range = m_image->get_primary_subrange();
+        level_cnt = range.levelCount;
+        layer_cnt = range.layerCount;
+    }
+    return VkImageSubresourceRange{
+        .aspectMask = aspect,
+        .baseMipLevel = m_level,
+        .levelCount = level_cnt,
+        .baseArrayLayer = m_layer,
+        .layerCount = layer_cnt,
+    };
+}
+
+const VulkanImageView* VulkanAttachment::get_image_view(
+    VkImageAspectFlags aspect) const noexcept {
+    return &m_image->get_view(get_subresource_range(aspect));
+}
+
+VkImageLayout VulkanAttachment::get_layout() const noexcept {
+    return m_image ? m_image->get_layout(m_layer, m_level) :
+                     VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
 VulkanRenderTarget::VulkanRenderTarget(VkDevice dev, VmaAllocator alloc,
     VkCommandBuffer cmdbuf, VkExtent2D extent, VkSampleCountFlagBits samples,
     std::array<VulkanAttachment, MAX_ATTACHMENT_COUNT> const& color,
@@ -71,6 +104,18 @@ VulkanAttachment VulkanRenderTarget::get_color(uint32_t idx) const noexcept {
     return m_color[idx];
 }
 
+VkFormat VulkanRenderTarget::get_color_format(uint32_t idx) const noexcept {
+    if (!m_color[idx].m_image) {
+        return VK_FORMAT_UNDEFINED;
+    } else {
+        if (m_sample_cnt == VK_SAMPLE_COUNT_1_BIT) {
+            return m_color[idx].m_image->get_format();
+        } else {
+            return m_color[idx].m_image->m_msaa_accessory->get_format();
+        }
+    }
+}
+
 VulkanAttachment VulkanRenderTarget::get_color_msaa(
     uint32_t idx) const noexcept {
     return m_color_msaa[idx];
@@ -78,6 +123,18 @@ VulkanAttachment VulkanRenderTarget::get_color_msaa(
 
 VulkanAttachment VulkanRenderTarget::get_depth() const noexcept {
     return m_depth;
+}
+
+VkFormat VulkanRenderTarget::get_depth_format() const noexcept {
+    if (!m_depth.m_image) {
+        return VK_FORMAT_UNDEFINED;
+    } else {
+        if (m_sample_cnt == VK_SAMPLE_COUNT_1_BIT) {
+            return m_depth.m_image->get_format();
+        } else {
+            return m_depth.m_image->m_msaa_accessory->get_format();
+        }
+    }
 }
 
 VulkanAttachment VulkanRenderTarget::get_depth_msaa() const noexcept {

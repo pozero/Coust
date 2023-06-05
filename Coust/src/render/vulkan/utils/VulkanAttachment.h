@@ -16,7 +16,7 @@ using AttachmentFlags = uint32_t;
 enum AttachmentFlagBits : AttachmentFlags {
     // support at most 8 color attachment (from filament)
     // then we can use several single uint8_t masks to specify their proerties
-    NONE = 0X0,
+    NONE = 0x0,
     COLOR0 = (1 << 0),
     COLOR1 = (1 << 1),
     COLOR2 = (1 << 2),

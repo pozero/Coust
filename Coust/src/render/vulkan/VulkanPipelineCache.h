@@ -84,8 +84,8 @@ public:
     void bind_image(std::string_view name, VkSampler sampler,
         VulkanImage const &image, uint32_t arrayIdx) noexcept;
 
-    void bind_input_attachment(
-        std::string_view name, VulkanImage const &attachment) noexcept;
+    void bind_input_attachment(std::string_view name,
+        class VulkanAttachment const &attachment) noexcept;
 
     // Actual binding
 

@@ -56,23 +56,27 @@ public:
         MeshAggregate const& mesh_aggregate) noexcept;
 
     VulkanImage create_image_single_queue(uint32_t width, uint32_t height,
-        uint32_t levels, uint32_t samples, VkFormat format,
+        uint32_t levels, VkSampleCountFlagBits samples, VkFormat format,
         VulkanImage::Usage usage) noexcept;
 
     VulkanRenderTarget create_render_target(uint32_t width, uint32_t height,
-        uint32_t samples,
+        VkSampleCountFlagBits samples,
         std::array<VulkanAttachment, MAX_ATTACHMENT_COUNT> const& colors,
         VulkanAttachment const& depth) noexcept;
 
-    void update_buffer(
-        std::span<const uint8_t> data, size_t offset = 0) noexcept;
+    VulkanRenderTarget const& get_attached_render_target() const noexcept;
 
-    void update_image(VkFormat format, uint32_t width, uint32_t height,
-        const void* data, uint32_t dst_level, uint32_t dst_layer = 0,
-        uint32_t dst_layer_cnt = 1) noexcept;
+    void update_buffer(VulkanBuffer& buffer, std::span<const uint8_t> data,
+        size_t offset = 0) noexcept;
+
+    void update_image(VulkanImage& image, VkFormat format, uint32_t width,
+        uint32_t height, const void* data, uint32_t dst_level,
+        uint32_t dst_layer = 0, uint32_t dst_layer_cnt = 1) noexcept;
 
     void begin_render_pass(VulkanRenderTarget const& render_target,
-        VulkanRenderPass::Param const& param) noexcept;
+        AttachmentFlags clear_mask, AttachmentFlags discard_start_mask,
+        AttachmentFlags discard_end_mask, uint8_t input_attachment_mask,
+        VkClearValue clear_val) noexcept;
 
     void next_subpass() noexcept;
 
@@ -88,11 +92,14 @@ public:
         std::filesystem::path source_path,
         std::span<std::string_view> dynamic_buffer_names) noexcept;
 
+    void bind_buffer_whole(std::string_view name, VulkanBuffer const& buffer,
+        uint32_t arrayIdx = 0) noexcept;
+
     void bind_buffer(std::string_view name, VulkanBuffer const& buffer,
-        uint64_t offset, uint64_t size, uint32_t arrayIdx) noexcept;
+        uint64_t offset, uint64_t size, uint32_t arrayIdx = 0) noexcept;
 
     void bind_image(std::string_view name, VkSampler sampler,
-        VulkanImage const& image, uint32_t arrayIdx) noexcept;
+        VulkanImage const& image, uint32_t arrayIdx = 0) noexcept;
 
     void draw(VulkanVertexIndexBuffer const& vertex_index_buf,
         VulkanGraphicsPipeline::RasterState const& raster_state,
@@ -131,6 +138,17 @@ private:
     AlignedStorage<VulkanStagePool> m_stage_pool{};
 
     AlignedStorage<VulkanSwapchain> m_swapchain{};
+
+private:
+    VulkanRenderTarget m_attached_render_target{};
+
+    const VulkanRenderTarget* m_cur_render_target = nullptr;
+
+    const VulkanRenderPass* m_cur_render_pass = nullptr;
+
+    uint32_t m_cur_subpass = 0;
+
+    uint8_t m_cur_subpass_mask = 0;
 };
 
 }  // namespace render

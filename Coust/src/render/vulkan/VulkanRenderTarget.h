@@ -28,10 +28,18 @@ public:
 
     VulkanAttachment& operator=(VulkanAttachment const&) noexcept = default;
 
+    VkImageSubresourceRange get_subresource_range(
+        VkImageAspectFlags aspect) const noexcept;
+
+    const VulkanImageView* get_image_view(
+        VkImageAspectFlags aspect) const noexcept;
+
+    VkImageLayout get_layout() const noexcept;
+
 public:
     VulkanImage* m_image = nullptr;
-    uint32_t level = ~(0u);
-    uint32_t layer = ~(0u);
+    uint32_t m_level = ~(0u);
+    uint32_t m_layer = ~(0u);
 };
 
 class VulkanRenderTarget {
@@ -54,9 +62,13 @@ public:
 
     VulkanAttachment get_color(uint32_t idx) const noexcept;
 
+    VkFormat get_color_format(uint32_t idx) const noexcept;
+
     VulkanAttachment get_color_msaa(uint32_t idx) const noexcept;
 
     VulkanAttachment get_depth() const noexcept;
+
+    VkFormat get_depth_format() const noexcept;
 
     VulkanAttachment get_depth_msaa() const noexcept;
 

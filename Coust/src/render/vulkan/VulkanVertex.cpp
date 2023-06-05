@@ -15,7 +15,8 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
     VmaAllocator alloc, VkCommandBuffer cmdbuf,
     class VulkanStagePool& stage_pool,
     MeshAggregate const& mesh_aggregate) noexcept
-    : m_vertex_buf(dev, alloc,
+    : m_primitive_count(MeshAggregate::get_primitve_count(mesh_aggregate)),
+      m_vertex_buf(dev, alloc,
           mesh_aggregate.vertex_buffer.size() *
               sizeof(decltype(MeshAggregate::vertex_buffer)::value_type),
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
@@ -26,13 +27,11 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
           related_queues),
       m_draw_cmd_buf(dev, alloc,
-          sizeof(VkDrawIndirectCommand) *
-              MeshAggregate::get_primitve_count(mesh_aggregate),
+          sizeof(VkDrawIndirectCommand) * m_primitive_count,
           VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
           related_queues),
       m_attrib_offset_buf(dev, alloc,
-          sizeof(Mesh::Primitive::attrib_offset) *
-              MeshAggregate::get_primitve_count(mesh_aggregate),
+          sizeof(Mesh::Primitive::attrib_offset) * m_primitive_count,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
           related_queues) {
     for (uint32_t i = 0; i < mesh_aggregate.attrib_bytes_offset.size(); ++i) {
@@ -103,6 +102,15 @@ VulkanBuffer const& VulkanVertexIndexBuffer::get_draw_cmd_buf() const noexcept {
 VulkanBuffer const& VulkanVertexIndexBuffer::get_attrib_offset_buf()
     const noexcept {
     return m_attrib_offset_buf;
+}
+
+size_t VulkanVertexIndexBuffer::get_primitive_count() const noexcept {
+    return m_primitive_count;
+}
+
+auto VulkanVertexIndexBuffer::get_attrib_infos() const noexcept
+    -> decltype(m_attrib_info) const& {
+    return m_attrib_info;
 }
 
 }  // namespace render

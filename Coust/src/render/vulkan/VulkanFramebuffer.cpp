@@ -18,9 +18,9 @@ VkFramebuffer VulkanFramebuffer::get_handle() const noexcept {
     return m_handle;
 }
 
-VulkanFramebuffer::VulkanFramebuffer(VkDevice dev,
-    class VulkanRenderPass const &render_pass, Param const &param) noexcept
-    : m_dev(dev), m_render_pass(&render_pass) {
+VulkanFramebuffer::VulkanFramebuffer(VkDevice dev, Param const &param) noexcept
+    : m_dev(dev), m_render_pass(param.render_pass) {
+    COUST_ASSERT(param.render_pass, "");
     // all the attachment descriptions live here, color first, then resolve,
     // finally depth. At most 8 color attachment + 8 resolve attachment + depth
     // attachment Note: this array has the same order as the render pass it
@@ -42,7 +42,7 @@ VulkanFramebuffer::VulkanFramebuffer(VkDevice dev,
         attachments[attachment_idx++] = param.depth_resolve->get_handle();
     VkFramebufferCreateInfo framebuffer_info{
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .renderPass = render_pass.get_handle(),
+        .renderPass = param.render_pass->get_handle(),
         .attachmentCount = attachment_idx,
         .pAttachments = attachments.data(),
         .width = param.width,
@@ -79,6 +79,7 @@ std::size_t hash<coust::render::VulkanFramebuffer::Param>::operator()(
         coust::hash_combine(h, key.depth->get_handle());
     if (key.depth_resolve)
         coust::hash_combine(h, key.depth_resolve->get_handle());
+    coust::hash_combine(h, key.render_pass->get_handle());
     return h;
 }
 
@@ -90,7 +91,8 @@ bool equal_to<coust::render::VulkanFramebuffer::Param>::operator()(
            std::ranges::equal(left.colors, right.colors) &&
            std::ranges::equal(left.resolves, right.resolves) &&
            left.depth == right.depth &&
-           left.depth_resolve == right.depth_resolve;
+           left.depth_resolve == right.depth_resolve &&
+           left.render_pass->get_handle() == right.render_pass->get_handle();
 }
 
 }  // namespace std

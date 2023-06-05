@@ -200,7 +200,7 @@ VulkanImage::~VulkanImage() noexcept {
     }
 }
 
-void VulkanImage::update(VulkanStagePool *stage_pool, VkCommandBuffer cmdbuf,
+void VulkanImage::update(VulkanStagePool &stage_pool, VkCommandBuffer cmdbuf,
     VkFormat format, uint32_t width, uint32_t height, const void *data,
     uint32_t dst_layer, uint32_t dst_layer_cnt, uint32_t dst_level) noexcept {
     VkFormat const linear_dst_format = unpack_srgb_format(m_format);
@@ -214,7 +214,7 @@ void VulkanImage::update(VulkanStagePool *stage_pool, VkCommandBuffer cmdbuf,
         width != m_extent.width || height != m_extent.height;
     if (need_resizing || need_format_conversion) {
         auto staging_img =
-            stage_pool->acquire_staging_img(cmdbuf, format, width, height);
+            stage_pool.acquire_staging_img(cmdbuf, format, width, height);
         staging_img->update(data_span);
         std::array<VkOffset3D, 2> const src_rect{
             VkOffset3D{              0,                0, 0},
@@ -256,8 +256,8 @@ void VulkanImage::update(VulkanStagePool *stage_pool, VkCommandBuffer cmdbuf,
             VK_FILTER_NEAREST);
         transition_layout(cmdbuf, m_default_layout, range);
     } else {
-        auto staging_buf = stage_pool->acquire_staging_buf(data_size);
-        staging_buf->update(*stage_pool, cmdbuf, data_span);
+        auto staging_buf = stage_pool.acquire_staging_buf(data_size);
+        staging_buf->update(stage_pool, cmdbuf, data_span);
         VkBufferImageCopy copyInfo{
             .bufferOffset = 0,
             .bufferRowLength = 0,

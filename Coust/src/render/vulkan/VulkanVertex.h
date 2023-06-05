@@ -17,8 +17,6 @@ public:
 public:
     static std::string_view constexpr INDEX_BUF_NAME{"INDEX"};
 
-    static std::string_view constexpr DRAW_CMD_BUF_NAME{"DRAW_CMD"};
-
     static std::string_view constexpr ATTRIB_OFFSET_BUF_NAME{"ATTRIB_OFFSET"};
 
     /*
@@ -57,7 +55,11 @@ public:
 
     VulkanBuffer const& get_attrib_offset_buf() const noexcept;
 
+    size_t get_primitive_count() const noexcept;
+
 private:
+    size_t m_primitive_count;
+
     memory::robin_map<VertexAttrib, VkDescriptorBufferInfo, DefaultAlloc>
         m_attrib_info{get_default_alloc()};
 
@@ -68,6 +70,9 @@ private:
     VulkanBuffer m_draw_cmd_buf;
 
     VulkanBuffer m_attrib_offset_buf;
+
+public:
+    auto get_attrib_infos() const noexcept -> decltype(m_attrib_info) const&;
 };
 
 }  // namespace render

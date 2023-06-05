@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "render/vulkan/VulkanPipelineCache.h"
+#include "render/vulkan/VulkanRenderTarget.h"
 
 namespace coust {
 namespace render {
@@ -201,7 +202,7 @@ void VulkanGraphicsPipelineCache::bind_image(std::string_view name,
 }
 
 void VulkanGraphicsPipelineCache::bind_input_attachment(
-    std::string_view name, VulkanImage const &attachment) noexcept {
+    std::string_view name, class VulkanAttachment const &attachment) noexcept {
     for (auto const shader : m_pipeline_layout_requirement.shader_modules) {
         for (auto const &res : shader->get_shader_resource()) {
             if (res.name == name &&
@@ -210,8 +211,9 @@ void VulkanGraphicsPipelineCache::bind_input_attachment(
                 auto &arr = requirement.image_infos[res.binding];
                 auto &img_info = arr.images[0];
                 img_info.image_view =
-                    attachment.get_primary_view().get_handle();
-                img_info.image_layout = attachment.get_primary_layout();
+                    attachment.get_image_view(VK_IMAGE_ASPECT_COLOR_BIT)
+                        ->get_handle();
+                img_info.image_layout = attachment.get_layout();
                 img_info.dst_array_idx = 0;
                 return;
             }

@@ -53,11 +53,11 @@ public:
         };
         const VulkanImageView *depth = nullptr;
         const VulkanImageView *depth_resolve = nullptr;
+        const VulkanRenderPass *render_pass = nullptr;
     };
 
 public:
-    VulkanFramebuffer(VkDevice dev, class VulkanRenderPass const &render_pass,
-        Param const &param) noexcept;
+    VulkanFramebuffer(VkDevice dev, Param const &param) noexcept;
 
     VulkanFramebuffer(VulkanFramebuffer &&) noexcept = default;
 
