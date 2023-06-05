@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render/vulkan/VulkanRenderTarget.h"
 #include "utils/Compiler.h"
 #include "core/Memory.h"
 #include "utils/allocators/StlContainer.h"
@@ -10,6 +11,7 @@
 #include "render/vulkan/VulkanSampler.h"
 #include "render/vulkan/VulkanStagePool.h"
 #include "render/vulkan/VulkanSwapchain.h"
+#include "render/vulkan/VulkanVertex.h"
 
 WARNING_PUSH
 DISABLE_ALL_WARNING
@@ -38,6 +40,65 @@ public:
         const void* device_creation_pnext) noexcept;
 
     ~VulkanDriver() noexcept;
+
+    void gc() noexcept;
+
+    void begin_frame() noexcept;
+
+    void end_frame() noexcept;
+
+    VkSampler create_sampler(VulkanSamplerParam const& param) noexcept;
+
+    VulkanBuffer create_buffer_single_queue(VkDeviceSize size,
+        VkBufferUsageFlags vk_buf_usage, VulkanBuffer::Usage usage) noexcept;
+
+    VulkanVertexIndexBuffer create_vertex_index_buffer(
+        MeshAggregate const& mesh_aggregate) noexcept;
+
+    VulkanImage create_image_single_queue(uint32_t width, uint32_t height,
+        uint32_t levels, uint32_t samples, VkFormat format,
+        VulkanImage::Usage usage) noexcept;
+
+    VulkanRenderTarget create_render_target(uint32_t width, uint32_t height,
+        uint32_t samples,
+        std::array<VulkanAttachment, MAX_ATTACHMENT_COUNT> const& colors,
+        VulkanAttachment const& depth) noexcept;
+
+    void update_buffer(
+        std::span<const uint8_t> data, size_t offset = 0) noexcept;
+
+    void update_image(VkFormat format, uint32_t width, uint32_t height,
+        const void* data, uint32_t dst_level, uint32_t dst_layer = 0,
+        uint32_t dst_layer_cnt = 1) noexcept;
+
+    void begin_render_pass(VulkanRenderTarget const& render_target,
+        VulkanRenderPass::Param const& param) noexcept;
+
+    void next_subpass() noexcept;
+
+    void end_render_pass() noexcept;
+
+    void update_swapchain() noexcept;
+
+    void commit() noexcept;
+
+    SpecializationConstantInfo& bind_specialization_info() noexcept;
+
+    void bind_shader(VkShaderStageFlagBits vk_shader_stage,
+        std::filesystem::path source_path,
+        std::span<std::string_view> dynamic_buffer_names) noexcept;
+
+    void bind_buffer(std::string_view name, VulkanBuffer const& buffer,
+        uint64_t offset, uint64_t size, uint32_t arrayIdx) noexcept;
+
+    void bind_image(std::string_view name, VkSampler sampler,
+        VulkanImage const& image, uint32_t arrayIdx) noexcept;
+
+    void draw(VulkanVertexIndexBuffer const& vertex_index_buf,
+        VulkanGraphicsPipeline::RasterState const& raster_state,
+        VkRect2D scissor) noexcept;
+
+    void refresh_swapchain() noexcept;
 
 public:
     int32_t m_max_msaa_sample = 1;

@@ -8,11 +8,11 @@
 namespace coust {
 namespace render {
 
-class VulkanVertexBuffer {
+class VulkanVertexIndexBuffer {
 public:
-    VulkanVertexBuffer() = delete;
-    VulkanVertexBuffer(VulkanVertexBuffer const&) = delete;
-    VulkanVertexBuffer& operator=(VulkanVertexBuffer const&) = delete;
+    VulkanVertexIndexBuffer() = delete;
+    VulkanVertexIndexBuffer(VulkanVertexIndexBuffer const&) = delete;
+    VulkanVertexIndexBuffer& operator=(VulkanVertexIndexBuffer const&) = delete;
 
 public:
     static std::string_view constexpr INDEX_BUF_NAME{"INDEX"};
@@ -40,21 +40,22 @@ public:
     */
 
 public:
-    VulkanVertexBuffer(VkDevice dev, VmaAllocator alloc, VkCommandBuffer cmdbuf,
-        class VulkanStagePool& stage_pool,
+    VulkanVertexIndexBuffer(VkDevice dev, VmaAllocator alloc,
+        VkCommandBuffer cmdbuf, class VulkanStagePool& stage_pool,
         MeshAggregate const& mesh_aggregate) noexcept;
 
-    VulkanVertexBuffer(VulkanVertexBuffer&&) noexcept = default;
+    VulkanVertexIndexBuffer(VulkanVertexIndexBuffer&&) noexcept = default;
 
-    VulkanVertexBuffer& operator=(VulkanVertexBuffer&&) noexcept = default;
+    VulkanVertexIndexBuffer& operator=(
+        VulkanVertexIndexBuffer&&) noexcept = default;
 
-    VulkanBuffer& get_vertex_buf() noexcept;
+    VulkanBuffer const& get_vertex_buf() const noexcept;
 
-    VulkanBuffer& get_index_buf() noexcept;
+    VulkanBuffer const& get_index_buf() const noexcept;
 
-    VulkanBuffer& get_draw_cmd_buf() noexcept;
+    VulkanBuffer const& get_draw_cmd_buf() const noexcept;
 
-    VulkanBuffer& get_attrib_offset_buf() noexcept;
+    VulkanBuffer const& get_attrib_offset_buf() const noexcept;
 
 private:
     memory::robin_map<VertexAttrib, VkDescriptorBufferInfo, DefaultAlloc>

@@ -11,8 +11,9 @@ std::array<uint32_t, 3> constexpr related_queues{
     VK_QUEUE_FAMILY_IGNORED,
 };
 
-VulkanVertexBuffer::VulkanVertexBuffer(VkDevice dev, VmaAllocator alloc,
-    VkCommandBuffer cmdbuf, class VulkanStagePool& stage_pool,
+VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
+    VmaAllocator alloc, VkCommandBuffer cmdbuf,
+    class VulkanStagePool& stage_pool,
     MeshAggregate const& mesh_aggregate) noexcept
     : m_vertex_buf(dev, alloc,
           mesh_aggregate.vertex_buffer.size() *
@@ -27,7 +28,7 @@ VulkanVertexBuffer::VulkanVertexBuffer(VkDevice dev, VmaAllocator alloc,
       m_draw_cmd_buf(dev, alloc,
           sizeof(VkDrawIndirectCommand) *
               MeshAggregate::get_primitve_count(mesh_aggregate),
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
+          VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
           related_queues),
       m_attrib_offset_buf(dev, alloc,
           sizeof(Mesh::Primitive::attrib_offset) *
@@ -87,19 +88,20 @@ VulkanVertexBuffer::VulkanVertexBuffer(VkDevice dev, VmaAllocator alloc,
             m_attrib_offset_buf.get_size()});
 }
 
-VulkanBuffer& VulkanVertexBuffer::get_vertex_buf() noexcept {
+VulkanBuffer const& VulkanVertexIndexBuffer::get_vertex_buf() const noexcept {
     return m_vertex_buf;
 }
 
-VulkanBuffer& VulkanVertexBuffer::get_index_buf() noexcept {
+VulkanBuffer const& VulkanVertexIndexBuffer::get_index_buf() const noexcept {
     return m_index_buf;
 }
 
-VulkanBuffer& VulkanVertexBuffer::get_draw_cmd_buf() noexcept {
+VulkanBuffer const& VulkanVertexIndexBuffer::get_draw_cmd_buf() const noexcept {
     return m_draw_cmd_buf;
 }
 
-VulkanBuffer& VulkanVertexBuffer::get_attrib_offset_buf() noexcept {
+VulkanBuffer const& VulkanVertexIndexBuffer::get_attrib_offset_buf()
+    const noexcept {
     return m_attrib_offset_buf;
 }
 

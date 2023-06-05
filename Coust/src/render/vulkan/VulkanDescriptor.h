@@ -18,6 +18,8 @@ struct BoundBuffer {
     VkDeviceSize offset = 0;
     VkDeviceSize range = 0;
     uint32_t dst_array_idx = ~(0u);
+
+    auto operator<=>(BoundBuffer const &other) const noexcept = default;
 };
 
 struct BoundImage {
@@ -25,6 +27,8 @@ struct BoundImage {
     VkImageView image_view = VK_NULL_HANDLE;
     VkImageLayout image_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     uint32_t dst_array_idx = ~(0u);
+
+    auto operator<=>(BoundImage const &other) const noexcept = default;
 };
 
 struct BoundBufferArray {
@@ -108,10 +112,6 @@ public:
         memory::vector<BoundImageArray, DefaultAlloc> image_infos{
             get_default_alloc()};
         uint32_t set;
-
-        bool operator==(Param const &ohter) const noexcept;
-
-        bool operator!=(Param const &ohter) const noexcept;
     };
 
 public:
@@ -234,6 +234,12 @@ template <>
 struct hash<coust::render::VulkanDescriptorSet::Param> {
     std::size_t operator()(
         coust::render::VulkanDescriptorSet::Param const &key) const noexcept;
+};
+
+template <>
+struct equal_to<coust::render::VulkanDescriptorSet::Param> {
+    bool operator()(coust::render::VulkanDescriptorSet::Param const &left,
+        coust::render::VulkanDescriptorSet::Param const &right) const noexcept;
 };
 
 }  // namespace std

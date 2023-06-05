@@ -101,17 +101,6 @@ VkShaderModule VulkanShaderModule::get_handle() const noexcept {
     return m_handle;
 }
 
-bool VulkanShaderModule::Param::operator==(Param const& other) const noexcept {
-    return stage == other.stage &&
-           // early return
-           source.get_code_hash() == other.source.get_code_hash() &&
-           source.get_code() == other.source.get_code();
-}
-
-bool VulkanShaderModule::Param::operator!=(Param const& other) const noexcept {
-    return !(*this == other);
-}
-
 VulkanShaderModule::VulkanShaderModule(
     VkDevice dev, Param const& param) noexcept
     : m_dev(dev),
@@ -227,6 +216,14 @@ std::size_t hash<coust::render::VulkanShaderModule::Param>::operator()(
     size_t hash = coust::calc_std_hash(key.source);
     coust::hash_combine(hash, key.stage);
     return hash;
+}
+
+bool equal_to<coust::render::VulkanShaderModule::Param>::operator()(
+    coust::render::VulkanShaderModule::Param const& left,
+    coust::render::VulkanShaderModule::Param const& right) const noexcept {
+    return left.stage == right.stage &&
+           left.source.get_code_hash() == right.source.get_code_hash() &&
+           left.source.get_code() == right.source.get_code();
 }
 
 }  // namespace std

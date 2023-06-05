@@ -449,5 +449,20 @@ VulkanDriver::~VulkanDriver() noexcept {
     vkDestroyInstance(m_instance, COUST_VULKAN_ALLOC_CALLBACK);
 }
 
+void VulkanDriver::gc() noexcept {
+    m_stage_pool.get().gc();
+    m_fbo_cache.get().gc();
+    m_cmdbuf_cache.get().gc();
+}
+
+void VulkanDriver::begin_frame() noexcept {
+}
+
+void VulkanDriver::end_frame() noexcept {
+    if (m_cmdbuf_cache.get().flush()) {
+        gc();
+    }
+}
+
 }  // namespace render
 }  // namespace coust

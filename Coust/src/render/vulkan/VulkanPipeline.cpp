@@ -17,26 +17,6 @@ VkPipelineLayout VulkanPipelineLayout::get_handle() const noexcept {
     return m_handle;
 }
 
-bool VulkanPipelineLayout::Param::operator==(
-    Param const& other) const noexcept {
-    if (shader_modules.size() != other.shader_modules.size())
-        return false;
-    for (auto const shader : shader_modules) {
-        if (!std::ranges::any_of(other.shader_modules,
-                [shader](const VulkanShaderModule* const s) {
-                    return s->get_handle() == shader->get_handle();
-                })) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool VulkanPipelineLayout::Param::operator!=(
-    Param const& other) const noexcept {
-    return !(*this == other);
-}
-
 VulkanPipelineLayout::VulkanPipelineLayout(
     VkDevice dev, Param const& param) noexcept
     : m_dev(dev) {
@@ -136,34 +116,6 @@ VkDevice VulkanGraphicsPipeline::get_device() const noexcept {
 
 VkPipeline VulkanGraphicsPipeline::get_handle() const noexcept {
     return m_handle;
-}
-
-bool VulkanGraphicsPipeline::Param::operator==(
-    Param const& other) const noexcept {
-    bool other_bol =
-        shader_modules.size() == other.shader_modules.size() &&
-        subpass == other.subpass &&
-        render_pass->get_handle() == other.render_pass->get_handle();
-    if (!other_bol)
-        return false;
-    if (special_const_info != other.special_const_info)
-        return false;
-    std::span<const uint8_t> raster_l{
-        (const uint8_t*) (&raster_state), sizeof(RasterState)};
-    std::span<const uint8_t> raster_r{
-        (const uint8_t*) (&other.raster_state), sizeof(RasterState)};
-    if (!std::ranges::equal(raster_l, raster_r))
-        return false;
-    return std::ranges::equal(shader_modules, other.shader_modules,
-        [](const VulkanShaderModule* const l,
-            const VulkanShaderModule* const r) {
-            return l->get_handle() == r->get_handle();
-        });
-}
-
-bool VulkanGraphicsPipeline::Param::operator!=(
-    Param const& other) const noexcept {
-    return !(*this == other);
 }
 
 VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice dev,
@@ -355,6 +307,40 @@ std::size_t hash<coust::render::VulkanGraphicsPipeline::Param>::operator()(
     coust::hash_combine(h, key.render_pass->get_handle());
     coust::hash_combine(h, key.subpass);
     return h;
+}
+
+bool equal_to<coust::render::VulkanPipelineLayout::Param>::operator()(
+    coust::render::VulkanPipelineLayout::Param const& left,
+    coust::render::VulkanPipelineLayout::Param const& right) const noexcept {
+    return std::ranges::equal(left.shader_modules, right.shader_modules,
+        [](const coust::render::VulkanShaderModule* l,
+            const coust::render::VulkanShaderModule* r) {
+            return l->get_handle() == r->get_handle();
+        });
+}
+
+bool equal_to<coust::render::VulkanGraphicsPipeline::Param>::operator()(
+    coust::render::VulkanGraphicsPipeline::Param const& left,
+    coust::render::VulkanGraphicsPipeline::Param const& right) const noexcept {
+    bool other_bol =
+        left.shader_modules.size() == right.shader_modules.size() &&
+        left.subpass == right.subpass &&
+        left.render_pass->get_handle() == right.render_pass->get_handle();
+    if (!other_bol)
+        return false;
+    if (left.special_const_info != right.special_const_info)
+        return false;
+    std::span<const uint8_t> raster_l{(const uint8_t*) (&left.raster_state),
+        sizeof(coust::render::VulkanGraphicsPipeline::RasterState)};
+    std::span<const uint8_t> raster_r{(const uint8_t*) (&right.raster_state),
+        sizeof(coust::render::VulkanGraphicsPipeline::RasterState)};
+    if (!std::ranges::equal(raster_l, raster_r))
+        return false;
+    return std::ranges::equal(left.shader_modules, right.shader_modules,
+        [](const coust::render::VulkanShaderModule* const l,
+            const coust::render::VulkanShaderModule* const r) {
+            return l->get_handle() == r->get_handle();
+        });
 }
 
 }  // namespace std

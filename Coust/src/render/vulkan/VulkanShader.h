@@ -78,10 +78,6 @@ public:
     struct Param {
         VkShaderStageFlagBits stage;
         ShaderSource source;
-
-        bool operator==(Param const& other) const noexcept;
-
-        bool operator!=(Param const& other) const noexcept;
     };
 
 public:
@@ -144,6 +140,12 @@ template <>
 struct hash<coust::render::VulkanShaderModule::Param> {
     std::size_t operator()(
         coust::render::VulkanShaderModule::Param const& key) const noexcept;
+};
+
+template <>
+struct equal_to<coust::render::VulkanShaderModule::Param> {
+    bool operator()(coust::render::VulkanShaderModule::Param const& left,
+        coust::render::VulkanShaderModule::Param const& right) const noexcept;
 };
 
 }  // namespace std

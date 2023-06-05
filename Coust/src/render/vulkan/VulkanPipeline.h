@@ -30,10 +30,6 @@ public:
 
     struct Param {
         std::span<const VulkanShaderModule *> shader_modules;
-
-        bool operator==(Param const &other) const noexcept;
-
-        bool operator!=(Param const &other) const noexcept;
     };
 
 public:
@@ -196,10 +192,6 @@ public:
         std::span<const VulkanShaderModule *const> shader_modules;
         const VulkanRenderPass *render_pass = nullptr;
         uint32_t subpass = ~(0u);
-
-        bool operator==(Param const &other) const noexcept;
-
-        bool operator!=(Param const &other) const noexcept;
     };
 
 public:
@@ -239,6 +231,19 @@ template <>
 struct hash<coust::render::VulkanGraphicsPipeline::Param> {
     std::size_t operator()(
         coust::render::VulkanGraphicsPipeline::Param const &key) const noexcept;
+};
+
+template <>
+struct equal_to<coust::render::VulkanPipelineLayout::Param> {
+    bool operator()(coust::render::VulkanPipelineLayout::Param const &left,
+        coust::render::VulkanPipelineLayout::Param const &right) const noexcept;
+};
+
+template <>
+struct equal_to<coust::render::VulkanGraphicsPipeline::Param> {
+    bool operator()(coust::render::VulkanGraphicsPipeline::Param const &left,
+        coust::render::VulkanGraphicsPipeline::Param const &right)
+        const noexcept;
 };
 
 }  // namespace std

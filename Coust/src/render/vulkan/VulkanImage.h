@@ -98,7 +98,7 @@ public:
     ~VulkanImage() noexcept;
 
     void update(class VulkanStagePool* stage_pool, VkCommandBuffer cmdbuf,
-        VkFormat format, uint32_t widht, uint32_t height, const void* data,
+        VkFormat format, uint32_t width, uint32_t height, const void* data,
         uint32_t dst_layer = 0, uint32_t dst_layer_cnt = 1,
         uint32_t dst_level = 0) noexcept;
 
