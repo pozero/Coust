@@ -83,9 +83,9 @@ public:
 public:
     VulkanShaderModule(VkDevice dev, Param const& param) noexcept;
 
-    VulkanShaderModule(VulkanShaderModule&&) noexcept = default;
+    VulkanShaderModule(VulkanShaderModule&& other) noexcept;
 
-    VulkanShaderModule& operator=(VulkanShaderModule&&) noexcept = default;
+    VulkanShaderModule& operator=(VulkanShaderModule&& other) noexcept;
 
     ~VulkanShaderModule() noexcept;
 

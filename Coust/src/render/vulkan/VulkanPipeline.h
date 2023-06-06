@@ -35,9 +35,9 @@ public:
 public:
     VulkanPipelineLayout(VkDevice dev, Param const &param) noexcept;
 
-    VulkanPipelineLayout(VulkanPipelineLayout &&) noexcept = default;
+    VulkanPipelineLayout(VulkanPipelineLayout &&other) noexcept;
 
-    VulkanPipelineLayout &operator=(VulkanPipelineLayout &&) noexcept = default;
+    VulkanPipelineLayout &operator=(VulkanPipelineLayout &&other) noexcept;
 
     ~VulkanPipelineLayout() noexcept;
 
@@ -198,10 +198,9 @@ public:
     VulkanGraphicsPipeline(VkDevice dev, VulkanPipelineLayout const &layout,
         VkPipelineCache cache, Param const &param) noexcept;
 
-    VulkanGraphicsPipeline(VulkanGraphicsPipeline &&) noexcept = default;
+    VulkanGraphicsPipeline(VulkanGraphicsPipeline &&other) noexcept;
 
-    VulkanGraphicsPipeline &operator=(
-        VulkanGraphicsPipeline &&) noexcept = default;
+    VulkanGraphicsPipeline &operator=(VulkanGraphicsPipeline &&other) noexcept;
 
     ~VulkanGraphicsPipeline() noexcept;
 

@@ -35,11 +35,11 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
           related_queues) {
     for (uint32_t i = 0; i < mesh_aggregate.attrib_bytes_offset.size(); ++i) {
-        size_t const attrib_offset_in_byte =
-            mesh_aggregate.attrib_bytes_offset[i];
-        if (attrib_offset_in_byte == INVALID_VERTEX_ATTRIB) {
+        if (((1 << i) & mesh_aggregate.valid_attrib_mask) == 0) {
             continue;
         }
+        size_t const attrib_offset_in_byte =
+            mesh_aggregate.attrib_bytes_offset[i];
         size_t const range_in_byte =
             i == mesh_aggregate.attrib_bytes_offset.size() - 1 ?
                 m_vertex_buf.get_size() - attrib_offset_in_byte :

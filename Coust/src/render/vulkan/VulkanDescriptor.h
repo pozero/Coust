@@ -60,7 +60,7 @@ public:
     VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
         std::span<const VulkanShaderModule *const> shader_modules) noexcept;
 
-    VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&) noexcept = default;
+    VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&other) noexcept;
 
     ~VulkanDescriptorSetLayout() noexcept;
 
@@ -118,9 +118,9 @@ public:
     VulkanDescriptorSet(
         VkDevice dev, VkPhysicalDevice phy_dev, Param const &param) noexcept;
 
-    VulkanDescriptorSet(VulkanDescriptorSet &&) noexcept = default;
+    VulkanDescriptorSet(VulkanDescriptorSet &&other) noexcept;
 
-    VulkanDescriptorSet &operator=(VulkanDescriptorSet &&) noexcept = default;
+    VulkanDescriptorSet &operator=(VulkanDescriptorSet &&other) noexcept;
 
     // Lifecycle of descriptor set is managed by descriptor set allocator, so
     // the descructor will release the handle back to its allocator.
@@ -167,8 +167,7 @@ public:
         VulkanDescriptorSetLayout const &layout,
         uint32_t max_sets_per_pool = 16) noexcept;
 
-    VulkanDescriptorSetAllocator(
-        VulkanDescriptorSetAllocator &&) noexcept = default;
+    VulkanDescriptorSetAllocator(VulkanDescriptorSetAllocator &&other) noexcept;
 
     ~VulkanDescriptorSetAllocator() noexcept;
 

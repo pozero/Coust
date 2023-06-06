@@ -214,7 +214,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                 size_t cur_attrib_idx =
                     detail::copy_vertex_data_from_gltf_buffer(model,
                         (size_t) gltf_accessor_idx, destination, is_color);
-                primitive.attrib_offset[attrib_idx] = cur_attrib_idx;
+                primitive.attrib_offset[attrib_idx] = (uint32_t) cur_attrib_idx;
                 if (!is_color && attrib_idx == VertexAttrib::position) {
                     static_assert(sizeof(glm::vec3) == 3 * sizeof(float));
                     const glm::vec3* const begin =
@@ -244,9 +244,10 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
     // pack different attributes data together
     size_t float_count_offset = 0;
     for (uint32_t i = 0; i < 8; ++i) {
+        mesh_aggregate.attrib_bytes_offset[i] =
+            float_count_offset * sizeof(float);
         if (!all_attrib_data[i].empty()) {
-            mesh_aggregate.attrib_bytes_offset[i] =
-                float_count_offset * sizeof(float);
+            mesh_aggregate.valid_attrib_mask |= (1 << i);
             for (auto& mesh : mesh_aggregate.meshes) {
                 for (auto& primitive : mesh.primitives) {
                     primitive.attrib_offset[i] += float_count_offset;

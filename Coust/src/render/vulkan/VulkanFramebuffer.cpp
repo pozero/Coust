@@ -53,6 +53,22 @@ VulkanFramebuffer::VulkanFramebuffer(VkDevice dev, Param const &param) noexcept
         vkCreateFramebuffer(m_dev, &framebuffer_info, nullptr, &m_handle), "");
 }
 
+VulkanFramebuffer::VulkanFramebuffer(VulkanFramebuffer &&other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_render_pass(other.m_render_pass) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanFramebuffer &VulkanFramebuffer::operator=(
+    VulkanFramebuffer &&other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_render_pass, other.m_render_pass);
+    return *this;
+}
+
 VulkanRenderPass const &VulkanFramebuffer::get_render_pass() const noexcept {
     return *m_render_pass;
 }
@@ -70,10 +86,16 @@ std::size_t hash<coust::render::VulkanFramebuffer::Param>::operator()(
     coust::hash_combine(h, key.height);
     coust::hash_combine(h, key.layers);
     for (uint32_t i = 0; i < key.colors.size(); ++i) {
-        coust::hash_combine(h, key.colors[i]->get_handle());
+        if (key.colors[i])
+            coust::hash_combine(h, key.colors[i]->get_handle());
+        else
+            coust::hash_combine(h, 0);
     }
     for (uint32_t i = 0; i < key.resolves.size(); ++i) {
-        coust::hash_combine(h, key.resolves[i]->get_handle());
+        if (key.resolves[i])
+            coust::hash_combine(h, key.resolves[i]->get_handle());
+        else
+            coust::hash_combine(h, 0);
     }
     if (key.depth)
         coust::hash_combine(h, key.depth->get_handle());

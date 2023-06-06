@@ -107,6 +107,35 @@ VulkanBuffer::VulkanBuffer(VkDevice dev, VmaAllocator alloc, VkDeviceSize size,
         m_mapped = (uint8_t*) alloc_info.pMappedData;
 }
 
+VulkanBuffer::VulkanBuffer(VulkanBuffer&& other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_allocator(other.m_allocator),
+      m_allocation(other.m_allocation),
+      m_mapped(other.m_mapped),
+      m_size(other.m_size),
+      m_domain(other.m_domain),
+      m_update_mode(other.m_update_mode),
+      m_vk_usage(other.m_vk_usage) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_allocator = VK_NULL_HANDLE;
+    other.m_allocation = VK_NULL_HANDLE;
+}
+
+VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_allocator, other.m_allocator);
+    std::swap(m_allocation, other.m_allocation);
+    std::swap(m_mapped, other.m_mapped);
+    std::swap(m_size, other.m_size);
+    std::swap(m_domain, other.m_domain);
+    std::swap(m_update_mode, other.m_update_mode);
+    std::swap(m_vk_usage, other.m_vk_usage);
+    return *this;
+}
+
 VulkanBuffer::~VulkanBuffer() noexcept {
     if (m_allocation != VK_NULL_HANDLE) {
         vmaDestroyBuffer(m_allocator, m_handle, m_allocation);

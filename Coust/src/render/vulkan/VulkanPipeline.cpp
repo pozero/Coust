@@ -58,6 +58,23 @@ VulkanPipelineLayout::VulkanPipelineLayout(
         "Can't create vulkan pipeline layout");
 }
 
+VulkanPipelineLayout::VulkanPipelineLayout(
+    VulkanPipelineLayout&& other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_descriptor_layouts(std::move(other.m_descriptor_layouts)) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanPipelineLayout& VulkanPipelineLayout::operator=(
+    VulkanPipelineLayout&& other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_descriptor_layouts, other.m_descriptor_layouts);
+    return *this;
+}
+
 VulkanPipelineLayout::~VulkanPipelineLayout() noexcept {
     if (m_handle != VK_NULL_HANDLE) {
         vkDestroyPipelineLayout(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
@@ -139,6 +156,12 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice dev,
             .pSpecializationInfo = &special_const_info,
         });
     }
+    VkPipelineVertexInputStateCreateInfo input_state{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .flags = 0,
+        .vertexBindingDescriptionCount = 0,
+        .vertexAttributeDescriptionCount = 0,
+    };
     VkPipelineInputAssemblyStateCreateInfo input_assembly_state{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .topology = param.raster_state.topology,
@@ -224,11 +247,12 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice dev,
         .dynamicStateCount = (uint32_t) dynamic_states.size(),
         .pDynamicStates = dynamic_states.data(),
     };
+    COUST_ASSERT(stage_info.size() > 0, "");
     VkGraphicsPipelineCreateInfo pipeline_info{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = (uint32_t) stage_info.size(),
         .pStages = stage_info.data(),
-        .pVertexInputState = nullptr,
+        .pVertexInputState = &input_state,
         .pInputAssemblyState = &input_assembly_state,
         .pTessellationState = &tessellation_state,
         .pViewportState = &viewport_state,
@@ -245,6 +269,20 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice dev,
     COUST_VK_CHECK(vkCreateGraphicsPipelines(m_dev, cache, 1, &pipeline_info,
                        COUST_VULKAN_ALLOC_CALLBACK, &m_handle),
         "Can't create vulkan graphics pipeline");
+}
+
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(
+    VulkanGraphicsPipeline&& other) noexcept
+    : m_dev(other.m_dev), m_handle(other.m_handle) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanGraphicsPipeline& VulkanGraphicsPipeline::operator=(
+    VulkanGraphicsPipeline&& other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    return *this;
 }
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline() noexcept {

@@ -51,9 +51,9 @@ public:
         VkBufferUsageFlags vk_buf_usage, Usage usage,
         std::array<uint32_t, 3> const& related_queues) noexcept;
 
-    VulkanBuffer(VulkanBuffer&&) noexcept = default;
+    VulkanBuffer(VulkanBuffer&& other) noexcept;
 
-    VulkanBuffer& operator=(VulkanBuffer&&) noexcept = default;
+    VulkanBuffer& operator=(VulkanBuffer&& other) noexcept;
 
     ~VulkanBuffer() noexcept;
 

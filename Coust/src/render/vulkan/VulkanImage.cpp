@@ -114,6 +114,18 @@ VulkanImageView::VulkanImageView(VkDevice dev, class VulkanImage *image,
         "");
 }
 
+VulkanImageView::VulkanImageView(VulkanImageView &&other) noexcept
+    : m_dev(other.m_dev), m_handle(other.m_handle) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanImageView &VulkanImageView::operator=(VulkanImageView &&other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    return *this;
+}
+
 VulkanImageView::~VulkanImageView() noexcept {
     if (m_handle != VK_NULL_HANDLE) {
         vkDestroyImageView(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
@@ -185,13 +197,55 @@ VulkanImage::VulkanImage(VkDevice dev, VmaAllocator alloc,
         transition_layout(cmdbuf, m_default_layout, m_primary_subrange);
 }
 
-VulkanImage::VulkanImage(VkImage handle, uint32_t width, uint32_t height,
-    VkFormat format, VkSampleCountFlagBits samples) noexcept
-    : m_handle(handle),
+VulkanImage::VulkanImage(VkDevice dev, VkImage handle, uint32_t width,
+    uint32_t height, VkFormat format, VkSampleCountFlagBits samples) noexcept
+    : m_dev(dev),
+      m_handle(handle),
       m_extent{width, height},
       m_format(format),
+      m_default_layout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
+      m_view_type(VK_IMAGE_VIEW_TYPE_2D),
       m_sample_count(samples),
       m_mip_level_count(0) {
+}
+
+VulkanImage::VulkanImage(VulkanImage &&other) noexcept
+    : m_msaa_accessory(std::move(other.m_msaa_accessory)),
+      m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_allocator(other.m_allocator),
+      m_allocation(other.m_allocation),
+      m_image_views(std::move(other.m_image_views)),
+      m_subrange_layouts(std::move(other.m_subrange_layouts)),
+      m_primary_subrange(other.m_primary_subrange),
+      m_extent(other.m_extent),
+      m_format(other.m_format),
+      m_default_layout(other.m_default_layout),
+      m_view_type(other.m_view_type),
+      m_sample_count(other.m_sample_count),
+      m_mip_level_count(other.m_mip_level_count) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_allocator = VK_NULL_HANDLE;
+    other.m_allocation = VK_NULL_HANDLE;
+}
+
+VulkanImage &VulkanImage::operator=(VulkanImage &&other) noexcept {
+    std::swap(m_msaa_accessory, other.m_msaa_accessory);
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_allocator, other.m_allocator);
+    std::swap(m_allocation, other.m_allocation);
+    std::swap(m_image_views, other.m_image_views);
+    std::swap(m_subrange_layouts, other.m_subrange_layouts);
+    std::swap(m_primary_subrange, other.m_primary_subrange);
+    std::swap(m_extent, other.m_extent);
+    std::swap(m_format, other.m_format);
+    std::swap(m_default_layout, other.m_default_layout);
+    std::swap(m_view_type, other.m_view_type);
+    std::swap(m_sample_count, other.m_sample_count);
+    std::swap(m_mip_level_count, other.m_mip_level_count);
+    return *this;
 }
 
 VulkanImage::~VulkanImage() noexcept {
@@ -463,6 +517,31 @@ VulkanHostImage::VulkanHostImage(VkDevice dev, VmaAllocator alloc,
                                            .layerCount = 1,
                                            },
     }));
+}
+
+VulkanHostImage::VulkanHostImage(VulkanHostImage &&other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_allocator(other.m_allocator),
+      m_allocation(other.m_allocation),
+      m_extent(other.m_extent),
+      m_mapped(other.m_mapped),
+      m_format(other.m_format) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_allocator = VK_NULL_HANDLE;
+    other.m_allocation = VK_NULL_HANDLE;
+}
+
+VulkanHostImage &VulkanHostImage::operator=(VulkanHostImage &&other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_allocator, other.m_allocator);
+    std::swap(m_allocation, other.m_allocation);
+    std::swap(m_extent, other.m_extent);
+    std::swap(m_mapped, other.m_mapped);
+    std::swap(m_format, other.m_format);
+    return *this;
 }
 
 VulkanHostImage::~VulkanHostImage() noexcept {

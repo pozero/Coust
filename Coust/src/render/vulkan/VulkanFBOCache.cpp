@@ -42,13 +42,13 @@ VulkanFramebuffer const &VulkanFBOCache::get_framebuffer(
         return framebuffer;
     } else {
         m_framebuffer_hit_counter.miss();
-        auto [insert_iter, success] = m_framebuffer.emplace(
-            param, std::make_pair(VulkanFramebuffer{m_dev, param},
-                       m_gc_timer.current_count()));
+        VulkanFramebuffer framebuffer{m_dev, param};
+        auto [insert_iter, success] = m_framebuffer.emplace(param,
+            std::make_pair(std::move(framebuffer), m_gc_timer.current_count()));
         COUST_PANIC_IF_NOT(success, "");
         m_render_pass_ref_counts.at(param.render_pass) += 1;
-        auto const &[framebuffer, last_access] = insert_iter.mapped();
-        return framebuffer;
+        auto const &[fb, last_access] = insert_iter.mapped();
+        return fb;
     }
 }
 

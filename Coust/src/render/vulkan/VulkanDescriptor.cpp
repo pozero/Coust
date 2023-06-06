@@ -94,6 +94,18 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
         "Can't create vulkan descriptor set layout");
 }
 
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
+    VulkanDescriptorSetLayout &&other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_set(other.m_set),
+      m_idx_to_binding(std::move(other.m_idx_to_binding)),
+      m_name_to_idx(std::move(other.m_name_to_idx)),
+      m_hash(other.m_hash) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
 VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout() noexcept {
     if (m_handle != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(
@@ -151,37 +163,32 @@ VulkanDescriptorSet::VulkanDescriptorSet(
         for (auto &b : buffers) {
             if (b.buffer == VK_NULL_HANDLE)
                 continue;
-
-            // clamp the binding range to the GPU limit
-            VkDeviceSize clampedRange = b.range;
             if (uint32_t uniformBufferRangeLimit =
                     phy_dev_props.limits.maxUniformBufferRange;
                 (bindingInfo.descriptorType ==
                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
                     bindingInfo.descriptorType ==
                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) &&
-                clampedRange > uniformBufferRangeLimit) {
-                COUST_WARN(
+                b.range > uniformBufferRangeLimit && b.range != VK_WHOLE_SIZE) {
+                COUST_PANIC_IF(true,
                     "The range (which is {}) of uniform buffer (Set {}, "
                     "Binding {}) to bind exceeds GPU limit (which is {})",
-                    clampedRange, layout.get_set(), binding,
+                    b.range, layout.get_set(), binding,
                     uniformBufferRangeLimit);
-                clampedRange = uniformBufferRangeLimit;
             } else if (uint32_t storageBufferRangeLimit =
                            phy_dev_props.limits.maxStorageBufferRange;
                        (bindingInfo.descriptorType ==
                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
                            bindingInfo.descriptorType ==
                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) &&
-                       clampedRange > storageBufferRangeLimit) {
-                COUST_WARN(
+                       b.range > storageBufferRangeLimit &&
+                       b.range != VK_WHOLE_SIZE) {
+                COUST_PANIC_IF(true,
                     "The range (which is {}) of storage buffer (Set {}, "
                     "Binding {}) to bind exceeds GPU limit (which is {})",
-                    clampedRange, layout.get_set(), binding,
+                    b.range, layout.get_set(), binding,
                     storageBufferRangeLimit);
-                clampedRange = storageBufferRangeLimit;
             }
-
             // https://en.cppreference.com/w/cpp/language/data_members#Standard-layout
             // A pointer to an object of standard-layout class type can be
             // reinterpret_cast to pointer to its first non-static non-bitfield
@@ -231,6 +238,28 @@ VulkanDescriptorSet::VulkanDescriptorSet(
             m_writes.push_back(write);
         }
     }
+}
+
+VulkanDescriptorSet::VulkanDescriptorSet(VulkanDescriptorSet &&other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_alloc(other.m_alloc),
+      m_writes(std::move(other.m_writes)),
+      m_applied_write_indices(std::move(other.m_applied_write_indices)),
+      m_set(other.m_set) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanDescriptorSet &VulkanDescriptorSet::operator=(
+    VulkanDescriptorSet &&other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_alloc, other.m_alloc);
+    std::swap(m_writes, other.m_writes);
+    std::swap(m_applied_write_indices, other.m_applied_write_indices);
+    std::swap(m_set, other.m_set);
+    return *this;
 }
 
 VulkanDescriptorSet::~VulkanDescriptorSet() noexcept {
@@ -308,6 +337,18 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(VkDevice dev,
                 .descriptorCount = p.second * max_sets_per_pool,
             };
         });
+}
+
+VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(
+    VulkanDescriptorSetAllocator &&other) noexcept
+    : m_dev(other.m_dev),
+      m_layout(other.m_layout),
+      m_pool_sizes(std::move(other.m_pool_sizes)),
+      m_pools(std::move(other.m_pools)),
+      m_free_sets(std::move(other.m_free_sets)),
+      m_max_set_per_pool(other.m_max_set_per_pool),
+      m_pool_idx(other.m_pool_idx) {
+    other.m_dev = VK_NULL_HANDLE;
 }
 
 VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {

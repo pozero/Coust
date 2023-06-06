@@ -148,17 +148,49 @@ VulkanShaderModule::VulkanShaderModule(
         "Can't create shader module from file {}", m_source_path.string());
 }
 
+VulkanShaderModule::VulkanShaderModule(VulkanShaderModule&& other) noexcept
+    : m_dev(other.m_dev),
+      m_handle(other.m_handle),
+      m_byte_code(std::move(other.m_byte_code)),
+      m_reflection_data(std::move(other.m_reflection_data)),
+      m_source_path(std::move(other.m_source_path)),
+      m_byte_code_cache_tag(other.m_byte_code_cache_tag),
+      m_reflection_data_cache_tag(other.m_reflection_data_cache_tag),
+      m_stage(other.m_stage),
+      m_flush_byte_code(other.m_flush_byte_code),
+      m_flush_reflection_data(other.m_flush_reflection_data) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanShaderModule& VulkanShaderModule::operator=(
+    VulkanShaderModule&& other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    std::swap(m_byte_code, other.m_byte_code);
+    std::swap(m_reflection_data, other.m_reflection_data);
+    std::swap(m_source_path, other.m_source_path);
+    std::swap(m_byte_code_cache_tag, other.m_byte_code_cache_tag);
+    std::swap(m_reflection_data_cache_tag, other.m_reflection_data_cache_tag);
+    std::swap(m_stage, other.m_stage);
+    std::swap(m_flush_byte_code, other.m_flush_byte_code);
+    std::swap(m_flush_reflection_data, other.m_flush_reflection_data);
+    return *this;
+}
+
 VulkanShaderModule::~VulkanShaderModule() noexcept {
-    if (m_flush_byte_code) {
-        file::Caches::get_instance().add_cache_data(m_source_path.string(),
-            m_byte_code_cache_tag, file::to_byte_array(m_byte_code), true);
+    if (m_handle) {
+        if (m_flush_byte_code) {
+            file::Caches::get_instance().add_cache_data(m_source_path.string(),
+                m_byte_code_cache_tag, file::to_byte_array(m_byte_code), true);
+        }
+        if (m_flush_reflection_data) {
+            file::Caches::get_instance().add_cache_data(m_source_path.string(),
+                m_reflection_data_cache_tag,
+                file::to_byte_array(m_reflection_data), true);
+        }
+        vkDestroyShaderModule(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
     }
-    if (m_flush_reflection_data) {
-        file::Caches::get_instance().add_cache_data(m_source_path.string(),
-            m_reflection_data_cache_tag, file::to_byte_array(m_reflection_data),
-            true);
-    }
-    vkDestroyShaderModule(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
 }
 
 void VulkanShaderModule::set_dynamic_buffer(std::string_view name) noexcept {

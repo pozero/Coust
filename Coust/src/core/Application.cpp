@@ -30,6 +30,7 @@ Application::~Application() noexcept {
 void Application::run() noexcept {
     while (m_running) {
         m_window.poll_events();
+        m_render_layer.on_update({});
     }
 }
 

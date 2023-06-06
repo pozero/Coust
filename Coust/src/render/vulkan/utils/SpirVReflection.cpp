@@ -511,6 +511,7 @@ auto spirv_reflection(std::span<const uint32_t> byte_code, int vk_shader_stage,
     try {
         spirv_cross::CompilerGLSL compiler{byte_code.data(), byte_code.size()};
         auto opt = compiler.get_common_options();
+        opt.vulkan_semantics = true;
         compiler.set_common_options(opt);
         spirv_cross::ShaderResources resources =
             compiler.get_shader_resources();

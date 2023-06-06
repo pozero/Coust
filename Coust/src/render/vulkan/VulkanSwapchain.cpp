@@ -156,7 +156,7 @@ bool VulkanSwapchain::create() noexcept {
     m_images.reserve(img_cnt);
     vkGetSwapchainImagesKHR(m_dev, m_handle, &img_cnt, img_handles.data());
     for (auto const handle : img_handles) {
-        m_images.emplace_back(handle, m_extent.width, m_extent.height,
+        m_images.emplace_back(m_dev, handle, m_extent.width, m_extent.height,
             m_surface_format.format, VK_SAMPLE_COUNT_1_BIT);
     }
     VkSemaphoreCreateInfo sama_info{

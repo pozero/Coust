@@ -92,7 +92,7 @@ memory::vector<uint32_t, DefaultAlloc> compile_glst_to_spv(
     opt.SetSourceLanguage(shaderc_source_language_glsl);
     opt.SetTargetEnvironment(shaderc_target_env_vulkan,
         get_shaderc_evn_ver(COUST_VULKAN_API_VERSION));
-    opt.SetOptimizationLevel(shaderc_optimization_level_performance);
+    opt.SetOptimizationLevel(shaderc_optimization_level_zero);
     opt.AddMacroDefinition("__VK_GLSL__", "1");
     for (auto const &[name, val] : source.get_macros()) {
         opt.AddMacroDefinition(name.c_str(), val.c_str());

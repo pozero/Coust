@@ -46,9 +46,9 @@ public:
     VulkanImageView(VkDevice dev, class VulkanImage* image,
         VkImageViewType type, VkImageSubresourceRange sub_range) noexcept;
 
-    VulkanImageView(VulkanImageView&&) noexcept = default;
+    VulkanImageView(VulkanImageView&& other) noexcept;
 
-    VulkanImageView& operator=(VulkanImageView&&) noexcept = default;
+    VulkanImageView& operator=(VulkanImageView&& other) noexcept;
 
     ~VulkanImageView() noexcept;
 
@@ -88,12 +88,12 @@ public:
         VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
         VkImageLayout initial_layout = VK_IMAGE_LAYOUT_UNDEFINED) noexcept;
 
-    VulkanImage(VkImage handle, uint32_t width, uint32_t height,
+    VulkanImage(VkDevice dev, VkImage handle, uint32_t width, uint32_t height,
         VkFormat format, VkSampleCountFlagBits samples) noexcept;
 
-    VulkanImage(VulkanImage&&) noexcept = default;
+    VulkanImage(VulkanImage&& other) noexcept;
 
-    VulkanImage& operator=(VulkanImage&&) noexcept = default;
+    VulkanImage& operator=(VulkanImage&& other) noexcept;
 
     ~VulkanImage() noexcept;
 
@@ -184,9 +184,9 @@ public:
     VulkanHostImage(VkDevice dev, VmaAllocator alloc, VkCommandBuffer cmdbuf,
         VkFormat format, uint32_t width, uint32_t height) noexcept;
 
-    VulkanHostImage(VulkanHostImage&&) noexcept = default;
+    VulkanHostImage(VulkanHostImage&& other) noexcept;
 
-    VulkanHostImage& operator=(VulkanHostImage&&) noexcept = default;
+    VulkanHostImage& operator=(VulkanHostImage&& other) noexcept;
 
     ~VulkanHostImage() noexcept;
 

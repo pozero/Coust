@@ -64,8 +64,11 @@ VulkanCommandBufferCache::~VulkanCommandBufferCache() noexcept {
 }
 
 VkCommandBuffer VulkanCommandBufferCache::get() noexcept {
-    if (m_cmdbuf_idx.has_value())
-        return m_cmdbufs[m_cmdbuf_idx.value()].handle;
+    if (m_cmdbuf_idx.has_value()) {
+        auto const& cmdbuf = m_cmdbufs[m_cmdbuf_idx.value()];
+        COUST_ASSERT(cmdbuf.state == VulkanCommandBuffer::State::recording, "");
+        return cmdbuf.handle;
+    }
     while (m_available_cmdbuf_cnt == 0) {
         wait();
         gc();

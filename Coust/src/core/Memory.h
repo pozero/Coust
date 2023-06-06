@@ -80,7 +80,7 @@ private:
     GeneralAlloc_L m_upto_50kbyte_alloc;
 };
 
-static_assert(detail::Allocator<AggregateAllocator>, "");
+static_assert(detail::Allocator<AggregateAllocator>);
 
 }  // namespace memory
 

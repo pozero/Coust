@@ -50,9 +50,9 @@ public:
 public:
     VulkanRenderPass(VkDevice dev, Param const& param) noexcept;
 
-    VulkanRenderPass(VulkanRenderPass&&) noexcept = default;
+    VulkanRenderPass(VulkanRenderPass&& other) noexcept;
 
-    VulkanRenderPass& operator=(VulkanRenderPass&&) noexcept = default;
+    VulkanRenderPass& operator=(VulkanRenderPass&& other) noexcept;
 
     ~VulkanRenderPass() noexcept;
 

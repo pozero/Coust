@@ -156,6 +156,8 @@ bool VulkanRenderTarget::is_attached_to_swapchain() const noexcept {
 void VulkanRenderTarget::attach(VulkanSwapchain& swapchain) noexcept {
     COUST_ASSERT(m_attached_to_swapchian, "");
     m_color.at(0).m_image = &swapchain.get_color_attachment();
+    m_color.at(0).m_layer = 0;
+    m_color.at(0).m_level = 0;
     m_extent = swapchain.m_extent;
 }
 

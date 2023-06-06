@@ -107,7 +107,7 @@ public:
 
     void refresh_swapchain() noexcept;
 
-public:
+private:
     int32_t m_max_msaa_sample = 1;
     uint32_t m_graphics_queue_family_idx = std::numeric_limits<uint32_t>::max();
     uint32_t m_present_queue_family_idx = std::numeric_limits<uint32_t>::max();

@@ -271,6 +271,19 @@ VulkanRenderPass::VulkanRenderPass(VkDevice dev, Param const& param) noexcept
         "");
 }
 
+VulkanRenderPass::VulkanRenderPass(VulkanRenderPass&& other) noexcept
+    : m_dev(other.m_dev), m_handle(other.m_handle) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanRenderPass& VulkanRenderPass::operator=(
+    VulkanRenderPass&& other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    return *this;
+}
+
 VulkanRenderPass::~VulkanRenderPass() noexcept {
     if (m_handle != VK_NULL_HANDLE) {
         vkDestroyRenderPass(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);

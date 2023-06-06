@@ -59,9 +59,9 @@ public:
 public:
     VulkanFramebuffer(VkDevice dev, Param const &param) noexcept;
 
-    VulkanFramebuffer(VulkanFramebuffer &&) noexcept = default;
+    VulkanFramebuffer(VulkanFramebuffer &&other) noexcept;
 
-    VulkanFramebuffer &operator=(VulkanFramebuffer &&) noexcept = default;
+    VulkanFramebuffer &operator=(VulkanFramebuffer &&other) noexcept;
 
     VulkanRenderPass const &get_render_pass() const noexcept;
 

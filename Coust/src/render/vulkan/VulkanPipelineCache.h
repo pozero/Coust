@@ -99,8 +99,8 @@ private:
     void fill_descriptor_set_requirements() noexcept;
 
 private:
-    memory::robin_map<VulkanShaderModule::Param, VulkanShaderModule,
-        DefaultAlloc>
+    memory::robin_map<VulkanShaderModule::Param,
+        memory::unique_ptr<VulkanShaderModule, DefaultAlloc>, DefaultAlloc>
         m_shader_modules{get_default_alloc()};
 
     memory::robin_map<VulkanPipelineLayout::Param,
@@ -126,9 +126,6 @@ private:
     const VulkanPipelineLayout *m_cur_pipeline_layout = nullptr;
 
     const VulkanGraphicsPipeline *m_cur_graphics_pipeline = nullptr;
-
-    memory::vector<VulkanDescriptorSet *, DefaultAlloc> m_cur_descriptor_sets{
-        get_default_alloc()};
 
     memory::robin_map<uint32_t, uint32_t, DefaultAlloc> m_dynamic_offsets{
         get_default_alloc()};

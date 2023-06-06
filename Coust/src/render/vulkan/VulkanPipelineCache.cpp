@@ -28,7 +28,6 @@ void VulkanGraphicsPipelineCache::reset() noexcept {
     m_cur_shader_modules.clear();
     m_cur_pipeline_layout = nullptr;
     m_cur_graphics_pipeline = nullptr;
-    m_cur_descriptor_sets.clear();
     m_dynamic_offsets.clear();
     m_pipeline_layout_requirement = {};
     m_graphics_pipelines_requirement = {};
@@ -40,7 +39,6 @@ void VulkanGraphicsPipelineCache::gc(
     m_gc_timer.tick();
     m_graphics_pipelines_requirement.special_const_info = {};
     m_cur_shader_modules.clear();
-    m_cur_descriptor_sets.clear();
     m_dynamic_offsets.clear();
     m_cur_graphics_pipeline = nullptr;
     m_cur_pipeline_layout = nullptr;
@@ -95,17 +93,18 @@ bool VulkanGraphicsPipelineCache::bind_shader(
     std::span<std::string_view> dynamic_buffer_names) noexcept {
     auto iter = m_shader_modules.find(param);
     if (iter != m_shader_modules.end()) {
-        m_cur_shader_modules.push_back(&iter.mapped());
+        m_cur_shader_modules.push_back(iter.mapped().get());
         return true;
     } else {
-        VulkanShaderModule shader_module{m_dev, param};
+        auto shader_module = memory::allocate_unique<VulkanShaderModule>(
+            get_default_alloc(), m_dev, param);
         for (auto const name : dynamic_buffer_names) {
-            shader_module.set_dynamic_buffer(name);
+            shader_module->set_dynamic_buffer(name);
         }
         auto [emplace_iter, success] =
             m_shader_modules.emplace(param, std::move(shader_module));
         COUST_PANIC_IF_NOT(success, "");
-        m_cur_shader_modules.push_back(&emplace_iter.mapped());
+        m_cur_shader_modules.push_back(emplace_iter.mapped().get());
         return false;
     }
 }
@@ -242,15 +241,10 @@ bool VulkanGraphicsPipelineCache::bind_descriptor_set(
     for (auto &requirement : m_descriptor_set_requirements) {
         auto iter = m_descriptor_sets.find(requirement);
         if (iter != m_descriptor_sets.end()) {
-            for (auto const set : m_cur_descriptor_sets) {
-                if (&iter.mapped().first == set)
-                    continue;
-            }
             m_descriptor_set_hit_counter.hit();
             auto &[set, last_accessed] = iter.mapped();
             set.apply_write(true);
             last_accessed = m_gc_timer.current_count();
-            m_cur_descriptor_sets.push_back(&set);
             sets_to_bind.push_back(set.get_handle());
         } else {
             m_descriptor_set_hit_counter.miss();
@@ -259,8 +253,7 @@ bool VulkanGraphicsPipelineCache::bind_descriptor_set(
             auto [insert_iter, success] = m_descriptor_sets.emplace(requirement,
                 std::make_pair(std::move(set), m_gc_timer.current_count()));
             COUST_PANIC_IF_NOT(success, "");
-            m_cur_descriptor_sets.push_back(&insert_iter.mapped().first);
-            sets_to_bind.push_back(set.get_handle());
+            sets_to_bind.push_back(insert_iter.mapped().first.get_handle());
         }
         if (m_dynamic_offsets.contains(requirement.set)) {
             dynamic_offsets.push_back(m_dynamic_offsets.at(requirement.set));
@@ -277,6 +270,9 @@ bool VulkanGraphicsPipelineCache::bind_descriptor_set(
 
 bool VulkanGraphicsPipelineCache::bind_graphics_pipeline(
     VkCommandBuffer cmdBuf) noexcept {
+    m_graphics_pipelines_requirement.shader_modules =
+        std::span<const VulkanShaderModule *>{
+            m_cur_shader_modules.data(), m_cur_shader_modules.size()};
     auto iter = m_graphics_pipelines.find(m_graphics_pipelines_requirement);
     if (iter != m_graphics_pipelines.end()) {
         if (&iter->second.first == m_cur_graphics_pipeline)

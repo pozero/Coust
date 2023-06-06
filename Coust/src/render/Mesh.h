@@ -47,8 +47,8 @@ uint32_t constexpr MAX_VERTEX_ATTRIB_COUNT = 8;
 
 struct Mesh {
     struct Primitive {
-        size_t index_offset = 0;
-        size_t index_count = 0;
+        uint32_t index_offset = 0;
+        uint32_t index_count = 0;
 
         //                  attrib_offset[1] == 1
         //                          |
@@ -59,7 +59,7 @@ struct Mesh {
         //                ^       attrib1                ^
         //                |                              |
         //        attrib_offset[0] == 4         attrib_offset[2] == 0
-        std::array<size_t, MAX_VERTEX_ATTRIB_COUNT> attrib_offset{
+        std::array<uint32_t, MAX_VERTEX_ATTRIB_COUNT> attrib_offset{
             INVALID_VERTEX_ATTRIB,
             INVALID_VERTEX_ATTRIB,
             INVALID_VERTEX_ATTRIB,
@@ -107,6 +107,8 @@ struct MeshAggregate {
         INVALID_VERTEX_ATTRIB,
         INVALID_VERTEX_ATTRIB,
     };
+
+    uint8_t valid_attrib_mask = 0;
 
     memory::vector<uint32_t, DefaultAlloc> index_buffer{get_default_alloc()};
     memory::vector<float, DefaultAlloc> vertex_buffer{get_default_alloc()};
