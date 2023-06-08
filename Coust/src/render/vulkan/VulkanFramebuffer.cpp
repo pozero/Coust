@@ -6,6 +6,7 @@
 #include "render/vulkan/utils/VulkanTagger.h"
 #include "render/vulkan/VulkanRenderPass.h"
 #include "render/vulkan/VulkanImage.h"
+#include "render/vulkan/utils/VulkanAllocation.h"
 
 namespace coust {
 namespace render {
@@ -67,6 +68,12 @@ VulkanFramebuffer &VulkanFramebuffer::operator=(
     std::swap(m_handle, other.m_handle);
     std::swap(m_render_pass, other.m_render_pass);
     return *this;
+}
+
+VulkanFramebuffer::~VulkanFramebuffer() noexcept {
+    if (m_handle) {
+        vkDestroyFramebuffer(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
+    }
 }
 
 VulkanRenderPass const &VulkanFramebuffer::get_render_pass() const noexcept {

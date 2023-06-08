@@ -41,74 +41,284 @@ FORCE_INLINE void visit_members(auto&& object, auto&& func) noexcept {
         return func();
     } else if constexpr (count == 1) {
         auto& [a1] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
         func(a1);
     } else if constexpr (count == 2) {
         auto& [a1, a2] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
         func(a1, a2);
     } else if constexpr (count == 3) {
         auto& [a1, a2, a3] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
         func(a1, a2, a3);
     } else if constexpr (count == 4) {
         auto& [a1, a2, a3, a4] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
         func(a1, a2, a3, a4);
     } else if constexpr (count == 5) {
         auto& [a1, a2, a3, a4, a5] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
         func(a1, a2, a3, a4, a5);
     } else if constexpr (count == 6) {
         auto& [a1, a2, a3, a4, a5, a6] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
         func(a1, a2, a3, a4, a5, a6);
     } else if constexpr (count == 7) {
         auto& [a1, a2, a3, a4, a5, a6, a7] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
         func(a1, a2, a3, a4, a5, a6, a7);
     } else if constexpr (count == 8) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8);
     } else if constexpr (count == 9) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9);
     } else if constexpr (count == 10) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
     } else if constexpr (count == 11) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
     } else if constexpr (count == 12) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12);
     } else if constexpr (count == 13) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13);
     } else if constexpr (count == 14) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14] =
             object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
     } else if constexpr (count == 15) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14,
             a15] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
+        static_assert(!std::is_pointer_v<decltype(a15)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15);
     } else if constexpr (count == 16) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
+        static_assert(!std::is_pointer_v<decltype(a15)>);
+        static_assert(!std::is_pointer_v<decltype(a16)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16);
     } else if constexpr (count == 17) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
+        static_assert(!std::is_pointer_v<decltype(a15)>);
+        static_assert(!std::is_pointer_v<decltype(a16)>);
+        static_assert(!std::is_pointer_v<decltype(a17)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17);
     } else if constexpr (count == 18) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
+        static_assert(!std::is_pointer_v<decltype(a15)>);
+        static_assert(!std::is_pointer_v<decltype(a16)>);
+        static_assert(!std::is_pointer_v<decltype(a17)>);
+        static_assert(!std::is_pointer_v<decltype(a18)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18);
     } else if constexpr (count == 19) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18, a19] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
+        static_assert(!std::is_pointer_v<decltype(a15)>);
+        static_assert(!std::is_pointer_v<decltype(a16)>);
+        static_assert(!std::is_pointer_v<decltype(a17)>);
+        static_assert(!std::is_pointer_v<decltype(a18)>);
+        static_assert(!std::is_pointer_v<decltype(a19)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18, a19);
     } else if constexpr (count == 20) {
         auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18, a19, a20] = object;
+        static_assert(!std::is_pointer_v<decltype(a1)>);
+        static_assert(!std::is_pointer_v<decltype(a2)>);
+        static_assert(!std::is_pointer_v<decltype(a3)>);
+        static_assert(!std::is_pointer_v<decltype(a4)>);
+        static_assert(!std::is_pointer_v<decltype(a5)>);
+        static_assert(!std::is_pointer_v<decltype(a6)>);
+        static_assert(!std::is_pointer_v<decltype(a7)>);
+        static_assert(!std::is_pointer_v<decltype(a8)>);
+        static_assert(!std::is_pointer_v<decltype(a9)>);
+        static_assert(!std::is_pointer_v<decltype(a10)>);
+        static_assert(!std::is_pointer_v<decltype(a11)>);
+        static_assert(!std::is_pointer_v<decltype(a12)>);
+        static_assert(!std::is_pointer_v<decltype(a13)>);
+        static_assert(!std::is_pointer_v<decltype(a14)>);
+        static_assert(!std::is_pointer_v<decltype(a15)>);
+        static_assert(!std::is_pointer_v<decltype(a16)>);
+        static_assert(!std::is_pointer_v<decltype(a17)>);
+        static_assert(!std::is_pointer_v<decltype(a18)>);
+        static_assert(!std::is_pointer_v<decltype(a19)>);
+        static_assert(!std::is_pointer_v<decltype(a20)>);
         func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
             a16, a17, a18, a19, a20);
     } else {
@@ -194,7 +404,13 @@ public:
                 object.resize(count);
             }
 
-            if constexpr (std::is_trivially_copyable_v<contained_type>) {
+            if constexpr (std::is_trivially_copyable_v<contained_type> &&
+                          requires {
+                              std::declval<Archive<ArchiveIn>>().serialize_one(
+                                  std::declval<contained_type>());
+                              std::declval<Archive<ArchiveOut>>().serialize_one(
+                                  std::declval<contained_type>());
+                          }) {
                 // if the container is contiguous, there's no need to care about
                 // padding
                 auto const bytes_count = count * sizeof(contained_type);

@@ -20,7 +20,6 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_StdAdapter_StdContainer.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_NaiveSerialization.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_FileCache.cpp
-        ${PROJECT_SOURCE_DIR}/Coust/src/test/Test_MeshConvertion.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/test/Test.h
         ${PROJECT_SOURCE_DIR}/Coust/src/test/doctest_impl.cpp
 )

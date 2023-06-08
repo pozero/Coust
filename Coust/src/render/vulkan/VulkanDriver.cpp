@@ -19,7 +19,7 @@ namespace detail {
 
 constexpr memory::string<DefaultAlloc> get_input_attachment_name(
     uint32_t idx) noexcept {
-    COUST_ASSERT(idx >= 0 && idx < MAX_ATTACHMENT_COUNT, "");
+    COUST_ASSERT(idx < MAX_ATTACHMENT_COUNT, "");
     switch (idx) {
         case 0:
             return "INPUT_ATTACHMENT_ZERO";
@@ -451,9 +451,9 @@ VulkanDriver::VulkanDriver(
 }
 
 VulkanDriver::~VulkanDriver() noexcept {
-    m_swapchain.get().destroy();
-
     m_cmdbuf_cache.destroy();
+
+    m_swapchain.get().destroy();
 
     m_fbo_cache.get().reset();
 
@@ -471,6 +471,10 @@ VulkanDriver::~VulkanDriver() noexcept {
         m_instance, m_dbg_messenger, COUST_VULKAN_ALLOC_CALLBACK);
 #endif
     vkDestroyInstance(m_instance, COUST_VULKAN_ALLOC_CALLBACK);
+}
+
+void VulkanDriver::wait() noexcept {
+    m_cmdbuf_cache.get().wait();
 }
 
 void VulkanDriver::gc() noexcept {
@@ -553,8 +557,10 @@ void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
     AttachmentFlags clear_mask, AttachmentFlags discard_start_mask,
     AttachmentFlags discard_end_mask, uint8_t input_attachment_mask,
     VkClearValue clear_val) noexcept {
+    uint8_t present_src_mask = 0u;
     if (render_target.is_attached_to_swapchain()) {
         discard_start_mask |= AttachmentFlagBits::COLOR0;
+        present_src_mask |= AttachmentFlagBits::COLOR0;
     }
     bool const multisampled_rt =
         render_target.get_sample_count() != VK_SAMPLE_COUNT_1_BIT;
@@ -576,6 +582,7 @@ void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
         .discard_end_mask = discard_end_mask,
         .sample = render_target.get_sample_count(),
         .input_attachment_mask = input_attachment_mask,
+        .present_src_mask = present_src_mask,
         .depth_resolve = multisampled_rt,
     };
     if (multisampled_rt) {
@@ -647,7 +654,7 @@ void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
                          .offset = {},
                          .extent = render_target.get_extent(),
                          },
-        .clearValueCount = (uint32_t) clear_values.size(),
+        .clearValueCount = render_target.get_attachment_cnt(),
         .pClearValues = clear_values.data(),
     };
     VkCommandBuffer cmdbuf = m_cmdbuf_cache.get().get();
@@ -655,8 +662,8 @@ void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
     VkViewport viewport{
         .x = 0.0f,
         .y = 0.0f,
-        .width = m_swapchain.get().m_extent.width,
-        .height = m_swapchain.get().m_extent.height,
+        .width = (float) m_swapchain.get().m_extent.width,
+        .height = (float) m_swapchain.get().m_extent.height,
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
@@ -704,7 +711,6 @@ void VulkanDriver::update_swapchain() noexcept {
 }
 
 void VulkanDriver::commit() noexcept {
-    m_swapchain.get().make_presentable();
     if (m_cmdbuf_cache.get().flush()) {
         gc();
     }
@@ -768,12 +774,22 @@ void VulkanDriver::draw(VulkanVertexIndexBuffer const& vertex_index_buf,
     }
     m_graphics_pipeline_cache.get().bind_buffer(
         VulkanVertexIndexBuffer::INDEX_BUF_NAME,
-        vertex_index_buf.get_index_buf(), 0, VK_WHOLE_SIZE, 0);
+        vertex_index_buf.get_index_buf(), 0,
+        vertex_index_buf.get_index_buf().get_size(), 0);
     m_graphics_pipeline_cache.get().bind_buffer(
         VulkanVertexIndexBuffer::ATTRIB_OFFSET_BUF_NAME,
-        vertex_index_buf.get_attrib_offset_buf(), 0, VK_WHOLE_SIZE, 0);
+        vertex_index_buf.get_attrib_offset_buf(), 0,
+        vertex_index_buf.get_attrib_offset_buf().get_size(), 0);
     m_graphics_pipeline_cache.get().bind_descriptor_set(cmdbuf);
-    vkCmdSetScissor(cmdbuf, 0, 1, &scissor);
+    if (scissor.extent.width != 0 && scissor.extent.height != 0) {
+        vkCmdSetScissor(cmdbuf, 0, 1, &scissor);
+    } else {
+        VkRect2D const whole_screen{
+            .offset = {0, 0},
+            .extent = m_swapchain.get().m_extent,
+        };
+        vkCmdSetScissor(cmdbuf, 0, 1, &whole_screen);
+    }
     m_graphics_pipeline_cache.get().bind_graphics_pipeline(cmdbuf);
     vkCmdDrawIndirect(cmdbuf, vertex_index_buf.get_draw_cmd_buf().get_handle(),
         0, (uint32_t) vertex_index_buf.get_primitive_count(),

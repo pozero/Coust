@@ -44,8 +44,6 @@ public:
 
     bool acquire() noexcept;
 
-    void make_presentable() noexcept;
-
     VulkanImage &get_color_attachment() noexcept;
 
     bool has_resized() const noexcept;

@@ -63,6 +63,8 @@ public:
 
     VulkanFramebuffer &operator=(VulkanFramebuffer &&other) noexcept;
 
+    ~VulkanFramebuffer() noexcept;
+
     VulkanRenderPass const &get_render_pass() const noexcept;
 
 private:

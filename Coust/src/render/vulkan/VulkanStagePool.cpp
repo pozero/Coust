@@ -77,7 +77,6 @@ memory::shared_ptr<VulkanHostImage> VulkanStagePool::acquire_staging_img(
 
 void VulkanStagePool::gc() noexcept {
     m_gc_timer.tick();
-
     {
         memory::vector<StagingBuffer, DefaultAlloc> tmp{get_default_alloc()};
         tmp.swap(m_free_staging_bufs);
@@ -92,7 +91,8 @@ void VulkanStagePool::gc() noexcept {
         memory::vector<StagingBuffer, DefaultAlloc> tmp{get_default_alloc()};
         tmp.swap(m_used_staging_bufs);
         for (auto& staging_buf : tmp) {
-            if (staging_buf.buf.use_count() == 1) {
+            if (staging_buf.buf.use_count() == 1 &&
+                m_gc_timer.should_recycle(staging_buf.last_accessed)) {
                 staging_buf.last_accessed = m_gc_timer.current_count();
                 m_free_staging_bufs.push_back(std::move(staging_buf));
             } else {
@@ -115,7 +115,8 @@ void VulkanStagePool::gc() noexcept {
         memory::vector<StagingImage, DefaultAlloc> tmp{get_default_alloc()};
         tmp.swap(m_used_staging_imgs);
         for (auto& staging_img : tmp) {
-            if (staging_img.img.use_count() == 1) {
+            if (staging_img.img.use_count() == 1 &&
+                m_gc_timer.should_recycle(staging_img.last_accessed)) {
                 staging_img.last_accessed = m_gc_timer.current_count();
                 m_free_staging_imgs.push_back(std::move(staging_img));
             } else {

@@ -1,7 +1,7 @@
 #version 460
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 out_color;
 
 void main() {
-    outColor = gl_FragCoord;
+    out_color = vec4(1.0, 1.0, 1.0, 1.0);
 }

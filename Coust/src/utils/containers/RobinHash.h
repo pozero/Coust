@@ -81,6 +81,7 @@ public:
         requires(std::swappable<value_type>)
     {
         COUST_ASSERT(!empty(), "Swap operation requried a filled bucket entry");
+        COUST_ASSERT(richer_than(dist), "");
         std::swap(m_distance_from_home, dist);
         std::swap(m_hash, hash);
         std::swap(m_value, value);
@@ -722,6 +723,16 @@ private:
         return Key_Equal::operator()(k1, k2);
     }
 
+    std::pair<size_t, distance_type> next(size_t old_bucket_idx,
+        distance_type old_dist, size_t home_bucket_idx) const noexcept {
+        size_t new_bucket_idx = Growth_Policy::next_idx(old_bucket_idx);
+        if (new_bucket_idx == home_bucket_idx)
+            return std::make_pair(
+                new_bucket_idx, bucket_entry::IDEAL_DIST_FROM_HOME);
+        else
+            return std::make_pair(new_bucket_idx, ++old_dist);
+    }
+
     static key_type& extract_key(value_type& value) noexcept {
         if constexpr (HAS_MAPPED) {
             return value.first;
@@ -760,7 +771,8 @@ private:
         robin_hash new_hash{new_bucket_count, (Hash&) (*this),
             (Key_Equal&) (*this), get_allocator(), m_min_load_factor,
             m_max_load_factor};
-        auto const move_value_to = [this](auto& rh, size_t bucket_idx,
+        auto const move_value_to = [this](auto& rh, size_t home_idx,
+                                       size_t bucket_idx,
                                        distance_type dist_from_home,
                                        hash_type hash, value_type&& value) {
             auto& buckets_data = rh.m_buckets_container;
@@ -774,8 +786,8 @@ private:
                         buckets_data[bucket_idx].swap(
                             dist_from_home, hash, value);
                 }
-                ++dist_from_home;
-                bucket_idx = Growth_Policy::next_idx(bucket_idx);
+                std::tie(bucket_idx, dist_from_home) =
+                    next(bucket_idx, dist_from_home, home_idx);
             }
         };
         for (auto& bucket : m_buckets_container) {
@@ -783,7 +795,7 @@ private:
                 continue;
             hash_type const hash = bucket.get_hash();
             size_t const bucket_idx = new_hash.hash_to_index(hash);
-            move_value_to(new_hash, bucket_idx,
+            move_value_to(new_hash, bucket_idx, bucket_idx,
                 bucket_entry::IDEAL_DIST_FROM_HOME, hash,
                 std::move(bucket.get_value()));
         }
@@ -798,13 +810,13 @@ private:
         requires(std::same_as<key_type, std::remove_cvref_t<K>>)
     {
         auto const insert_value_to_filled_bucket =
-            [this](size_t bucket_idx, distance_type dist_from_home,
-                hash_type hash, auto&& value) {
+            [this](size_t home_idx, size_t bucket_idx,
+                distance_type dist_from_home, hash_type hash, auto&& value) {
                 COUST_ASSERT(
                     m_buckets[bucket_idx].richer_than(dist_from_home), "");
                 m_buckets[bucket_idx].swap(dist_from_home, hash, value);
-                bucket_idx = Growth_Policy::next_idx(bucket_idx);
-                ++dist_from_home;
+                std::tie(bucket_idx, dist_from_home) =
+                    next(bucket_idx, dist_from_home, home_idx);
                 while (!m_buckets[bucket_idx].empty()) {
                     if (m_buckets[bucket_idx].richer_than(dist_from_home)) {
                         m_grow_on_next_insert =
@@ -812,8 +824,8 @@ private:
                             dist_from_home > bucket_entry::MAX_DIST_FROM_HOME;
                         m_buckets[bucket_idx].swap(dist_from_home, hash, value);
                     }
-                    bucket_idx = Growth_Policy::next_idx(bucket_idx);
-                    ++dist_from_home;
+                    std::tie(bucket_idx, dist_from_home) =
+                        next(bucket_idx, dist_from_home, home_idx);
                 }
                 m_buckets[bucket_idx].fill(
                     dist_from_home, hash, std::move(value));
@@ -849,7 +861,8 @@ private:
 
         size_t const origin_hash = key_to_hash(key);
         hash_type const truncated_hash = truncate(origin_hash);
-        size_t bucket_idx = hash_to_index(truncated_hash);
+        size_t home_idx = hash_to_index(truncated_hash);
+        size_t bucket_idx = home_idx;
         distance_type dist_from_home = bucket_entry::IDEAL_DIST_FROM_HOME;
         // find bucket who's richer than us and get ready to "rob" it
         while (m_buckets[bucket_idx].poorer_than_or_same_as(dist_from_home)) {
@@ -858,18 +871,19 @@ private:
                 compare_keys(m_buckets[bucket_idx].get_key(), key)) {
                 return std::make_pair(iterator(m_buckets + bucket_idx), false);
             }
-            bucket_idx = Growth_Policy::next_idx(bucket_idx);
-            ++dist_from_home;
+            std::tie(bucket_idx, dist_from_home) =
+                next(bucket_idx, dist_from_home, home_idx);
+            COUST_ASSERT(dist_from_home != 0, "");
         }
         // keep growing / shrinking if needed
         while (grow_if_needed(dist_from_home) || shrink_if_needed()) {
             // if the container changed, find another bucket to rob
-            bucket_idx = hash_to_index(truncated_hash);
+            bucket_idx = home_idx = hash_to_index(truncated_hash);
             dist_from_home = bucket_entry::IDEAL_DIST_FROM_HOME;
             while (
                 m_buckets[bucket_idx].poorer_than_or_same_as(dist_from_home)) {
-                bucket_idx = Growth_Policy::next_idx(bucket_idx);
-                ++dist_from_home;
+                std::tie(bucket_idx, dist_from_home) =
+                    next(bucket_idx, dist_from_home, home_idx);
             }
         }
         if (m_buckets[bucket_idx].empty()) {
@@ -878,7 +892,7 @@ private:
         } else {
             value_type value{std::forward<Args>(value_args)...};
             insert_value_to_filled_bucket(
-                bucket_idx, dist_from_home, truncated_hash, value);
+                bucket_idx, bucket_idx, dist_from_home, truncated_hash, value);
         }
         ++m_filled_bucket_count;
         return std::make_pair(iterator(m_buckets + bucket_idx), true);
@@ -957,18 +971,15 @@ private:
     template <typename K>
     const_iterator find_impl(K const& key, size_t hash) const noexcept {
         hash_type truncated_hash = truncate(hash);
-        size_t bucket_idx = hash_to_index(truncated_hash);
+        size_t const home_idx = hash_to_index(truncated_hash);
+        size_t bucket_idx = home_idx;
         distance_type dist_from_home = bucket_entry::IDEAL_DIST_FROM_HOME;
-        // our search begins from the home, so if the following buckets have
-        // the same hash value, we should expect their `m_dist_from_home` be
-        // not less than as our local var `dist_from_home`
-        while (
-            m_buckets[bucket_idx].get_distance_from_home() >= dist_from_home) {
+        while (m_buckets[bucket_idx].poorer_than_or_same_as(dist_from_home)) {
             if (m_buckets[bucket_idx].get_hash() == truncated_hash &&
                 compare_keys(m_buckets[bucket_idx].get_key(), key)) [[likely]]
                 return const_iterator(m_buckets + bucket_idx);
-            ++bucket_idx;
-            ++dist_from_home;
+            std::tie(bucket_idx, dist_from_home) =
+                next(bucket_idx, dist_from_home, home_idx);
         }
         return cend();
     }

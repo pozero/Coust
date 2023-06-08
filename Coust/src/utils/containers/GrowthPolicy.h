@@ -70,7 +70,7 @@ public:
 
     void clear() noexcept { m_mask = 0u; }
 
-    size_t next_idx(size_t idx) noexcept { return (idx + 1) & m_mask; }
+    size_t next_idx(size_t idx) const noexcept { return (idx + 1) & m_mask; }
 
 private:
 private:

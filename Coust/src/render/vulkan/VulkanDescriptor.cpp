@@ -79,7 +79,6 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
                 .stageFlags = res.vk_shader_stage,
             };
             m_idx_to_binding.emplace(res.binding, binding);
-            m_name_to_idx.emplace(res.name, res.binding);
             vk_bindings.push_back(binding);
         }
     }
@@ -100,7 +99,6 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
       m_handle(other.m_handle),
       m_set(other.m_set),
       m_idx_to_binding(std::move(other.m_idx_to_binding)),
-      m_name_to_idx(std::move(other.m_name_to_idx)),
       m_hash(other.m_hash) {
     other.m_dev = VK_NULL_HANDLE;
     other.m_handle = VK_NULL_HANDLE;
@@ -113,14 +111,14 @@ VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout() noexcept {
     }
 }
 
-VkDescriptorSetLayoutBinding VulkanDescriptorSetLayout::get_binding(
+VkDescriptorType VulkanDescriptorSetLayout::get_binding_type(
     uint32_t binding) const noexcept {
     auto iter = m_idx_to_binding.find(binding);
     COUST_PANIC_IF(iter == m_idx_to_binding.end(),
         "Requesting non-existed binding to a vulkan descriptor set layout. The "
         "binding is: set {}, binding {}",
         m_set, binding);
-    return iter->second;
+    return iter->second.descriptorType;
 }
 
 uint32_t VulkanDescriptorSetLayout::get_set() const noexcept {
@@ -150,6 +148,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(
       m_handle(param.allocator->allocate()),
       m_alloc(param.allocator),
       m_set(param.set) {
+    COUST_ASSERT(param.attached_cmdbuf != VK_NULL_HANDLE, "");
     VkPhysicalDeviceProperties phy_dev_props{};
     vkGetPhysicalDeviceProperties(phy_dev, &phy_dev_props);
     auto const &layout = param.allocator->get_layout();
@@ -159,15 +158,14 @@ VulkanDescriptorSet::VulkanDescriptorSet(
         }
         uint32_t const binding = buffer_array.binding;
         auto const &buffers = buffer_array.buffers;
-        VkDescriptorSetLayoutBinding bindingInfo = layout.get_binding(binding);
+        VkDescriptorType const binding_type = layout.get_binding_type(binding);
         for (auto &b : buffers) {
             if (b.buffer == VK_NULL_HANDLE)
                 continue;
             if (uint32_t uniformBufferRangeLimit =
                     phy_dev_props.limits.maxUniformBufferRange;
-                (bindingInfo.descriptorType ==
-                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-                    bindingInfo.descriptorType ==
+                (binding_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+                    binding_type ==
                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) &&
                 b.range > uniformBufferRangeLimit && b.range != VK_WHOLE_SIZE) {
                 COUST_PANIC_IF(true,
@@ -177,9 +175,8 @@ VulkanDescriptorSet::VulkanDescriptorSet(
                     uniformBufferRangeLimit);
             } else if (uint32_t storageBufferRangeLimit =
                            phy_dev_props.limits.maxStorageBufferRange;
-                       (bindingInfo.descriptorType ==
-                               VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-                           bindingInfo.descriptorType ==
+                       (binding_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+                           binding_type ==
                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) &&
                        b.range > storageBufferRangeLimit &&
                        b.range != VK_WHOLE_SIZE) {
@@ -189,53 +186,35 @@ VulkanDescriptorSet::VulkanDescriptorSet(
                     b.range, layout.get_set(), binding,
                     storageBufferRangeLimit);
             }
-            // https://en.cppreference.com/w/cpp/language/data_members#Standard-layout
-            // A pointer to an object of standard-layout class type can be
-            // reinterpret_cast to pointer to its first non-static non-bitfield
-            // data member (if it has non-static data members) or otherwise any
-            // of its base class subobjects (if it has any), and vice versa. In
-            // other words, padding is not allowed before the first data member
-            // of a standard-layout type.
-            static_assert(std::is_standard_layout_v<BoundBuffer>);
-            VkWriteDescriptorSet write{
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = m_handle,
-                .dstBinding = bindingInfo.binding,
-                // record one element at a time
+            WriteBufferInfo info{
+                .dstBinding = binding,
                 .dstArrayElement = b.dst_array_idx,
-                .descriptorCount = 1,
-                .descriptorType = bindingInfo.descriptorType,
-                // `BoundElement<*>` is a standard-layout class type so we can
-                // convert its pointer directly to `VkDescriptorBufferInfo*`
-                .pBufferInfo = (const VkDescriptorBufferInfo *) &b,
+                .descriptorType = binding_type,
+                .buffer = b.buffer,
+                .offset = b.offset,
+                .range = b.range,
             };
-            m_writes.push_back(write);
+            m_write_buf_infos.push_back(info);
         }
     }
-
     for (auto &image_array : param.image_infos) {
         if (image_array.binding == BoundImageArray{}.binding)
             continue;
-        uint32_t binding = image_array.binding;
+        uint32_t const binding = image_array.binding;
         auto const &images = image_array.images;
-        VkDescriptorSetLayoutBinding bindingInfo = layout.get_binding(binding);
+        VkDescriptorType const binding_type = layout.get_binding_type(binding);
         for (auto &i : images) {
             if (i.image_view == VK_NULL_HANDLE)
                 continue;
-            static_assert(std::is_standard_layout_v<BoundImage>);
-            VkWriteDescriptorSet write{
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = m_handle,
-                .dstBinding = bindingInfo.binding,
-                // record one element at a time
+            WriteImageInfo info{
+                .dstBinding = binding,
                 .dstArrayElement = i.dst_array_idx,
-                .descriptorCount = 1,
-                .descriptorType = bindingInfo.descriptorType,
-                // `BoundElement<*>` is a standard-layout class type so we can
-                // convert its pointer directly to `VkDescriptorBufferInfo*`
-                .pImageInfo = (const VkDescriptorImageInfo *) &i,
+                .descriptorType = binding_type,
+                .sampler = i.sampler,
+                .imageView = i.image_view,
+                .imageLayout = i.image_layout,
             };
-            m_writes.push_back(write);
+            m_write_img_infos.push_back(info);
         }
     }
 }
@@ -244,8 +223,8 @@ VulkanDescriptorSet::VulkanDescriptorSet(VulkanDescriptorSet &&other) noexcept
     : m_dev(other.m_dev),
       m_handle(other.m_handle),
       m_alloc(other.m_alloc),
-      m_writes(std::move(other.m_writes)),
-      m_applied_write_indices(std::move(other.m_applied_write_indices)),
+      m_write_buf_infos(std::move(other.m_write_buf_infos)),
+      m_write_img_infos(std::move(other.m_write_img_infos)),
       m_set(other.m_set) {
     other.m_dev = VK_NULL_HANDLE;
     other.m_handle = VK_NULL_HANDLE;
@@ -256,8 +235,8 @@ VulkanDescriptorSet &VulkanDescriptorSet::operator=(
     std::swap(m_dev, other.m_dev);
     std::swap(m_handle, other.m_handle);
     std::swap(m_alloc, other.m_alloc);
-    std::swap(m_writes, other.m_writes);
-    std::swap(m_applied_write_indices, other.m_applied_write_indices);
+    std::swap(m_write_buf_infos, other.m_write_buf_infos);
+    std::swap(m_write_img_infos, other.m_write_img_infos);
     std::swap(m_set, other.m_set);
     return *this;
 }
@@ -268,45 +247,38 @@ VulkanDescriptorSet::~VulkanDescriptorSet() noexcept {
     }
 }
 
-void VulkanDescriptorSet::apply_write(
-    std::span<const uint32_t> bindings_to_update) noexcept {
-    memory::vector<VkWriteDescriptorSet, DefaultAlloc> write_not_applied{
+void VulkanDescriptorSet::apply_write() const noexcept {
+    memory::vector<VkWriteDescriptorSet, DefaultAlloc> writes{
         get_default_alloc()};
-    write_not_applied.reserve(bindings_to_update.size());
-    for (uint32_t const i : bindings_to_update) {
-        if (!std::ranges::contains(m_applied_write_indices, i)) {
-            write_not_applied.push_back(m_writes[i]);
-            m_applied_write_indices.push_back(i);
-        }
+    writes.reserve(m_write_buf_infos.size() + m_write_img_infos.size());
+    for (auto const &buf_info : m_write_buf_infos) {
+        static_assert(std::is_standard_layout_v<WriteBufferInfo>);
+        VkWriteDescriptorSet write{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = m_handle,
+            .dstBinding = buf_info.dstBinding,
+            .dstArrayElement = buf_info.dstArrayElement,
+            .descriptorCount = 1,
+            .descriptorType = buf_info.descriptorType,
+            .pBufferInfo = (const VkDescriptorBufferInfo *) &buf_info.buffer,
+        };
+        writes.push_back(write);
     }
-    if (!write_not_applied.empty()) {
-        vkUpdateDescriptorSets(m_dev, (uint32_t) write_not_applied.size(),
-            write_not_applied.data(), 0, nullptr);
+    for (auto const &img_info : m_write_img_infos) {
+        static_assert(std::is_standard_layout_v<WriteImageInfo>);
+        VkWriteDescriptorSet write{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = m_handle,
+            .dstBinding = img_info.dstBinding,
+            .dstArrayElement = img_info.dstArrayElement,
+            .descriptorCount = 1,
+            .descriptorType = img_info.descriptorType,
+            .pImageInfo = (const VkDescriptorImageInfo *) &img_info.sampler,
+        };
+        writes.push_back(write);
     }
-}
-
-void VulkanDescriptorSet::apply_write(bool overwrite) noexcept {
-    if (overwrite) {
-        vkUpdateDescriptorSets(
-            m_dev, (uint32_t) m_writes.size(), m_writes.data(), 0, nullptr);
-    } else {
-        memory::vector<VkWriteDescriptorSet, DefaultAlloc> write_not_applied{
-            get_default_alloc()};
-        for (uint32_t i = 0; i < m_writes.size(); ++i) {
-            if (!std::ranges::contains(m_applied_write_indices, i)) {
-                write_not_applied.push_back(m_writes[i]);
-                m_applied_write_indices.push_back(i);
-            }
-        }
-        if (!write_not_applied.empty()) {
-            vkUpdateDescriptorSets(m_dev, (uint32_t) write_not_applied.size(),
-                write_not_applied.data(), 0, nullptr);
-        }
-    }
-    m_applied_write_indices.clear();
-    for (uint32_t i = 0; i < m_writes.size(); ++i) {
-        m_applied_write_indices.push_back(i);
-    }
+    vkUpdateDescriptorSets(
+        m_dev, (uint32_t) writes.size(), writes.data(), 0, nullptr);
 }
 
 uint32_t VulkanDescriptorSet::get_set() const noexcept {
@@ -500,8 +472,7 @@ std::size_t hash<coust::render::BoundImage>::operator()(
 
 std::size_t hash<coust::render::VulkanDescriptorSet::Param>::operator()(
     coust::render::VulkanDescriptorSet::Param const &key) const noexcept {
-    std::size_t h =
-        coust::calc_std_hash(key.allocator->get_layout().get_hash());
+    std::size_t h = key.allocator->get_layout().get_hash();
     for (auto const &buffer_arr : key.buffer_infos) {
         for (auto const &buffer : buffer_arr.buffers) {
             coust::hash_combine(h, buffer);
@@ -514,15 +485,18 @@ std::size_t hash<coust::render::VulkanDescriptorSet::Param>::operator()(
         }
         coust::hash_combine(h, image_arr.binding);
     }
+    coust::hash_combine(h, key.attached_cmdbuf);
+    coust::hash_combine(h, key.set);
     return h;
 }
 
 bool equal_to<coust::render::VulkanDescriptorSet::Param>::operator()(
     coust::render::VulkanDescriptorSet::Param const &left,
     coust::render::VulkanDescriptorSet::Param const &right) const noexcept {
-    bool other_bol =
-        left.set == right.set && left.allocator->get_layout().get_handle() ==
-                                     right.allocator->get_layout().get_handle();
+    bool other_bol = left.set == right.set &&
+                     left.attached_cmdbuf == right.attached_cmdbuf &&
+                     left.allocator->get_layout().get_handle() ==
+                         right.allocator->get_layout().get_handle();
     if (!other_bol)
         return false;
     return std::ranges::equal(left.buffer_infos, right.buffer_infos,

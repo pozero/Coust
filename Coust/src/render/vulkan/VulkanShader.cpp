@@ -120,6 +120,8 @@ VulkanShaderModule::VulkanShaderModule(
     }
     {
         m_reflection_data_cache_tag = m_byte_code_cache_tag;
+        uint32_t constexpr reflection_magic_val = 0x97538642;
+        hash_combine(m_reflection_data_cache_tag, reflection_magic_val);
         for (auto const& [name, size] :
             param.source.get_dynamic_buffer_sizes()) {
             hash_combine(m_reflection_data_cache_tag, name);

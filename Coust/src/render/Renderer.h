@@ -16,6 +16,8 @@ public:
 public:
     Renderer() noexcept;
 
+    ~Renderer() noexcept;
+
     void begin_frame() noexcept;
 
     void render(std::filesystem::path gltf_path,

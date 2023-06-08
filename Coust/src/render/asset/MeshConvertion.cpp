@@ -96,7 +96,7 @@ inline size_t copy_vertex_data_from_gltf_buffer(tinygltf::Model const& model,
 }
 WARNING_POP
 
-inline std::pair<size_t, size_t> copy_index_data_from_gltf_buffer(
+inline std::pair<uint32_t, uint32_t> copy_index_data_from_gltf_buffer(
     tinygltf::Model const& model, size_t accessor_idx,
     memory::vector<uint32_t, DefaultAlloc>& out_index_data) noexcept {
     auto const& gltf_accessor = model.accessors[accessor_idx];
@@ -165,7 +165,8 @@ inline std::pair<size_t, size_t> copy_index_data_from_gltf_buffer(
             std::back_inserter(out_index_data));
     }
     COUST_ASSERT((out_index_data.size() - ret) == gltf_accessor.count, "");
-    return std::make_pair(ret, gltf_accessor.count);
+    COUST_PANIC_IF(ret > std::numeric_limits<uint32_t>::max(), "");
+    return std::make_pair((uint32_t) ret, (uint32_t) gltf_accessor.count);
 }
 
 }  // namespace detail
@@ -244,13 +245,15 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
     // pack different attributes data together
     size_t float_count_offset = 0;
     for (uint32_t i = 0; i < 8; ++i) {
+        COUST_PANIC_IF(
+            float_count_offset > std::numeric_limits<uint32_t>::max(), "");
         mesh_aggregate.attrib_bytes_offset[i] =
             float_count_offset * sizeof(float);
         if (!all_attrib_data[i].empty()) {
             mesh_aggregate.valid_attrib_mask |= (1 << i);
             for (auto& mesh : mesh_aggregate.meshes) {
                 for (auto& primitive : mesh.primitives) {
-                    primitive.attrib_offset[i] += float_count_offset;
+                    primitive.attrib_offset[i] += (uint32_t) float_count_offset;
                 }
             }
             float_count_offset += all_attrib_data[i].size();

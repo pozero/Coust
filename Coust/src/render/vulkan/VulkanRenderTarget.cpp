@@ -161,5 +161,20 @@ void VulkanRenderTarget::attach(VulkanSwapchain& swapchain) noexcept {
     m_extent = swapchain.m_extent;
 }
 
+uint32_t VulkanRenderTarget::get_attachment_cnt() const noexcept {
+    uint32_t ret = 0;
+    for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++i) {
+        if (m_color[i].m_image)
+            ++ret;
+        if (m_color_msaa[i].m_image)
+            ++ret;
+    }
+    if (m_depth.m_image)
+        ++ret;
+    if (m_depth_msaa.m_image)
+        ++ret;
+    return ret;
+}
+
 }  // namespace render
 }  // namespace coust

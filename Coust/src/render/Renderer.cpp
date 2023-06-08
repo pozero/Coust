@@ -39,6 +39,12 @@ Renderer::Renderer() noexcept {
     m_attached_render_target = &m_vk_driver.get().get_attached_render_target();
 }
 
+Renderer::~Renderer() noexcept {
+    m_vk_driver.get().wait();
+    m_vertex_index_bufes.clear();
+    m_vk_driver.destroy();
+}
+
 void Renderer::begin_frame() noexcept {
     m_vk_driver.get().update_swapchain();
     m_vk_driver.get().begin_frame();
@@ -64,14 +70,18 @@ void Renderer::render(std::filesystem::path gltf_path,
     }
     VulkanVertexIndexBuffer const& vertex_index_buf =
         m_vertex_index_bufes[vertex_index_buf_idx];
+    VkClearValue clear_val{
+        .color = {.float32 = {0.7f, 0.7f, 0.7f, 1.0f}},
+    };
     m_vk_driver.get().begin_render_pass(*m_attached_render_target,
-        AttachmentFlagBits::COLOR0, 0, 0, 0, VkClearValue{});
+        AttachmentFlagBits::COLOR0, 0, 0, 0, clear_val);
     m_vk_driver.get().bind_shader(
         VK_SHADER_STAGE_VERTEX_BIT, vert_shader_path, {});
     m_vk_driver.get().bind_shader(
         VK_SHADER_STAGE_FRAGMENT_BIT, frag_shader_path, {});
-    m_vk_driver.get().draw(
-        vertex_index_buf, VulkanGraphicsPipeline::RasterState{}, {});
+    VulkanGraphicsPipeline::RasterState raster_state{};
+    raster_state.front_face = VK_FRONT_FACE_CLOCKWISE;
+    m_vk_driver.get().draw(vertex_index_buf, raster_state, {});
     m_vk_driver.get().end_render_pass();
 }
 

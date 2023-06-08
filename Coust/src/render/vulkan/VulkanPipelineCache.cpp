@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "utils/math/Hash.h"
 #include "render/vulkan/VulkanPipelineCache.h"
 #include "render/vulkan/VulkanRenderTarget.h"
 
@@ -239,20 +240,25 @@ bool VulkanGraphicsPipelineCache::bind_descriptor_set(
     // binding array, elements are in order. dynamicOffsetCount must equal the
     // total number of dynamic descriptors in the sets being bound.
     for (auto &requirement : m_descriptor_set_requirements) {
+        requirement.attached_cmdbuf = cmdBuf;
         auto iter = m_descriptor_sets.find(requirement);
         if (iter != m_descriptor_sets.end()) {
             m_descriptor_set_hit_counter.hit();
-            auto &[set, last_accessed] = iter.mapped();
-            set.apply_write(true);
-            last_accessed = m_gc_timer.current_count();
+            iter.mapped().second = m_gc_timer.current_count();
+            auto const &[set, last_accessed] = iter.mapped();
+            set.apply_write();
             sets_to_bind.push_back(set.get_handle());
         } else {
             m_descriptor_set_hit_counter.miss();
             VulkanDescriptorSet set{m_dev, m_phy_dev, requirement};
-            set.apply_write(true);
+            set.apply_write();
             auto [insert_iter, success] = m_descriptor_sets.emplace(requirement,
                 std::make_pair(std::move(set), m_gc_timer.current_count()));
-            COUST_PANIC_IF_NOT(success, "");
+            COUST_PANIC_IF_NOT(success,
+                "origin hash: {}, requirement hash: {}, equal_to return {}",
+                calc_std_hash(insert_iter.key()), calc_std_hash(requirement),
+                std::equal_to<VulkanDescriptorSet::Param>{}(
+                    insert_iter.key(), requirement));
             sets_to_bind.push_back(insert_iter.mapped().first.get_handle());
         }
         if (m_dynamic_offsets.contains(requirement.set)) {

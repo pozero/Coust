@@ -133,8 +133,9 @@ VulkanRenderPass::VulkanRenderPass(VkDevice dev, Param const& param) noexcept
                 VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             color_attachment_ref[1][ref_idx].attachment = attachment_idx;
         }
-        const bool clear = (param.clear_mask & (1 << i)) != 0;
-        const bool discard = (param.discard_start_mask & (1 << i)) != 0;
+        bool const clear = (param.clear_mask & (1 << i)) != 0;
+        bool const discard = (param.discard_start_mask & (1 << i)) != 0;
+        bool const is_present_src = (param.present_src_mask & (1 << i)) != 0;
         attachements[attachment_idx].sType =
             VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
         attachements[attachment_idx].pNext = nullptr;
@@ -158,7 +159,8 @@ VulkanRenderPass::VulkanRenderPass(VkDevice dev, Param const& param) noexcept
         attachements[attachment_idx].initialLayout =
             discard ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_GENERAL;
         attachements[attachment_idx].finalLayout =
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+            is_present_src ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR :
+                             VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
         ++attachment_idx;
     }
     // resolve attachment
@@ -317,6 +319,7 @@ std::size_t hash<coust::render::VulkanRenderPass::Param>::operator()(
     coust::hash_combine(h, key.sample);
     coust::hash_combine(h, key.resolve_mask);
     coust::hash_combine(h, key.input_attachment_mask);
+    coust::hash_combine(h, key.present_src_mask);
     coust::hash_combine(h, key.depth_resolve);
     return h;
 }
@@ -332,6 +335,7 @@ bool equal_to<coust::render::VulkanRenderPass::Param>::operator()(
            left.sample == right.sample &&
            left.resolve_mask == right.resolve_mask &&
            left.input_attachment_mask == right.input_attachment_mask &&
+           left.present_src_mask == right.present_src_mask &&
            left.depth_resolve == right.depth_resolve;
 }
 

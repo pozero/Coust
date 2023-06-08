@@ -80,6 +80,8 @@ public:
 
     void attach(VulkanSwapchain& swapchain) noexcept;
 
+    uint32_t get_attachment_cnt() const noexcept;
+
 private:
     std::array<VulkanAttachment, MAX_ATTACHMENT_COUNT> m_color{};
 

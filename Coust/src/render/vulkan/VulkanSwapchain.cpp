@@ -101,26 +101,25 @@ void VulkanSwapchain::prepare() noexcept {
 bool VulkanSwapchain::create() noexcept {
     auto [width, height] =
         Application::get_instance().get_window().get_drawable_size();
-    while (width == 0 || height == 0) {
-        std::tie(width, height) =
-            Application::get_instance().get_window().get_drawable_size();
-        Application::get_instance().get_window().poll_events();
-    }
     VkSurfaceCapabilitiesKHR capabilities{};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-        m_phy_dev, m_surface, &capabilities);
-    if (capabilities.currentExtent.width == (uint32_t) -1 ||
-        capabilities.currentExtent.height == (uint32_t) -1) {
-        std::tie(width, height) =
-            Application::get_instance().get_window().get_drawable_size();
-        m_extent = VkExtent2D{
-            std::clamp((uint32_t) width, capabilities.minImageExtent.width,
-                capabilities.maxImageExtent.width),
-            std::clamp((uint32_t) height, capabilities.minImageExtent.height,
-                capabilities.maxImageExtent.height)};
-    } else {
-        m_extent = capabilities.currentExtent;
-    }
+    do {
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            m_phy_dev, m_surface, &capabilities);
+        if (capabilities.currentExtent.width == (uint32_t) -1 ||
+            capabilities.currentExtent.height == (uint32_t) -1) {
+            std::tie(width, height) =
+                Application::get_instance().get_window().get_drawable_size();
+            m_extent = VkExtent2D{
+                std::clamp((uint32_t) width, capabilities.minImageExtent.width,
+                    capabilities.maxImageExtent.width),
+                std::clamp((uint32_t) height,
+                    capabilities.minImageExtent.height,
+                    capabilities.maxImageExtent.height)};
+        } else {
+            m_extent = capabilities.currentExtent;
+        }
+        Application::get_instance().get_window().poll_events();
+    } while (m_extent.width == 0 || m_extent.height == 0);
     VkSwapchainCreateInfoKHR swapchain_info{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = m_surface,
@@ -166,6 +165,7 @@ bool VulkanSwapchain::create() noexcept {
     COUST_VK_CHECK(vkCreateSemaphore(m_dev, &sama_info,
                        COUST_VULKAN_ALLOC_CALLBACK, &m_img_avai_singal),
         "");
+    detail::tag_vkobj_with_name("Swapchain Image Avaiable Semaphore", *this);
     m_is_next_img_acquired = false;
     return true;
 }
@@ -191,16 +191,6 @@ bool VulkanSwapchain::acquire() noexcept {
         m_is_suboptimal = true;
     }
     return true;
-}
-
-void VulkanSwapchain::make_presentable() noexcept {
-    get_color_attachment().transition_layout(m_cmd_cache.get(),
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        VkImageSubresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1});
 }
 
 VulkanImage& VulkanSwapchain::get_color_attachment() noexcept {

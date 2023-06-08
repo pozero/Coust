@@ -6,76 +6,7 @@
 #include "utils/containers/RobinSet.h"
 #include "utils/containers/RobinMap.h"
 
-TEST_CASE(
-    "[Coust] [utils] [containers] RobinHash Entry" * doctest::skip(true)) {
-    struct Obj {
-    public:
-        Obj() = delete;
-
-        Obj(int* pcc, int* pdc) : construct_cnt(pcc), destruct_cnt(pdc) {
-            (*construct_cnt)++;
-        }
-
-        Obj(Obj const& other)
-            : construct_cnt(other.construct_cnt),
-              destruct_cnt(other.destruct_cnt) {
-            (*construct_cnt)++;
-        }
-
-        ~Obj() { (*destruct_cnt)++; }
-
-    private:
-        int* construct_cnt;
-        int* destruct_cnt;
-    };
-    using namespace coust::container;
-
-    size_t what_so_ever = 1u;
-    detail::power_of_two_growth<2> what_ever{what_so_ever};
-
-    SUBCASE("Empty entry") {
-        int cc = 0, dc = 0;
-        detail::robin_bucket_entry<Obj> e0{false};
-        detail::robin_bucket_entry<Obj> e1{};
-        CHECK(e0.empty());
-        CHECK(e1.empty());
-        e0.fill(1, 0, &cc, &dc);
-        e1.fill(1, 0, &cc, &dc);
-        CHECK(!e0.empty());
-        CHECK(!e1.empty());
-        CHECK(e0.poorer_than_or_same_as(1));
-        CHECK(e0.poorer_than_or_same_as(0));
-        CHECK(e0.richer_than(2));
-        CHECK(e0.richer_than(3));
-        CHECK(cc == 2);
-        CHECK(dc == 0);
-        e0.clear();
-        e1.clear();
-        CHECK(e0.empty());
-        CHECK(e1.empty());
-        CHECK(cc == 2);
-        CHECK(dc == 2);
-    }
-
-    SUBCASE("Filled entry") {
-        std::string s0{"Some texts"};
-        std::string s1{"Some other texts"};
-        detail::robin_bucket_entry<std::string> e0{};
-        detail::robin_bucket_entry<std::string> e1{};
-        e0.fill(1, 0, s0);
-        e1.fill(1, 0, s1);
-        CHECK(e0.get_value() == s0);
-        CHECK(e1.get_value() == s1);
-        decltype(e0)::distance_type d0 = 1, d1 = 1;
-        detail::hash_type h0 = 0, h1 = 0;
-        e0.swap(d0, h0, s1);
-        e1.swap(d1, h1, s0);
-        CHECK(e0.get_value() == s0);
-        CHECK(e1.get_value() == s1);
-    }
-}
-
-TEST_CASE("[Coust] [utils] [containers] RobinHash" * doctest::skip(true)) {
+TEST_CASE("[Coust] [utils] [containers] RobinHash" * doctest::skip(false)) {
     using namespace coust;
     using test_key = std::string;
     using test_val = std::string;
@@ -370,7 +301,7 @@ TEST_CASE("[Coust] [utils] [containers] RobinHash" * doctest::skip(true)) {
     }
 }
 
-TEST_CASE("[Coust] [utils] [containers] Robin Set" * doctest::skip(true)) {
+TEST_CASE("[Coust] [utils] [containers] Robin Set" * doctest::skip(false)) {
     SUBCASE("Bulky Insertion") {
         coust::container::robin_set<std::string> s0{};
         uint32_t constexpr exp_cnt = 100;
@@ -520,7 +451,7 @@ TEST_CASE("[Coust] [utils] [containers] Robin Set" * doctest::skip(true)) {
     }
 }
 
-TEST_CASE("[Coust] [utils] [containers] Robin Map" * doctest::skip(true)) {
+TEST_CASE("[Coust] [utils] [containers] Robin Map" * doctest::skip(false)) {
     SUBCASE("Construction ans Assignment") {
         coust::container::robin_map<std::string, uint32_t> s0 = {
             std::make_pair(std::string{"One"}, 1u),

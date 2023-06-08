@@ -52,6 +52,7 @@ VulkanCommandBufferCache::VulkanCommandBufferCache(
 }
 
 VulkanCommandBufferCache::~VulkanCommandBufferCache() noexcept {
+    flush();
     wait();
     gc();
     vkDestroyCommandPool(m_dev, m_pool, COUST_VULKAN_ALLOC_CALLBACK);
@@ -181,8 +182,7 @@ void VulkanCommandBufferCache::wait() noexcept {
     std::array<VkFence, GARBAGE_COLLECTION_PERIOD> fences_to_wait{};
     uint32_t idx = 0;
     for (uint32_t i = 0; i < GARBAGE_COLLECTION_PERIOD; ++i) {
-        if ((m_cmdbuf_idx.has_value() && i == m_cmdbuf_idx.value()) ||
-            m_cmdbufs[i].state != VulkanCommandBuffer::State::pending)
+        if (m_cmdbufs[i].state != VulkanCommandBuffer::State::pending)
             continue;
         fences_to_wait[idx++] = m_cmdbufs[i].fence;
         m_cmdbufs[i].state = VulkanCommandBuffer::State::invalid;

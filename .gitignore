@@ -3,6 +3,8 @@ build
 .vscode
 .cache/
 .coustcache/
+.renderdocap/
+.nsightcap/
 
 # Files
 *.user

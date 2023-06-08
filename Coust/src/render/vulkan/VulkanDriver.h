@@ -41,6 +41,8 @@ public:
 
     ~VulkanDriver() noexcept;
 
+    void wait() noexcept;
+
     void gc() noexcept;
 
     void begin_frame() noexcept;

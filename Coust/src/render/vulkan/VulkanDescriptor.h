@@ -64,7 +64,7 @@ public:
 
     ~VulkanDescriptorSetLayout() noexcept;
 
-    VkDescriptorSetLayoutBinding get_binding(uint32_t binding) const noexcept;
+    VkDescriptorType get_binding_type(uint32_t binding) const noexcept;
 
     uint32_t get_set() const noexcept;
 
@@ -79,10 +79,6 @@ private:
 
     memory::robin_map<uint32_t, VkDescriptorSetLayoutBinding, DefaultAlloc>
         m_idx_to_binding{get_default_alloc()};
-
-    memory::robin_map_nested<memory::string<DefaultAlloc>, uint32_t,
-        DefaultAlloc>
-        m_name_to_idx{get_default_alloc()};
 
     size_t m_hash = 0;
 
@@ -111,6 +107,7 @@ public:
             get_default_alloc()};
         memory::vector<BoundImageArray, DefaultAlloc> image_infos{
             get_default_alloc()};
+        VkCommandBuffer attached_cmdbuf = VK_NULL_HANDLE;
         uint32_t set;
     };
 
@@ -126,16 +123,30 @@ public:
     // the descructor will release the handle back to its allocator.
     ~VulkanDescriptorSet() noexcept;
 
-    // Flush the write operations in the spcified bingding slot
-    void apply_write(std::span<const uint32_t> bindings_to_update) noexcept;
-
-    // Apply all pending write operations.
-    // If overwrite is true, then it will apply all write operations in
-    // `m_Writes` without checking if it has been applied (stored in
-    // `m_AppliedWrites` in other words)
-    void apply_write(bool overwrite = false) noexcept;
+    void apply_write() const noexcept;
 
     uint32_t get_set() const noexcept;
+
+private:
+    struct WriteBufferInfo {
+        uint32_t dstBinding;
+        uint32_t dstArrayElement;
+        VkDescriptorType descriptorType;
+
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        VkDeviceSize range;
+    };
+
+    struct WriteImageInfo {
+        uint32_t dstBinding;
+        uint32_t dstArrayElement;
+        VkDescriptorType descriptorType;
+
+        VkSampler sampler;
+        VkImageView imageView;
+        VkImageLayout imageLayout;
+    };
 
 private:
     VkDevice m_dev = VK_NULL_HANDLE;
@@ -144,10 +155,10 @@ private:
 
     VulkanDescriptorSetAllocator *m_alloc = nullptr;
 
-    memory::vector<VkWriteDescriptorSet, DefaultAlloc> m_writes{
+    memory::vector<WriteBufferInfo, DefaultAlloc> m_write_buf_infos{
         get_default_alloc()};
 
-    memory::vector<uint32_t, DefaultAlloc> m_applied_write_indices{
+    memory::vector<WriteImageInfo, DefaultAlloc> m_write_img_infos{
         get_default_alloc()};
 
     uint32_t m_set;

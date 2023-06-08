@@ -44,6 +44,7 @@ public:
         VkSampleCountFlagBits sample = VK_SAMPLE_COUNT_1_BIT;
         uint8_t resolve_mask = 0u;
         uint8_t input_attachment_mask = 0u;
+        uint8_t present_src_mask = 0u;
         bool depth_resolve = false;
     };
 
