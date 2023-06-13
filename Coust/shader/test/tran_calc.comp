@@ -1,0 +1,41 @@
+#version 460
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(std140, set = 0, binding = 0) readonly buffer MATRICES {
+    mat4 matrices[];
+};
+
+// from left to right, the index goes down through the transformation tree
+layout(std140, set = 0, binding = 1) readonly buffer MATRIX_INDICES {
+    uint matrix_indices[];
+};
+
+// the first element is the total number of index indices
+layout(std140, set = 0, binding = 2) readonly buffer INDEX_INDICES {
+    uint index_indices[];
+};
+
+layout(std140, set = 0, binding = 3) readonly buffer DYNAMIC_MATRICES {
+    mat4 dyna_matrices[];
+};
+
+layout(std140, set = 0, binding = 4) buffer RESULT_MATRICES {
+    mat4 out_matrices[];
+};
+
+void main() {
+    uint work_cnt = index_indices[0];
+    // + 1 since the first one is work count
+    uint work_idx = gl_GlobalInvocationID.x * gl_WorkGroupSize.x +
+                    gl_GlobalInvocationID.y + 1;
+    if (work_idx > work_cnt) {
+        return;
+    }
+    mat4 ret = mat4(1.0);
+    for (uint index_idx = index_indices[work_idx];
+         index_idx < index_indices[work_idx + 1]; ++index_idx) {
+        ret = matrices[matrix_indices[index_idx]] * ret;
+    }
+    out_matrices[work_idx - 1] = dyna_matrices[work_idx - 1] * ret;
+}

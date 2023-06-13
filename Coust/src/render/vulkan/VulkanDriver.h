@@ -91,8 +91,7 @@ public:
     SpecializationConstantInfo& bind_specialization_info() noexcept;
 
     void bind_shader(VkShaderStageFlagBits vk_shader_stage,
-        std::filesystem::path source_path,
-        std::span<std::string_view> dynamic_buffer_names) noexcept;
+        std::filesystem::path source_path) noexcept;
 
     void bind_buffer_whole(std::string_view name, VulkanBuffer const& buffer,
         uint32_t arrayIdx = 0) noexcept;
@@ -129,7 +128,11 @@ private:
     VmaAllocator m_vma_alloc = VK_NULL_HANDLE;
 
 private:
-    AlignedStorage<VulkanCommandBufferCache> m_cmdbuf_cache{};
+    AlignedStorage<VulkanCommandBufferCache> m_graphics_cmdbuf_cache{};
+
+    AlignedStorage<VulkanShaderPool> m_shader_pool{};
+
+    AlignedStorage<VulkanDescriptorCache> m_descriptor_cache{};
 
     AlignedStorage<VulkanGraphicsPipelineCache> m_graphics_pipeline_cache{};
 

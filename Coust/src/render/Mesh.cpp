@@ -58,5 +58,13 @@ size_t MeshAggregate::get_primitve_count(MeshAggregate const& ma) {
     return ret;
 }
 
+size_t MeshAggregate::get_transformation_index_count(MeshAggregate const& ma) {
+    size_t ret = 0;
+    for (Node const& n : ma.nodes) {
+        ret += n.transformation_indices.size();
+    }
+    return ret;
+}
+
 }  // namespace render
 }  // namespace coust

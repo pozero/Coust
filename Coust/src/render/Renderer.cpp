@@ -75,12 +75,12 @@ void Renderer::render(std::filesystem::path gltf_path,
     };
     m_vk_driver.get().begin_render_pass(*m_attached_render_target,
         AttachmentFlagBits::COLOR0, 0, 0, 0, clear_val);
+    m_vk_driver.get().bind_shader(VK_SHADER_STAGE_VERTEX_BIT, vert_shader_path);
     m_vk_driver.get().bind_shader(
-        VK_SHADER_STAGE_VERTEX_BIT, vert_shader_path, {});
-    m_vk_driver.get().bind_shader(
-        VK_SHADER_STAGE_FRAGMENT_BIT, frag_shader_path, {});
+        VK_SHADER_STAGE_FRAGMENT_BIT, frag_shader_path);
     VulkanGraphicsPipeline::RasterState raster_state{};
     raster_state.front_face = VK_FRONT_FACE_CLOCKWISE;
+    raster_state.polygon_mode = VK_POLYGON_MODE_LINE;
     m_vk_driver.get().draw(vertex_index_buf, raster_state, {});
     m_vk_driver.get().end_render_pass();
 }

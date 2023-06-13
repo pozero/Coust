@@ -277,21 +277,20 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
         // fill in mesh index
         auto const& gltf_default_scene =
             model.scenes[(size_t) model.defaultScene];
-        auto const& gltf_default_scene_nodes = gltf_default_scene.nodes;
-        mesh_aggregate.nodes.reserve(gltf_default_scene_nodes.size());
-        std::ranges::transform(gltf_default_scene_nodes,
-            std::back_inserter(mesh_aggregate.nodes), [&model](int node) {
+        mesh_aggregate.nodes.reserve(model.nodes.size());
+        std::ranges::transform(model.nodes,
+            std::back_inserter(mesh_aggregate.nodes),
+            [](tinygltf::Node const& node) {
                 Node ret{};
-                ret.mesh_idx = (uint32_t) model.nodes[(uint32_t) node].mesh;
+                ret.mesh_idx = (uint32_t) node.mesh;
                 return ret;
             });
 
         // generate transformation tree
         memory::vector<int, DefaultAlloc> local_transformation_idx(
-            gltf_default_scene_nodes.size(), -1, get_default_alloc());
-        for (uint32_t i = 0; i < gltf_default_scene_nodes.size(); ++i) {
-            auto const& node =
-                model.nodes[(uint32_t) gltf_default_scene_nodes[i]];
+            model.nodes.size(), -1, get_default_alloc());
+        for (uint32_t i = 0; i < model.nodes.size(); ++i) {
+            auto const& node = model.nodes[i];
             glm::mat4 local_transformation{1.0f};
             bool has_transformation = false;
             if (node.matrix.size() == 16) {
@@ -325,17 +324,15 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                 }
                 if (node.rotation.size() == 4) {
                     has_transformation = true;
-                    glm::quat q{(float) node.translation[0],
-                        (float) node.translation[1],
-                        (float) node.translation[2],
-                        (float) node.translation[3]};
+                    glm::quat q{(float) node.rotation[0],
+                        (float) node.rotation[1], (float) node.rotation[2],
+                        (float) node.rotation[3]};
                     local_transformation *= glm::toMat4(q);
                 }
                 if (node.scale.size() == 3) {
                     has_transformation = true;
-                    glm::vec3 s{(float) node.translation[0],
-                        (float) node.translation[1],
-                        (float) node.translation[2]};
+                    glm::vec3 s{(float) node.scale[0], (float) node.scale[1],
+                        (float) node.scale[2]};
                     local_transformation = glm::scale(local_transformation, s);
                 }
             }
@@ -348,22 +345,24 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
         memory::deque<uint32_t, DefaultAlloc> node_stack{get_default_alloc()};
         {
             memory::vector<bool, DefaultAlloc> is_root_node{
-                gltf_default_scene_nodes.size(), true, get_default_alloc()};
-            for (uint32_t i = 0; i < gltf_default_scene_nodes.size(); ++i) {
-                for (int c : model.nodes[(uint32_t) gltf_default_scene_nodes[i]]
+                gltf_default_scene.nodes.size(), true, get_default_alloc()};
+            for (uint32_t i = 0; i < gltf_default_scene.nodes.size(); ++i) {
+                for (int c : model.nodes[(uint32_t) gltf_default_scene.nodes[i]]
                                  .children) {
                     is_root_node[(uint32_t) c] = false;
                 }
             }
-            for (uint32_t i = 0; i < gltf_default_scene_nodes.size(); ++i) {
+            for (uint32_t i = 0; i < gltf_default_scene.nodes.size(); ++i) {
                 if (is_root_node[i]) {
-                    node_stack.push_front(i);
+                    node_stack.push_front(
+                        (uint32_t) gltf_default_scene.nodes[i]);
                 }
             }
         }
         memory::vector<bool, DefaultAlloc> is_recorded{
-            gltf_default_scene_nodes.size(), false, get_default_alloc()};
+            model.nodes.size(), false, get_default_alloc()};
         while (!node_stack.empty()) {
+            COUST_ASSERT(node_stack.size() <= is_recorded.size(), "");
             uint32_t const node_idx = node_stack.front();
             if (is_recorded[node_idx]) {
                 node_stack.pop_front();
@@ -376,13 +375,19 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                     global_transform_indices.push_back(
                         (uint32_t) local_transformation_idx[n]);
             }
-            for (int c :
-                model.nodes[(uint32_t) gltf_default_scene_nodes[node_idx]]
-                    .children) {
+            for (int c : model.nodes[node_idx].children) {
                 node_stack.push_front((uint32_t) c);
             }
             is_recorded[node_idx] = true;
         }
+    }
+    // dummy transformation
+    mesh_aggregate.transformations.push_back(glm::mat4{1.0f});
+    uint32_t const dummy_transformation_idx =
+        (uint32_t) mesh_aggregate.transformations.size() - 1;
+    for (auto& node : mesh_aggregate.nodes) {
+        if (node.transformation_indices.size() == 0)
+            node.transformation_indices.push_back(dummy_transformation_idx);
     }
 
     return mesh_aggregate;

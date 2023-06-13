@@ -233,7 +233,7 @@ void VulkanBuffer::update(class VulkanStagePool& stagePool,
                 .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
                 .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                 .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                // wait for another possible upload of vertex data
+                // wait for another possible upload
                 .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT |
                                 VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT |
                                 VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,

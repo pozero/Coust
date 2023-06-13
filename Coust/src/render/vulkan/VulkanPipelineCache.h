@@ -7,6 +7,8 @@
 #include "render/vulkan/VulkanCommand.h"
 #include "render/vulkan/VulkanBuffer.h"
 #include "render/vulkan/VulkanImage.h"
+#include "render/vulkan/VulkanDescriptorCache.h"
+#include "render/vulkan/VulkanShaderPool.h"
 #include "render/vulkan/utils/CacheSetting.h"
 
 WARNING_PUSH
@@ -28,46 +30,19 @@ public:
         VulkanGraphicsPipelineCache const &) = delete;
 
 public:
-    explicit VulkanGraphicsPipelineCache(
-        VkDevice dev, VkPhysicalDevice phy_dev) noexcept;
+    explicit VulkanGraphicsPipelineCache(VkDevice dev,
+        VulkanShaderPool &shader_pool,
+        VulkanDescriptorCache &descriptor_cache) noexcept;
 
-    // Clean every thing that's been cached
     void reset() noexcept;
 
-    // This function will be called when the driver switches to a new command
-    // buffer, which means the old command buffer is submitted. We know that
-    // command buffer records all these bindings, so once it's submitted, all
-    // the old render states bound previously are gone. We would do some
-    // housekeeping here, clearing out all the old render states.
     void gc(const VulkanCommandBuffer &buf) noexcept;
 
-    // Internal clearing methods. They just set the corresponding requirements
-    // to default state.
-
-    void unbind_descriptor_set() noexcept;
-
-    void unbind_pipeline() noexcept;
-
-    // Internal binding methods. They don't issue any vulkan call.
-    // Since we use reflection to manage our resource binding, some of the
-    // following functions require strict calling order. Basically, all function
-    // related to shader resoure binding should be called AFTER the binding of
-    // pipeline layout (which contains descriptor set layout) finished, and
-    // actual vulkan binding should always happens at the very end. Ideally, the
-    // call order should be the same as the order they present below.
-
-    // Get the specialization constant info and modify it.
-    // Specialization constant info will get cleared when a new command buffer
-    // is activated.
     SpecializationConstantInfo &bind_specialization_constant() noexcept;
 
-    bool bind_shader(VulkanShaderModule::Param const &param,
-        std::span<std::string_view> dynamic_buffer_names) noexcept;
+    void bind_shader(VulkanShaderModule::Param const &param) noexcept;
 
-    // Tell the cache that's all the shader resource (with correct update mode)
-    // we need, and build or get the pipeline layout and corresponding
-    // descriptor set allocator.
-    bool bind_pipeline_layout() noexcept;
+    void bind_pipeline_layout() noexcept;
 
     void bind_raster_state(
         VulkanGraphicsPipeline::RasterState const &state) noexcept;
@@ -75,50 +50,30 @@ public:
     void bind_render_pass(
         VulkanRenderPass const &render_pass, uint32_t subpass) noexcept;
 
-    // The following functions are responsible for configuring the construction
-    // parameter for descriptor sets
-
     void bind_buffer(std::string_view name, VulkanBuffer const &buffer,
-        uint64_t offset, uint64_t size, uint32_t arrayIdx) noexcept;
+        uint64_t offset, uint64_t size, uint32_t array_idx,
+        bool suppress_warning) noexcept;
 
     void bind_image(std::string_view name, VkSampler sampler,
-        VulkanImage const &image, uint32_t arrayIdx) noexcept;
+        VulkanImage const &image, uint32_t array_idx) noexcept;
 
     void bind_input_attachment(std::string_view name,
         class VulkanAttachment const &attachment) noexcept;
 
-    // Actual binding
+    void bind_descriptor_set(VkCommandBuffer cmdbuf) noexcept;
 
-    bool bind_descriptor_set(VkCommandBuffer cmdbuf) noexcept;
-
-    bool bind_graphics_pipeline(VkCommandBuffer cmdbuf) noexcept;
+    void bind_graphics_pipeline(VkCommandBuffer cmdbuf) noexcept;
 
 private:
-    void create_descriptor_allocators() noexcept;
+    VulkanShaderPool &m_shader_pool;
 
-    void fill_descriptor_set_requirements() noexcept;
-
-private:
-    memory::robin_map<VulkanShaderModule::Param,
-        memory::unique_ptr<VulkanShaderModule, DefaultAlloc>, DefaultAlloc>
-        m_shader_modules{get_default_alloc()};
-
-    memory::robin_map<VulkanPipelineLayout::Param,
-        std::pair<VulkanPipelineLayout, uint32_t>, DefaultAlloc>
-        m_pipeline_layouts{get_default_alloc()};
-
-    memory::robin_map_nested<const VulkanPipelineLayout *,
-        memory::vector<VulkanDescriptorSetAllocator, DefaultAlloc>,
-        DefaultAlloc>
-        m_descriptor_set_allocators{get_default_alloc()};
-
-    memory::robin_map<VulkanDescriptorSet::Param,
-        std::pair<VulkanDescriptorSet, uint32_t>, DefaultAlloc>
-        m_descriptor_sets{get_default_alloc()};
+    VulkanDescriptorCache &m_descriptor_cache;
 
     memory::robin_map<VulkanGraphicsPipeline::Param,
         std::pair<VulkanGraphicsPipeline, uint32_t>, DefaultAlloc>
         m_graphics_pipelines{get_default_alloc()};
+
+    VulkanDescriptorBuilder m_descriptor_builder;
 
     memory::vector<const VulkanShaderModule *, DefaultAlloc>
         m_cur_shader_modules{get_default_alloc()};
@@ -127,26 +82,77 @@ private:
 
     const VulkanGraphicsPipeline *m_cur_graphics_pipeline = nullptr;
 
-    memory::robin_map<uint32_t, uint32_t, DefaultAlloc> m_dynamic_offsets{
-        get_default_alloc()};
-
-    VulkanPipelineLayout::Param m_pipeline_layout_requirement{};
-
     VulkanGraphicsPipeline::Param m_graphics_pipelines_requirement{};
 
-    memory::vector<VulkanDescriptorSet::Param, DefaultAlloc>
-        m_descriptor_set_requirements{get_default_alloc()};
-
     VkDevice m_dev = VK_NULL_HANDLE;
-    VkPhysicalDevice m_phy_dev = VK_NULL_HANDLE;
 
     VkPipelineCache m_cache = VK_NULL_HANDLE;
 
     GCTimer m_gc_timer;
 
-    CacheHitCounter m_pipeline_layout_hit_counter;
     CacheHitCounter m_graphics_pipeline_hit_counter;
-    CacheHitCounter m_descriptor_set_hit_counter;
+};
+
+class VulkanComputePipelineCache {
+public:
+    VulkanComputePipelineCache() = delete;
+    VulkanComputePipelineCache(VulkanComputePipelineCache &&) = delete;
+    VulkanComputePipelineCache(VulkanComputePipelineCache const &) = delete;
+    VulkanComputePipelineCache &operator=(
+        VulkanComputePipelineCache &&) = delete;
+    VulkanComputePipelineCache &operator=(
+        VulkanComputePipelineCache const &) = delete;
+
+public:
+    VulkanComputePipelineCache(VkDevice dev, VulkanShaderPool &shader_pool,
+        VulkanDescriptorCache &descriptor_cache) noexcept;
+
+    void reset() noexcept;
+
+    void gc(VulkanCommandBuffer const &buf) noexcept;
+
+    SpecializationConstantInfo &bind_specialization_constant() noexcept;
+
+    void bind_shader(VulkanShaderModule::Param const &param) noexcept;
+
+    void bind_pipeline_layout() noexcept;
+
+    void bind_buffer(std::string_view name, VulkanBuffer const &buffer,
+        uint64_t offset, uint64_t size, uint32_t array_idx) noexcept;
+
+    void bind_image(std::string_view name, VkSampler sampler,
+        VulkanImage const &image, uint32_t arrayIdx) noexcept;
+
+    void bind_descriptor_set(VkCommandBuffer cmdbuf) noexcept;
+
+    void bind_compute_pipeline(VkCommandBuffer cmdbuf) noexcept;
+
+private:
+    VulkanShaderPool &m_shader_pool;
+
+    VulkanDescriptorCache &m_descriptor_cache;
+
+    memory::robin_map<VulkanComputePipeline::Param,
+        std::pair<VulkanComputePipeline, uint32_t>, DefaultAlloc>
+        m_compute_pipelines{get_default_alloc()};
+
+    VulkanDescriptorBuilder m_descriptor_builder;
+
+    const VulkanShaderModule *m_cur_shader_module = nullptr;
+
+    const VulkanPipelineLayout *m_cur_pipeline_layout = nullptr;
+
+    const VulkanComputePipeline *m_cur_compute_pipeline = nullptr;
+
+    SpecializationConstantInfo m_specialzation_const_info{};
+
+    VkDevice m_dev = VK_NULL_HANDLE;
+
+    VkPipelineCache m_cache = VK_NULL_HANDLE;
+
+    GCTimer m_gc_timer;
+
+    CacheHitCounter m_compute_pipeline_hit_counter;
 };
 
 }  // namespace render

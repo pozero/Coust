@@ -291,8 +291,60 @@ VulkanGraphicsPipeline::~VulkanGraphicsPipeline() noexcept {
     }
 }
 
+VkDevice VulkanComputePipeline::get_device() const noexcept {
+    return m_dev;
+}
+
+VkPipeline VulkanComputePipeline::get_handle() const noexcept {
+    return m_handle;
+}
+
+VulkanComputePipeline::VulkanComputePipeline(VkDevice dev,
+    VulkanPipelineLayout const& layout, VkPipelineCache cache,
+    Param const& param) noexcept
+    : m_dev(dev) {
+    auto const specialize_const_info = param.special_const_info.get();
+    VkPipelineShaderStageCreateInfo shader_stage_info{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+        .module = param.shader_module->get_handle(),
+        .pName = "main",
+        .pSpecializationInfo = &specialize_const_info,
+    };
+    VkComputePipelineCreateInfo pipeline_info{
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .stage = shader_stage_info,
+        .layout = layout.get_handle(),
+        .basePipelineHandle = VK_NULL_HANDLE,
+    };
+    COUST_VK_CHECK(vkCreateComputePipelines(m_dev, cache, 1, &pipeline_info,
+                       COUST_VULKAN_ALLOC_CALLBACK, &m_handle),
+        "");
+}
+
+VulkanComputePipeline::VulkanComputePipeline(
+    VulkanComputePipeline&& other) noexcept
+    : m_dev(other.m_dev), m_handle(other.m_handle) {
+    other.m_dev = VK_NULL_HANDLE;
+    other.m_handle = VK_NULL_HANDLE;
+}
+
+VulkanComputePipeline& VulkanComputePipeline::operator=(
+    VulkanComputePipeline&& other) noexcept {
+    std::swap(m_dev, other.m_dev);
+    std::swap(m_handle, other.m_handle);
+    return *this;
+}
+
+VulkanComputePipeline::~VulkanComputePipeline() noexcept {
+    if (m_handle != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_dev, m_handle, COUST_VULKAN_ALLOC_CALLBACK);
+    }
+}
+
 static_assert(detail::IsVulkanResource<VulkanPipelineLayout>);
 static_assert(detail::IsVulkanResource<VulkanGraphicsPipeline>);
+static_assert(detail::IsVulkanResource<VulkanComputePipeline>);
 
 }  // namespace render
 }  // namespace coust
@@ -347,6 +399,13 @@ std::size_t hash<coust::render::VulkanGraphicsPipeline::Param>::operator()(
     return h;
 }
 
+std::size_t hash<coust::render::VulkanComputePipeline::Param>::operator()(
+    coust::render::VulkanComputePipeline::Param const& key) const noexcept {
+    size_t h = key.special_const_info.get_hash();
+    coust::hash_combine(h, key.shader_module->get_byte_code_hash());
+    return h;
+}
+
 bool equal_to<coust::render::VulkanPipelineLayout::Param>::operator()(
     coust::render::VulkanPipelineLayout::Param const& left,
     coust::render::VulkanPipelineLayout::Param const& right) const noexcept {
@@ -379,6 +438,14 @@ bool equal_to<coust::render::VulkanGraphicsPipeline::Param>::operator()(
             const coust::render::VulkanShaderModule* const r) {
             return l->get_handle() == r->get_handle();
         });
+}
+
+bool equal_to<coust::render::VulkanComputePipeline::Param>::operator()(
+    coust::render::VulkanComputePipeline::Param const& left,
+    coust::render::VulkanComputePipeline::Param const& right) const noexcept {
+    return left.special_const_info == right.special_const_info &&
+           left.shader_module->get_handle() ==
+               right.shader_module->get_handle();
 }
 
 }  // namespace std

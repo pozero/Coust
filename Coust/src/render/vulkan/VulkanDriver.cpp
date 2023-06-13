@@ -426,10 +426,15 @@ VulkanDriver::VulkanDriver(
             "Can't create VMA allocator");
     }
 
-    m_cmdbuf_cache.initialize(
+    m_graphics_cmdbuf_cache.initialize(
         m_dev, m_graphics_queue, m_graphics_queue_family_idx);
 
-    m_graphics_pipeline_cache.initialize(m_dev, m_phydev);
+    m_shader_pool.initialize(m_dev);
+
+    m_descriptor_cache.initialize(m_dev, m_phydev);
+
+    m_graphics_pipeline_cache.initialize(
+        m_dev, m_shader_pool.get(), m_descriptor_cache.get());
 
     m_fbo_cache.initialize(m_dev);
 
@@ -439,9 +444,9 @@ VulkanDriver::VulkanDriver(
 
     m_swapchain.initialize(m_dev, m_phydev, m_surface,
         m_graphics_queue_family_idx, m_present_queue_family_idx,
-        m_cmdbuf_cache.get());
+        m_graphics_cmdbuf_cache.get());
 
-    m_cmdbuf_cache.get().set_command_buffer_changed_callback(
+    m_graphics_cmdbuf_cache.get().set_command_buffer_changed_callback(
         [this](VulkanCommandBuffer const& buf) {
             m_graphics_pipeline_cache.get().gc(buf);
         });
@@ -451,11 +456,15 @@ VulkanDriver::VulkanDriver(
 }
 
 VulkanDriver::~VulkanDriver() noexcept {
-    m_cmdbuf_cache.destroy();
+    m_graphics_cmdbuf_cache.destroy();
 
     m_swapchain.get().destroy();
 
     m_fbo_cache.get().reset();
+
+    m_shader_pool.get().reset();
+
+    m_descriptor_cache.get().reset();
 
     m_graphics_pipeline_cache.get().reset();
 
@@ -474,20 +483,20 @@ VulkanDriver::~VulkanDriver() noexcept {
 }
 
 void VulkanDriver::wait() noexcept {
-    m_cmdbuf_cache.get().wait();
+    m_graphics_cmdbuf_cache.get().wait();
 }
 
 void VulkanDriver::gc() noexcept {
     m_stage_pool.get().gc();
     m_fbo_cache.get().gc();
-    m_cmdbuf_cache.get().gc();
+    m_graphics_cmdbuf_cache.get().gc();
 }
 
 void VulkanDriver::begin_frame() noexcept {
 }
 
 void VulkanDriver::end_frame() noexcept {
-    if (m_cmdbuf_cache.get().flush()) {
+    if (m_graphics_cmdbuf_cache.get().flush()) {
         gc();
     }
 }
@@ -511,7 +520,8 @@ VulkanBuffer VulkanDriver::create_buffer_single_queue(VkDeviceSize size,
 VulkanVertexIndexBuffer VulkanDriver::create_vertex_index_buffer(
     MeshAggregate const& mesh_aggregate) noexcept {
     return VulkanVertexIndexBuffer{m_dev, m_vma_alloc,
-        m_cmdbuf_cache.get().get(), m_stage_pool.get(), mesh_aggregate};
+        m_graphics_cmdbuf_cache.get().get(), m_stage_pool.get(),
+        mesh_aggregate};
 }
 
 VulkanImage VulkanDriver::create_image_single_queue(uint32_t width,
@@ -522,8 +532,8 @@ VulkanImage VulkanDriver::create_image_single_queue(uint32_t width,
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
     };
-    return VulkanImage{m_dev, m_vma_alloc, m_cmdbuf_cache.get().get(), width,
-        height, format, usage, 0, 0, related_queues, levels, samples};
+    return VulkanImage{m_dev, m_vma_alloc, m_graphics_cmdbuf_cache.get().get(),
+        width, height, format, usage, 0, 0, related_queues, levels, samples};
 }
 
 VulkanRenderTarget VulkanDriver::create_render_target(uint32_t width,
@@ -531,8 +541,9 @@ VulkanRenderTarget VulkanDriver::create_render_target(uint32_t width,
     std::array<VulkanAttachment, MAX_ATTACHMENT_COUNT> const& colors,
     VulkanAttachment const& depth) noexcept {
     return VulkanRenderTarget{
-        m_dev, m_vma_alloc, m_cmdbuf_cache.get().get(), {width, height},
-        samples, colors, depth
+        m_dev, m_vma_alloc, m_graphics_cmdbuf_cache.get().get(),
+        {width, height},
+          samples, colors, depth
     };
 }
 
@@ -543,14 +554,15 @@ VulkanRenderTarget const& VulkanDriver::get_attached_render_target()
 
 void VulkanDriver::update_buffer(VulkanBuffer& buffer,
     std::span<const uint8_t> data, size_t offset) noexcept {
-    buffer.update(m_stage_pool.get(), m_cmdbuf_cache.get().get(), data, offset);
+    buffer.update(
+        m_stage_pool.get(), m_graphics_cmdbuf_cache.get().get(), data, offset);
 }
 
 void VulkanDriver::update_image(VulkanImage& image, VkFormat format,
     uint32_t width, uint32_t height, const void* data, uint32_t dst_level,
     uint32_t dst_layer, uint32_t dst_layer_cnt) noexcept {
-    image.update(m_stage_pool.get(), m_cmdbuf_cache.get().get(), format, width,
-        height, data, dst_layer, dst_layer_cnt, dst_level);
+    image.update(m_stage_pool.get(), m_graphics_cmdbuf_cache.get().get(),
+        format, width, height, data, dst_layer, dst_layer_cnt, dst_level);
 }
 
 void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
@@ -657,7 +669,7 @@ void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
         .clearValueCount = render_target.get_attachment_cnt(),
         .pClearValues = clear_values.data(),
     };
-    VkCommandBuffer cmdbuf = m_cmdbuf_cache.get().get();
+    VkCommandBuffer cmdbuf = m_graphics_cmdbuf_cache.get().get();
     vkCmdBeginRenderPass(cmdbuf, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
     VkViewport viewport{
         .x = 0.0f,
@@ -676,7 +688,8 @@ void VulkanDriver::begin_render_pass(VulkanRenderTarget const& render_target,
 
 void VulkanDriver::next_subpass() noexcept {
     ++m_cur_subpass;
-    vkCmdNextSubpass(m_cmdbuf_cache.get().get(), VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdNextSubpass(
+        m_graphics_cmdbuf_cache.get().get(), VK_SUBPASS_CONTENTS_INLINE);
     m_graphics_pipeline_cache.get().bind_render_pass(
         *m_cur_render_pass, m_cur_subpass);
     for (uint32_t i = 0; i < MAX_ATTACHMENT_COUNT; ++i) {
@@ -690,7 +703,7 @@ void VulkanDriver::next_subpass() noexcept {
 }
 
 void VulkanDriver::end_render_pass() noexcept {
-    VkCommandBuffer cmdbuf = m_cmdbuf_cache.get().get();
+    VkCommandBuffer cmdbuf = m_graphics_cmdbuf_cache.get().get();
     vkCmdEndRenderPass(cmdbuf);
     m_cur_render_target = nullptr;
     m_cur_render_pass = nullptr;
@@ -711,12 +724,12 @@ void VulkanDriver::update_swapchain() noexcept {
 }
 
 void VulkanDriver::commit() noexcept {
-    if (m_cmdbuf_cache.get().flush()) {
+    if (m_graphics_cmdbuf_cache.get().flush()) {
         gc();
     }
     m_swapchain.get().m_is_next_img_acquired = false;
     VkSemaphore const last_submission_signal =
-        m_cmdbuf_cache.get().get_last_submission_singal();
+        m_graphics_cmdbuf_cache.get().get_last_submission_singal();
     VkSwapchainKHR const sc = m_swapchain.get().get_handle();
     uint32_t const cur_img_idx = m_swapchain.get().get_image_idx();
     VkPresentInfoKHR present_info{
@@ -735,24 +748,22 @@ SpecializationConstantInfo& VulkanDriver::bind_specialization_info() noexcept {
 }
 
 void VulkanDriver::bind_shader(VkShaderStageFlagBits vk_shader_stage,
-    std::filesystem::path source_path,
-    std::span<std::string_view> dynamic_buffer_names) noexcept {
+    std::filesystem::path source_path) noexcept {
     ShaderSource source{source_path};
-    m_graphics_pipeline_cache.get().bind_shader(
-        {vk_shader_stage, source}, dynamic_buffer_names);
+    m_graphics_pipeline_cache.get().bind_shader({vk_shader_stage, source});
 }
 
 void VulkanDriver::bind_buffer_whole(std::string_view name,
     VulkanBuffer const& buffer, uint32_t arrayIdx) noexcept {
     m_graphics_pipeline_cache.get().bind_buffer(
-        name, buffer, 0, VK_WHOLE_SIZE, arrayIdx);
+        name, buffer, 0, VK_WHOLE_SIZE, arrayIdx, false);
 }
 
 void VulkanDriver::bind_buffer(std::string_view name,
     VulkanBuffer const& buffer, uint64_t offset, uint64_t size,
     uint32_t arrayIdx) noexcept {
     m_graphics_pipeline_cache.get().bind_buffer(
-        name, buffer, offset, size, arrayIdx);
+        name, buffer, offset, size, arrayIdx, false);
 }
 
 void VulkanDriver::bind_image(std::string_view name, VkSampler sampler,
@@ -763,23 +774,23 @@ void VulkanDriver::bind_image(std::string_view name, VkSampler sampler,
 void VulkanDriver::draw(VulkanVertexIndexBuffer const& vertex_index_buf,
     VulkanGraphicsPipeline::RasterState const& raster_state,
     VkRect2D scissor) noexcept {
-    VkCommandBuffer cmdbuf = m_cmdbuf_cache.get().get();
+    VkCommandBuffer cmdbuf = m_graphics_cmdbuf_cache.get().get();
     m_graphics_pipeline_cache.get().bind_pipeline_layout();
     m_graphics_pipeline_cache.get().bind_raster_state(raster_state);
     for (auto const& [attrib, buf_info] : vertex_index_buf.get_attrib_infos()) {
         std::string_view const name = to_string_view(attrib);
         m_graphics_pipeline_cache.get().bind_buffer(name,
             vertex_index_buf.get_vertex_buf(), buf_info.offset, buf_info.range,
-            0);
+            0, true);
     }
     m_graphics_pipeline_cache.get().bind_buffer(
         VulkanVertexIndexBuffer::INDEX_BUF_NAME,
         vertex_index_buf.get_index_buf(), 0,
-        vertex_index_buf.get_index_buf().get_size(), 0);
+        vertex_index_buf.get_index_buf().get_size(), 0, false);
     m_graphics_pipeline_cache.get().bind_buffer(
         VulkanVertexIndexBuffer::ATTRIB_OFFSET_BUF_NAME,
         vertex_index_buf.get_attrib_offset_buf(), 0,
-        vertex_index_buf.get_attrib_offset_buf().get_size(), 0);
+        vertex_index_buf.get_attrib_offset_buf().get_size(), 0, false);
     m_graphics_pipeline_cache.get().bind_descriptor_set(cmdbuf);
     if (scissor.extent.width != 0 && scissor.extent.height != 0) {
         vkCmdSetScissor(cmdbuf, 0, 1, &scissor);

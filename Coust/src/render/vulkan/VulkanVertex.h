@@ -19,24 +19,6 @@ public:
 
     static std::string_view constexpr ATTRIB_OFFSET_BUF_NAME{"ATTRIB_OFFSET"};
 
-    /*
-    typedef struct VkDrawIndirectCommand {
-        uint32_t    vertexCount;        - VertexIndex
-        uint32_t    instanceCount;      - InstanceIndex
-        uint32_t    firstVertex;        - BaseVertex
-        uint32_t    firstInstance;      - BaseInstance
-    } VkDrawIndirectCommand;
-    vkCmdDrawIndirect(
-        VkCommandBuffer commandBuffer,
-        VkBuffer buffer,
-        VkDeviceSize offset,
-        uint32_t drawCount,             - DrawIndex
-        uint32_t stride
-    );
-    attrib[ai][primitive.attrib_offset[ai] +
-        mesh_aggregate.index_buffer[primitive.index_offset + cur_idx]]
-    */
-
 public:
     VulkanVertexIndexBuffer(VkDevice dev, VmaAllocator alloc,
         VkCommandBuffer cmdbuf, class VulkanStagePool& stage_pool,
@@ -57,8 +39,12 @@ public:
 
     size_t get_primitive_count() const noexcept;
 
+    size_t get_node_count() const noexcept;
+
 private:
     size_t m_primitive_count;
+
+    size_t m_node_count;
 
     memory::robin_map<VertexAttrib, VkDescriptorBufferInfo, DefaultAlloc>
         m_attrib_info{get_default_alloc()};

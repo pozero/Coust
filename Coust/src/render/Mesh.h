@@ -136,6 +136,8 @@ public:
     }
 
     static size_t get_primitve_count(MeshAggregate const& ma);
+
+    static size_t get_transformation_index_count(MeshAggregate const& ma);
 };
 
 }  // namespace render

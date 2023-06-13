@@ -201,11 +201,14 @@ VkImageMemoryBarrier2 image_blit_transition(
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
         case VK_IMAGE_LAYOUT_GENERAL:
             barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+            barrier.dstAccessMask =
+                VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
             // all the copy, blit, resolve and clear operation
             barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             // synchronize before fragment shader stage
-            barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                   // and possible write from compute shader
+                                   VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
             break;
         // attachment
         case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:

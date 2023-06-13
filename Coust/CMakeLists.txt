@@ -138,6 +138,12 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSampler.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanVertex.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanVertex.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanTransformation.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanTransformation.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShaderPool.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShaderPool.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDescriptorCache.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDescriptorCache.cpp
         
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/utils/VulkanFormat.cpp

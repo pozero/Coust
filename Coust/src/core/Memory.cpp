@@ -43,9 +43,10 @@ void* AggregateAllocator::allocate(size_t size, size_t alignment) noexcept {
         return m_upto_5kbyte_alloc.allocate(size, alignment);
     } else if (size <= kbyte_50) {
         return m_upto_50kbyte_alloc.allocate(size, alignment);
+    } else {
+        COUST_INFO("Giant Allocation: size {}, alignment {}", size, alignment);
+        return m_gaigantic_alloc.allocate(size, alignment);
     }
-    COUST_PANIC_IF(true, "Allocation size {} is too big", size);
-    return nullptr;
 }
 
 void AggregateAllocator::deallocate(void* p, size_t size) noexcept {
@@ -65,9 +66,9 @@ void AggregateAllocator::deallocate(void* p, size_t size) noexcept {
         return m_upto_5kbyte_alloc.deallocate(p, size);
     } else if (size <= kbyte_50) {
         return m_upto_50kbyte_alloc.deallocate(p, size);
+    } else {
+        return m_gaigantic_alloc.deallocate(p, size);
     }
-    COUST_PANIC_IF(
-        true, "Memory block to deallocate is too big, its size is {}", size);
 }
 
 }  // namespace memory

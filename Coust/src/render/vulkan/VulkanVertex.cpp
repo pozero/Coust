@@ -16,6 +16,7 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
     class VulkanStagePool& stage_pool,
     MeshAggregate const& mesh_aggregate) noexcept
     : m_primitive_count(MeshAggregate::get_primitve_count(mesh_aggregate)),
+      m_node_count(mesh_aggregate.nodes.size()),
       m_vertex_buf(dev, alloc,
           mesh_aggregate.vertex_buffer.size() *
               sizeof(decltype(MeshAggregate::vertex_buffer)::value_type),
@@ -106,6 +107,10 @@ VulkanBuffer const& VulkanVertexIndexBuffer::get_attrib_offset_buf()
 
 size_t VulkanVertexIndexBuffer::get_primitive_count() const noexcept {
     return m_primitive_count;
+}
+
+size_t VulkanVertexIndexBuffer::get_node_count() const noexcept {
+    return m_node_count;
 }
 
 auto VulkanVertexIndexBuffer::get_attrib_infos() const noexcept

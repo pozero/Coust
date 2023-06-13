@@ -78,6 +78,7 @@ private:
     HomoAlloc_S m_128byte_alloc;
     GeneralAlloc_M m_upto_5kbyte_alloc;
     GeneralAlloc_L m_upto_50kbyte_alloc;
+    HeapAllocator m_gaigantic_alloc;
 };
 
 static_assert(detail::Allocator<AggregateAllocator>);

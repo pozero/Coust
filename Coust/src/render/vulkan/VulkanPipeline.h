@@ -210,6 +210,40 @@ private:
     VkPipeline m_handle = VK_NULL_HANDLE;
 };
 
+class VulkanComputePipeline {
+public:
+    VulkanComputePipeline() = delete;
+    VulkanComputePipeline(VulkanComputePipeline const &) = delete;
+    VulkanComputePipeline &operator=(VulkanComputePipeline const &) = delete;
+
+public:
+    static uint32_t constexpr object_type = VK_OBJECT_TYPE_PIPELINE;
+
+    VkDevice get_device() const noexcept;
+
+    VkPipeline get_handle() const noexcept;
+
+    struct Param {
+        SpecializationConstantInfo special_const_info{};
+        const VulkanShaderModule *shader_module;
+    };
+
+public:
+    VulkanComputePipeline(VkDevice dev, VulkanPipelineLayout const &layout,
+        VkPipelineCache cache, Param const &param) noexcept;
+
+    VulkanComputePipeline(VulkanComputePipeline &&other) noexcept;
+
+    VulkanComputePipeline &operator=(VulkanComputePipeline &&other) noexcept;
+
+    ~VulkanComputePipeline() noexcept;
+
+private:
+    VkDevice m_dev = VK_NULL_HANDLE;
+
+    VkPipeline m_handle = VK_NULL_HANDLE;
+};
+
 }  // namespace render
 }  // namespace coust
 
@@ -233,6 +267,12 @@ struct hash<coust::render::VulkanGraphicsPipeline::Param> {
 };
 
 template <>
+struct hash<coust::render::VulkanComputePipeline::Param> {
+    std::size_t operator()(
+        coust::render::VulkanComputePipeline::Param const &key) const noexcept;
+};
+
+template <>
 struct equal_to<coust::render::VulkanPipelineLayout::Param> {
     bool operator()(coust::render::VulkanPipelineLayout::Param const &left,
         coust::render::VulkanPipelineLayout::Param const &right) const noexcept;
@@ -242,6 +282,13 @@ template <>
 struct equal_to<coust::render::VulkanGraphicsPipeline::Param> {
     bool operator()(coust::render::VulkanGraphicsPipeline::Param const &left,
         coust::render::VulkanGraphicsPipeline::Param const &right)
+        const noexcept;
+};
+
+template <>
+struct equal_to<coust::render::VulkanComputePipeline::Param> {
+    bool operator()(coust::render::VulkanComputePipeline::Param const &left,
+        coust::render::VulkanComputePipeline::Param const &right)
         const noexcept;
 };
 

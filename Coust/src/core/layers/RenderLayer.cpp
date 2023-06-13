@@ -18,8 +18,8 @@ void RenderLayer::on_detach() noexcept {
 
 void RenderLayer::on_update([[maybe_unused]] TimeStep const& ts) noexcept {
     m_renderer.get().begin_frame();
-    std::filesystem::path gltf_path =
-        file::get_absolute_path_from("Coust", "asset", "test", "minimal.gltf");
+    std::filesystem::path gltf_path = file::get_absolute_path_from(
+        "Coust", "asset", "test", "rubber_duck", "scene.gltf");
     std::filesystem::path vert_path =
         file::get_absolute_path_from("Coust", "shader", "test", "minimal.vert");
     std::filesystem::path frag_path =
