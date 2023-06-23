@@ -64,7 +64,7 @@ VulkanRenderPass::VulkanRenderPass(VkDevice dev, Param const& param) noexcept
         MAX_ATTACHMENT_COUNT + MAX_ATTACHMENT_COUNT + 1 + 1>
         attachements{};
     // there're at most 2 subpasses, so one dependency is enough
-    VkSubpassDependency2 dependency[1]{
+    std::array<VkSubpassDependency2, 1> dependency{
         VkSubpassDependency2{
                              .sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
                              .srcSubpass = 0,
@@ -86,7 +86,7 @@ VulkanRenderPass::VulkanRenderPass(VkDevice dev, Param const& param) noexcept
         .subpassCount = has_subpass ? 2u : 1u,
         .pSubpasses = subpasses.data(),
         .dependencyCount = has_subpass ? 1u : 0u,
-        .pDependencies = dependency,
+        .pDependencies = dependency.data(),
     };
     uint32_t attachment_idx = 0;
     // color & input attachments

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "utils/Compiler.h"
+#include "core/Memory.h"
+#include "utils/allocators/StlContainer.h"
 #include "render/vulkan/utils/CacheSetting.h"
 
 WARNING_PUSH
@@ -122,7 +124,9 @@ private:
     VkCommandPool m_pool = VK_NULL_HANDLE;
 
     VkSemaphore m_last_submission_signal = VK_NULL_HANDLE;
-    VkSemaphore m_injected_signal = VK_NULL_HANDLE;
+
+    memory::vector<VkSemaphore, DefaultAlloc> m_injected_signals{
+        get_default_alloc()};
 
     std::optional<uint32_t> m_cmdbuf_idx{};
     uint32_t m_available_cmdbuf_cnt = GARBAGE_COLLECTION_PERIOD;

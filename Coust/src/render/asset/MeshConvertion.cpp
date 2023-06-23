@@ -287,14 +287,10 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
             });
 
         // generate transformation tree
-        memory::vector<int, DefaultAlloc> local_transformation_idx(
-            model.nodes.size(), -1, get_default_alloc());
         for (uint32_t i = 0; i < model.nodes.size(); ++i) {
             auto const& node = model.nodes[i];
             glm::mat4 local_transformation{1.0f};
-            bool has_transformation = false;
             if (node.matrix.size() == 16) {
-                has_transformation = true;
                 local_transformation = glm::mat4{
                     (float) node.matrix[0],
                     (float) node.matrix[1],
@@ -315,7 +311,6 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                 };
             } else {
                 if (node.translation.size() == 3) {
-                    has_transformation = true;
                     glm::vec3 t{(float) node.translation[0],
                         (float) node.translation[1],
                         (float) node.translation[2]};
@@ -323,24 +318,18 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                         glm::translate(local_transformation, t);
                 }
                 if (node.rotation.size() == 4) {
-                    has_transformation = true;
                     glm::quat q{(float) node.rotation[0],
                         (float) node.rotation[1], (float) node.rotation[2],
                         (float) node.rotation[3]};
                     local_transformation *= glm::toMat4(q);
                 }
                 if (node.scale.size() == 3) {
-                    has_transformation = true;
                     glm::vec3 s{(float) node.scale[0], (float) node.scale[1],
                         (float) node.scale[2]};
                     local_transformation = glm::scale(local_transformation, s);
                 }
             }
-            if (has_transformation) {
-                mesh_aggregate.transformations.push_back(local_transformation);
-                local_transformation_idx[i] =
-                    (int) mesh_aggregate.transformations.size() - 1;
-            }
+            mesh_aggregate.transformations.push_back(local_transformation);
         }
         memory::deque<uint32_t, DefaultAlloc> node_stack{get_default_alloc()};
         {
@@ -371,9 +360,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
             auto& global_transform_indices =
                 mesh_aggregate.nodes[node_idx].transformation_indices;
             for (uint32_t n : node_stack) {
-                if (local_transformation_idx[n] >= 0)
-                    global_transform_indices.push_back(
-                        (uint32_t) local_transformation_idx[n]);
+                global_transform_indices.push_back(n);
             }
             for (int c : model.nodes[node_idx].children) {
                 node_stack.push_front((uint32_t) c);
@@ -381,15 +368,6 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
             is_recorded[node_idx] = true;
         }
     }
-    // dummy transformation
-    mesh_aggregate.transformations.push_back(glm::mat4{1.0f});
-    uint32_t const dummy_transformation_idx =
-        (uint32_t) mesh_aggregate.transformations.size() - 1;
-    for (auto& node : mesh_aggregate.nodes) {
-        if (node.transformation_indices.size() == 0)
-            node.transformation_indices.push_back(dummy_transformation_idx);
-    }
-
     return mesh_aggregate;
 }
 

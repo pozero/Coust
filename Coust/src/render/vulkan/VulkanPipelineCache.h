@@ -62,6 +62,9 @@ public:
 
     void bind_descriptor_set(VkCommandBuffer cmdbuf) noexcept;
 
+    void push_constant(VkCommandBuffer cmdbuf, VkShaderStageFlagBits stage,
+        std::span<uint8_t const> data, uint32_t offset = 0) noexcept;
+
     void bind_graphics_pipeline(VkCommandBuffer cmdbuf) noexcept;
 
 private:

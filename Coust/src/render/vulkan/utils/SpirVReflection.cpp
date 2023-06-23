@@ -263,9 +263,9 @@ FORCE_INLINE static void get_shader_input(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.stage_inputs) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::input,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         read_shader_resource_base_type(compiler, res, out_res);
         read_shader_resource_vec_size(compiler, res, out_res);
@@ -283,10 +283,10 @@ FORCE_INLINE static void get_shader_input_attachment(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.subpass_inputs) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::input_attachment,
             .vk_access = VK_ACCESS_SHADER_READ_BIT,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         read_shader_resource_array_size(compiler, res, out_res);
         read_shader_resource_decoration_attachment_idx(compiler, res, out_res);
@@ -304,10 +304,10 @@ FORCE_INLINE static void get_shader_output(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.stage_outputs) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::output,
         };
         out_res.vk_shader_stage |= stage;
+        out_res.name = res.name.c_str();
         read_shader_resource_base_type(compiler, res, out_res);
         read_shader_resource_array_size(compiler, res, out_res);
         read_shader_resource_vec_size(compiler, res, out_res);
@@ -324,10 +324,10 @@ FORCE_INLINE static void get_shader_image(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.separate_images) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::image,
             .vk_access = VK_ACCESS_SHADER_READ_BIT,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         read_shader_resource_array_size(compiler, res, out_res);
         read_shader_resource_decoration_descriptor_set(compiler, res, out_res);
@@ -343,16 +343,16 @@ FORCE_INLINE static void get_shader_image_sampler(
     memory::vector<ShaderResource, DefaultAlloc>&
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.sampled_images) {
-        ShaderResource out_Res{
-            .name = res.name.c_str(),
+        ShaderResource out_res{
             .type = ShaderResourceType::image_sampler,
             .vk_access = VK_ACCESS_SHADER_READ_BIT,
         };
-        out_Res.vk_shader_stage |= stage;
-        read_shader_resource_array_size(compiler, res, out_Res);
-        read_shader_resource_decoration_descriptor_set(compiler, res, out_Res);
-        read_shader_resource_decoration_binding(compiler, res, out_Res);
-        out_shader_resources.push_back(std::move(out_Res));
+        out_res.name = res.name.c_str();
+        out_res.vk_shader_stage |= stage;
+        read_shader_resource_array_size(compiler, res, out_res);
+        read_shader_resource_decoration_descriptor_set(compiler, res, out_res);
+        read_shader_resource_decoration_binding(compiler, res, out_res);
+        out_shader_resources.push_back(std::move(out_res));
     }
 }
 
@@ -364,11 +364,11 @@ FORCE_INLINE static void get_shader_image_storage(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.storage_images) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::image_storage,
             // Initialization for query later
             .vk_access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         read_shader_resource_decoration_nonreadable(compiler, res, out_res);
         read_shader_resource_decoration_nonwritable(compiler, res, out_res);
@@ -387,10 +387,10 @@ FORCE_INLINE static void get_shader_sampler(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.separate_samplers) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::sampler,
             .vk_access = VK_ACCESS_SHADER_READ_BIT,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         read_shader_resource_array_size(compiler, res, out_res);
         read_shader_resource_decoration_descriptor_set(compiler, res, out_res);
@@ -409,10 +409,10 @@ FORCE_INLINE static void get_shader_uniform_buffer(
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.uniform_buffers) {
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::uniform_buffer,
             .vk_access = VK_ACCESS_UNIFORM_READ_BIT,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         // const auto& spirvType = compiler.get_type_from_variable(res.id);
         // out_res.members = read_shader_resource_members(compiler, spirvType);
@@ -433,21 +433,21 @@ FORCE_INLINE static void get_shader_storage_buffer(
     memory::vector<ShaderResource, DefaultAlloc>&
         out_shader_resources) noexcept {
     for (auto& res : spirv_resources.storage_buffers) {
-        ShaderResource out_Res{
-            .name = res.name.c_str(),
+        ShaderResource out_res{
             .type = ShaderResourceType::storage_buffer,
             .vk_access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
         };
-        out_Res.vk_shader_stage |= stage;
+        out_res.name = res.name.c_str();
+        out_res.vk_shader_stage |= stage;
         // const auto& spirvType = compiler.get_type_from_variable(res.id);
         // out_Res.members = read_shader_resource_members(compiler, spirvType);
-        read_shader_resource_decoration_nonreadable(compiler, res, out_Res);
-        read_shader_resource_decoration_nonwritable(compiler, res, out_Res);
-        read_shader_resource_size(compiler, res, desired_runtime_size, out_Res);
-        read_shader_resource_array_size(compiler, res, out_Res);
-        read_shader_resource_decoration_descriptor_set(compiler, res, out_Res);
-        read_shader_resource_decoration_binding(compiler, res, out_Res);
-        out_shader_resources.push_back(std::move(out_Res));
+        read_shader_resource_decoration_nonreadable(compiler, res, out_res);
+        read_shader_resource_decoration_nonwritable(compiler, res, out_res);
+        read_shader_resource_size(compiler, res, desired_runtime_size, out_res);
+        read_shader_resource_array_size(compiler, res, out_res);
+        read_shader_resource_decoration_descriptor_set(compiler, res, out_res);
+        read_shader_resource_decoration_binding(compiler, res, out_res);
+        out_shader_resources.push_back(std::move(out_res));
     }
 }
 
@@ -470,10 +470,10 @@ FORCE_INLINE static void get_shader_push_constant(
             offset = std::min(offset, memberOffset);
         }
         ShaderResource out_res{
-            .name = res.name.c_str(),
             .type = ShaderResourceType::push_constant,
             .offset = offset,
         };
+        out_res.name = res.name.c_str();
         out_res.vk_shader_stage |= stage;
         read_shader_resource_size(compiler, res, desired_runtime_size, out_res);
         out_res.size -= out_res.offset;
@@ -490,10 +490,10 @@ FORCE_INLINE static void get_shader_specialization_constant(
         compiler.get_specialization_constants();
     for (auto& res : specializationConstant) {
         ShaderResource out_res{
-            .name = compiler.get_name(res.id).c_str(),
             .type = ShaderResourceType::specialization_constant,
             .constant_id = res.constant_id,
         };
+        out_res.name = compiler.get_name(res.id).c_str();
         out_res.vk_shader_stage |= stage;
         const auto& constant = compiler.get_constant(res.id);
         const auto& spirvType = compiler.get_type(constant.constant_type);

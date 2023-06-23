@@ -25,11 +25,21 @@ layout(std430, set = 0, binding = 2) readonly buffer ATTRIB_OFFSET {
     AttribOffsetArray attrib_offsets_buf[];
 };
 
+layout(std430, set = 0, binding = 3) readonly buffer RESULT_MATRICES {
+    mat4 matrices[];
+};
+
+layout(push_constant, std430) uniform PC {
+    uint mat_idx;
+};
+
 void main() {
     uint index = indices_buf[gl_VertexIndex];
     AttribOffsetArray offsets = attrib_offsets_buf[gl_InstanceIndex];
-    gl_Position = vec4(
+    vec4 pos = vec4(
         positions_buf[POS_STRIDE * (offsets.position_offset + index) + 0],
         positions_buf[POS_STRIDE * (offsets.position_offset + index) + 1],
         positions_buf[POS_STRIDE * (offsets.position_offset + index) + 2], 1.0);
+    pos = matrices[mat_idx] * pos;
+    gl_Position = pos;
 }

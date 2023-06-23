@@ -12,6 +12,7 @@
 #include "render/vulkan/VulkanStagePool.h"
 #include "render/vulkan/VulkanSwapchain.h"
 #include "render/vulkan/VulkanVertex.h"
+#include "render/vulkan/VulkanTransformation.h"
 
 WARNING_PUSH
 DISABLE_ALL_WARNING
@@ -57,6 +58,9 @@ public:
     VulkanVertexIndexBuffer create_vertex_index_buffer(
         MeshAggregate const& mesh_aggregate) noexcept;
 
+    VulkanTransformationBuffer create_transformation_buffer(
+        MeshAggregate const& mesh_aggregate) noexcept;
+
     VulkanImage create_image_single_queue(uint32_t width, uint32_t height,
         uint32_t levels, VkSampleCountFlagBits samples, VkFormat format,
         VulkanImage::Usage usage) noexcept;
@@ -86,27 +90,40 @@ public:
 
     void update_swapchain() noexcept;
 
-    void commit() noexcept;
+    void graphics_commit_present() noexcept;
 
-    SpecializationConstantInfo& bind_specialization_info() noexcept;
+    void commit_compute() noexcept;
 
-    void bind_shader(VkShaderStageFlagBits vk_shader_stage,
+    SpecializationConstantInfo& bind_specialization_info(
+        VkPipelineBindPoint bind_point) noexcept;
+
+    void bind_shader(VkPipelineBindPoint bind_point,
+        VkShaderStageFlagBits vk_shader_stage,
         std::filesystem::path source_path) noexcept;
 
-    void bind_buffer_whole(std::string_view name, VulkanBuffer const& buffer,
-        uint32_t arrayIdx = 0) noexcept;
+    void bind_buffer_whole(VkPipelineBindPoint bind_point,
+        std::string_view name, VulkanBuffer const& buffer,
+        uint32_t array_idx = 0) noexcept;
 
-    void bind_buffer(std::string_view name, VulkanBuffer const& buffer,
-        uint64_t offset, uint64_t size, uint32_t arrayIdx = 0) noexcept;
+    void bind_buffer(VkPipelineBindPoint bind_point, std::string_view name,
+        VulkanBuffer const& buffer, uint64_t offset, uint64_t size,
+        uint32_t array_idx = 0) noexcept;
 
-    void bind_image(std::string_view name, VkSampler sampler,
-        VulkanImage const& image, uint32_t arrayIdx = 0) noexcept;
+    void bind_image(VkPipelineBindPoint bind_point, std::string_view name,
+        VkSampler sampler, VulkanImage const& image,
+        uint32_t array_idx = 0) noexcept;
+
+    void calculate_transformation(
+        VulkanTransformationBuffer& transformation_buf) noexcept;
 
     void draw(VulkanVertexIndexBuffer const& vertex_index_buf,
+        VulkanTransformationBuffer const& transformation_buf,
         VulkanGraphicsPipeline::RasterState const& raster_state,
         VkRect2D scissor) noexcept;
 
     void refresh_swapchain() noexcept;
+
+    void add_compute_to_graphics_dependency() noexcept;
 
 private:
     int32_t m_max_msaa_sample = 1;
@@ -130,11 +147,15 @@ private:
 private:
     AlignedStorage<VulkanCommandBufferCache> m_graphics_cmdbuf_cache{};
 
+    AlignedStorage<VulkanCommandBufferCache> m_compute_cmdbuf_cache{};
+
     AlignedStorage<VulkanShaderPool> m_shader_pool{};
 
     AlignedStorage<VulkanDescriptorCache> m_descriptor_cache{};
 
     AlignedStorage<VulkanGraphicsPipelineCache> m_graphics_pipeline_cache{};
+
+    AlignedStorage<VulkanComputePipelineCache> m_compute_pipeline_cache{};
 
     AlignedStorage<VulkanFBOCache> m_fbo_cache{};
 

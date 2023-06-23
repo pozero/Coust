@@ -18,11 +18,13 @@ public:
 
     ~Renderer() noexcept;
 
+    void prepare(std::filesystem::path transformation_comp_shader_path,
+        std::filesystem::path gltf_path, std::filesystem::path vert_shader_path,
+        std::filesystem::path frag_shader_path) noexcept;
+
     void begin_frame() noexcept;
 
-    void render(std::filesystem::path gltf_path,
-        std::filesystem::path vert_shader_path,
-        std::filesystem::path frag_shader_path) noexcept;
+    void render() noexcept;
 
     void end_frame() noexcept;
 
@@ -36,9 +38,14 @@ private:
     memory::vector<VulkanVertexIndexBuffer, DefaultAlloc> m_vertex_index_bufes{
         get_default_alloc()};
 
+    memory::vector<VulkanTransformationBuffer, DefaultAlloc>
+        m_transformation_bufes{get_default_alloc()};
+
     memory::robin_map_nested<memory::string<DefaultAlloc>, uint32_t,
         DefaultAlloc>
         m_path_to_idx{get_default_alloc()};
+
+    uint32_t m_cur_idx;
 };
 
 }  // namespace render

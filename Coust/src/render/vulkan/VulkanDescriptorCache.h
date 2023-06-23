@@ -68,7 +68,7 @@ public:
         const VulkanPipelineLayout* layout) noexcept;
 
     void bind_descriptor_sets(VkCommandBuffer cmdbuf,
-        VulkanPipelineLayout const& layout,
+        VkPipelineBindPoint bind_point, VulkanPipelineLayout const& layout,
         std::span<const VulkanDescriptorSet::Param> params) noexcept;
 
 private:

@@ -100,8 +100,15 @@ void VulkanGraphicsPipelineCache::bind_descriptor_set(
     for (auto &param : params) {
         param.attached_cmdbuf = cmdbuf;
     }
-    m_descriptor_cache.bind_descriptor_sets(
-        cmdbuf, *m_cur_pipeline_layout, params);
+    m_descriptor_cache.bind_descriptor_sets(cmdbuf,
+        VK_PIPELINE_BIND_POINT_GRAPHICS, *m_cur_pipeline_layout, params);
+}
+
+void VulkanGraphicsPipelineCache::push_constant(VkCommandBuffer cmdbuf,
+    VkShaderStageFlagBits stage, std::span<uint8_t const> data,
+    uint32_t offset) noexcept {
+    vkCmdPushConstants(cmdbuf, m_cur_pipeline_layout->get_handle(), stage,
+        offset, (uint32_t) data.size(), data.data());
 }
 
 void VulkanGraphicsPipelineCache::bind_graphics_pipeline(
@@ -207,7 +214,7 @@ void VulkanComputePipelineCache::bind_descriptor_set(
         param.attached_cmdbuf = cmdbuf;
     }
     m_descriptor_cache.bind_descriptor_sets(
-        cmdbuf, *m_cur_pipeline_layout, params);
+        cmdbuf, VK_PIPELINE_BIND_POINT_COMPUTE, *m_cur_pipeline_layout, params);
 }
 
 void VulkanComputePipelineCache::bind_compute_pipeline(

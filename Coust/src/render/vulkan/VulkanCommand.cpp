@@ -100,36 +100,27 @@ bool VulkanCommandBufferCache::flush() noexcept {
     COUST_VK_CHECK(vkEndCommandBuffer(cmdbuf.handle),
         "Can't end {} th vulkan command buffer", m_cmdbuf_idx.value());
     cmdbuf.state = VulkanCommandBuffer::State::executable;
-    std::array<VkPipelineStageFlags, 2> wait_stages{
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-    };
-    std::array<VkSemaphore, 2> wait_signals{
-        VK_NULL_HANDLE,
-        VK_NULL_HANDLE,
-    };
+    if (m_last_submission_signal != VK_NULL_HANDLE) {
+        m_injected_signals.push_back(m_last_submission_signal);
+    }
+    memory::vector<VkPipelineStageFlags, DefaultAlloc> wait_stages{
+        m_injected_signals.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        get_default_alloc()};
     VkSubmitInfo submit_info{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .waitSemaphoreCount = 0,
-        .pWaitSemaphores = wait_signals.data(),
+        .waitSemaphoreCount = (uint32_t) m_injected_signals.size(),
+        .pWaitSemaphores = m_injected_signals.data(),
         .pWaitDstStageMask = wait_stages.data(),
         .commandBufferCount = 1,
         .pCommandBuffers = &cmdbuf.handle,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &m_submission_signals[m_cmdbuf_idx.value()],
     };
-    if (m_last_submission_signal != VK_NULL_HANDLE) {
-        wait_signals[submit_info.waitSemaphoreCount++] =
-            m_last_submission_signal;
-    }
-    if (m_injected_signal != VK_NULL_HANDLE) {
-        wait_signals[submit_info.waitSemaphoreCount++] = m_injected_signal;
-    }
     COUST_VK_CHECK(vkQueueSubmit(m_queue, 1, &submit_info, cmdbuf.fence),
         "Can't sumbit {} th vulkan command buffer", m_cmdbuf_idx.value());
     cmdbuf.state = VulkanCommandBuffer::State::pending;
     m_last_submission_signal = m_submission_signals[m_cmdbuf_idx.value()];
-    m_injected_signal = VK_NULL_HANDLE;
+    m_injected_signals.clear();
     m_cmdbuf_idx.reset();
     if (m_cmdbuf_changed_callback != nullptr) {
         m_cmdbuf_changed_callback(cmdbuf);
@@ -145,7 +136,7 @@ VkSemaphore VulkanCommandBufferCache::get_last_submission_singal() noexcept {
 
 void VulkanCommandBufferCache::inject_dependency(
     VkSemaphore dependency) noexcept {
-    m_injected_signal = dependency;
+    m_injected_signals.push_back(dependency);
 }
 
 void VulkanCommandBufferCache::gc() noexcept {

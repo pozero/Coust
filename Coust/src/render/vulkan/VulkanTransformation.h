@@ -20,12 +20,20 @@ public:
 
     static std::string_view constexpr MAT_IDX_IDX_NAME{"INDEX_INDICES"};
 
+    static std::string_view constexpr DYNA_MAT_NAME{"DYNAMIC_MATRICES"};
+
     static std::string_view constexpr RES_MAT_NAME{"RESULT_MATRICES"};
 
 public:
-    VulkanTransformationBuffer(VkDevice dev, VmaAllocator alloc,
-        VkCommandBuffer cmdbuf, class VulkanStagePool& stage_pool,
+    VulkanTransformationBuffer(VkDevice dev, uint32_t graphics_queue_idx,
+        uint32_t compute_queue_idx, VmaAllocator alloc, VkCommandBuffer cmdbuf,
+        class VulkanStagePool& stage_pool,
         MeshAggregate const& mesh_aggregate) noexcept;
+
+    VulkanTransformationBuffer(VulkanTransformationBuffer&&) noexcept = default;
+
+    VulkanTransformationBuffer& operator=(
+        VulkanTransformationBuffer&&) noexcept = default;
 
     void update_transformation(
         uint32_t node_idx, glm::mat4 const& mat) noexcept;
@@ -41,6 +49,8 @@ public:
     VulkanBuffer const& get_dyna_mat_buf(
         VulkanStagePool& stage_pool, VkCommandBuffer cmdbuf) noexcept;
 
+    std::tuple<uint32_t, uint32_t, uint32_t> get_work_group_size() const;
+
 private:
     VulkanBuffer m_mat_buf;
 
@@ -53,6 +63,8 @@ private:
     VulkanBuffer m_dyna_mat_buf;
 
     memory::vector<glm::mat4, DefaultAlloc> m_dyna_tran{get_default_alloc()};
+
+    uint32_t m_node_count;
 };
 
 }  // namespace render

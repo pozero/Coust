@@ -204,7 +204,7 @@ std::span<VulkanDescriptorSetAllocator> VulkanDescriptorCache::get_allocator(
 }
 
 void VulkanDescriptorCache::bind_descriptor_sets(VkCommandBuffer cmdbuf,
-    VulkanPipelineLayout const& layout,
+    VkPipelineBindPoint bind_point, VulkanPipelineLayout const& layout,
     std::span<const VulkanDescriptorSet::Param> params) noexcept {
     memory::vector<VkDescriptorSet, DefaultAlloc> sets_to_bind{
         get_default_alloc()};
@@ -235,9 +235,8 @@ void VulkanDescriptorCache::bind_descriptor_sets(VkCommandBuffer cmdbuf,
         }
     }
     if (!sets_to_bind.empty()) {
-        vkCmdBindDescriptorSets(cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            layout.get_handle(), 0, (uint32_t) sets_to_bind.size(),
-            sets_to_bind.data(), 0, nullptr);
+        vkCmdBindDescriptorSets(cmdbuf, bind_point, layout.get_handle(), 0,
+            (uint32_t) sets_to_bind.size(), sets_to_bind.data(), 0, nullptr);
     }
 }
 

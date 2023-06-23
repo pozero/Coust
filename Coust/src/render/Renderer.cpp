@@ -10,6 +10,7 @@
 WARNING_PUSH
 DISABLE_ALL_WARNING
 #include "volk.h"
+#include "glm/gtx/euler_angles.hpp"
 WARNING_POP
 
 namespace coust {
@@ -20,13 +21,19 @@ Renderer::Renderer() noexcept {
     memory::vector<const char*, DefaultAlloc> inst_layer{get_default_alloc()};
     memory::vector<const char*, DefaultAlloc> dev_ext{get_default_alloc()};
     VkPhysicalDeviceFeatures required_phydev_features{};
+    required_phydev_features.fillModeNonSolid = VK_TRUE;
     const void* inst_creation_pnext = nullptr;
     const void* dev_creation_pnext = nullptr;
     dev_ext.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     dev_ext.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+    VkPhysicalDeviceMaintenance4Features phydev_maintenance4_feature{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES,
+        .pNext = nullptr,
+        .maintenance4 = VK_TRUE,
+    };
     VkPhysicalDeviceSynchronization2Features phydev_sync2_feature{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-        .pNext = nullptr,
+        .pNext = &phydev_maintenance4_feature,
         .synchronization2 = VK_TRUE,
     };
     dev_creation_pnext = &phydev_sync2_feature;
@@ -42,52 +49,70 @@ Renderer::Renderer() noexcept {
 Renderer::~Renderer() noexcept {
     m_vk_driver.get().wait();
     m_vertex_index_bufes.clear();
+    m_transformation_bufes.clear();
     m_vk_driver.destroy();
 }
 
-void Renderer::begin_frame() noexcept {
-    m_vk_driver.get().update_swapchain();
-    m_vk_driver.get().begin_frame();
-}
-
-void Renderer::render(std::filesystem::path gltf_path,
-    std::filesystem::path vert_shader_path,
+void Renderer::prepare(std::filesystem::path transformation_comp_shader_path,
+    std::filesystem::path gltf_path, std::filesystem::path vert_shader_path,
     std::filesystem::path frag_shader_path) noexcept {
-    auto model_iter =
+    auto idx_iter =
         m_path_to_idx.find({gltf_path.string().c_str(), get_default_alloc()});
-    uint32_t vertex_index_buf_idx = 0;
-    if (model_iter != m_path_to_idx.end()) {
-        vertex_index_buf_idx = model_iter.mapped();
+    if (idx_iter != m_path_to_idx.end()) {
+        m_cur_idx = idx_iter.mapped();
     } else {
         m_gltfes.push_back(process_gltf(gltf_path));
         m_vertex_index_bufes.push_back(
             m_vk_driver.get().create_vertex_index_buffer(m_gltfes.back()));
-        vertex_index_buf_idx = (uint32_t) m_gltfes.size() - 1;
+        m_transformation_bufes.push_back(
+            m_vk_driver.get().create_transformation_buffer(m_gltfes.back()));
+        m_cur_idx = (uint32_t) m_gltfes.size() - 1;
         m_path_to_idx.emplace(
             memory::string<DefaultAlloc>{
                 gltf_path.string().c_str(), get_default_alloc()},
-            vertex_index_buf_idx);
+            m_cur_idx);
     }
+    m_vk_driver.get().bind_shader(VK_PIPELINE_BIND_POINT_GRAPHICS,
+        VK_SHADER_STAGE_VERTEX_BIT, vert_shader_path);
+    m_vk_driver.get().bind_shader(VK_PIPELINE_BIND_POINT_GRAPHICS,
+        VK_SHADER_STAGE_FRAGMENT_BIT, frag_shader_path);
+    m_vk_driver.get().bind_shader(VK_PIPELINE_BIND_POINT_COMPUTE,
+        VK_SHADER_STAGE_COMPUTE_BIT, transformation_comp_shader_path);
+}
+
+void Renderer::begin_frame() noexcept {
+    m_vk_driver.get().calculate_transformation(
+        m_transformation_bufes[m_cur_idx]);
+    m_vk_driver.get().commit_compute();
+    m_vk_driver.get().add_compute_to_graphics_dependency();
+    m_vk_driver.get().update_swapchain();
+    m_vk_driver.get().begin_frame();
+}
+
+void Renderer::render() noexcept {
+    static float frame_id = 0;
+    frame_id += 0.01f;
+    glm::mat4 rot = glm::eulerAngleZ(std::sin(frame_id));
+    m_transformation_bufes[m_cur_idx].update_transformation(0, rot);
     VulkanVertexIndexBuffer const& vertex_index_buf =
-        m_vertex_index_bufes[vertex_index_buf_idx];
+        m_vertex_index_bufes[m_cur_idx];
+    VulkanTransformationBuffer const& trans_buf =
+        m_transformation_bufes[m_cur_idx];
     VkClearValue clear_val{
         .color = {.float32 = {0.7f, 0.7f, 0.7f, 1.0f}},
     };
     m_vk_driver.get().begin_render_pass(*m_attached_render_target,
         AttachmentFlagBits::COLOR0, 0, 0, 0, clear_val);
-    m_vk_driver.get().bind_shader(VK_SHADER_STAGE_VERTEX_BIT, vert_shader_path);
-    m_vk_driver.get().bind_shader(
-        VK_SHADER_STAGE_FRAGMENT_BIT, frag_shader_path);
     VulkanGraphicsPipeline::RasterState raster_state{};
     raster_state.front_face = VK_FRONT_FACE_CLOCKWISE;
     raster_state.polygon_mode = VK_POLYGON_MODE_LINE;
-    m_vk_driver.get().draw(vertex_index_buf, raster_state, {});
+    m_vk_driver.get().draw(vertex_index_buf, trans_buf, raster_state, {});
     m_vk_driver.get().end_render_pass();
 }
 
 void Renderer::end_frame() noexcept {
     m_vk_driver.get().end_frame();
-    m_vk_driver.get().commit();
+    m_vk_driver.get().graphics_commit_present();
 }
 
 }  // namespace render

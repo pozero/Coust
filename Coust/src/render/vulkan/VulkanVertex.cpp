@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "render/vulkan/VulkanVertex.h"
 
 namespace coust {
@@ -16,7 +15,6 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
     class VulkanStagePool& stage_pool,
     MeshAggregate const& mesh_aggregate) noexcept
     : m_primitive_count(MeshAggregate::get_primitve_count(mesh_aggregate)),
-      m_node_count(mesh_aggregate.nodes.size()),
       m_vertex_buf(dev, alloc,
           mesh_aggregate.vertex_buffer.size() *
               sizeof(decltype(MeshAggregate::vertex_buffer)::value_type),
@@ -69,7 +67,12 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
     memory::vector<decltype(Mesh::Primitive::attrib_offset), DefaultAlloc>
         attrib_offsets{get_default_alloc()};
     attrib_offsets.reserve(primitive_cnt);
+    memory::vector<size_t, DefaultAlloc> mesh_draw_cmd_bytes_offset{
+        get_default_alloc()};
+    mesh_draw_cmd_bytes_offset.reserve(mesh_aggregate.meshes.size());
     for (Mesh const& mesh : mesh_aggregate.meshes) {
+        mesh_draw_cmd_bytes_offset.push_back(
+            draw_cmds.size() * sizeof(decltype(draw_cmds)::value_type));
         for (Mesh::Primitive const& primitive : mesh.primitives) {
             draw_cmds.push_back(VkDrawIndirectCommand{
                 .vertexCount = (uint32_t) primitive.index_count,
@@ -86,6 +89,17 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
     m_attrib_offset_buf.update(stage_pool, cmdbuf,
         std::span<const uint8_t>{(const uint8_t*) attrib_offsets.data(),
             m_attrib_offset_buf.get_size()});
+    for (uint32_t i = 0; i < mesh_aggregate.nodes.size(); ++i) {
+        uint32_t mesh_idx = mesh_aggregate.nodes[i].mesh_idx;
+        if (mesh_idx != (uint32_t) -1) {
+            m_node_infos.push_back(NodeInfo{
+                .draw_cmd_bytes_offset = mesh_draw_cmd_bytes_offset[mesh_idx],
+                .primitive_count = (uint32_t) mesh_aggregate.meshes[mesh_idx]
+                                       .primitives.size(),
+                .node_idx = i,
+            });
+        }
+    }
 }
 
 VulkanBuffer const& VulkanVertexIndexBuffer::get_vertex_buf() const noexcept {
@@ -105,12 +119,9 @@ VulkanBuffer const& VulkanVertexIndexBuffer::get_attrib_offset_buf()
     return m_attrib_offset_buf;
 }
 
-size_t VulkanVertexIndexBuffer::get_primitive_count() const noexcept {
-    return m_primitive_count;
-}
-
-size_t VulkanVertexIndexBuffer::get_node_count() const noexcept {
-    return m_node_count;
+std::span<VulkanVertexIndexBuffer::NodeInfo const>
+    VulkanVertexIndexBuffer::get_node_infos() const noexcept {
+    return m_node_infos;
 }
 
 auto VulkanVertexIndexBuffer::get_attrib_infos() const noexcept

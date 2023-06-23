@@ -165,10 +165,11 @@ VulkanImage::VulkanImage(VkDevice dev, VmaAllocator alloc,
         .usage = vk_usage_flags,
         .initialLayout = initial_layout,
     };
-    memory::vector<uint32_t, DefaultAlloc> all_queues{
-        related_queues.begin(), related_queues.end(), get_default_alloc()};
-    auto [erase_begin, erase_end] = std::ranges::unique(all_queues);
-    all_queues.erase(erase_begin, erase_end);
+    memory::vector<uint32_t, DefaultAlloc> all_queues{get_default_alloc()};
+    std::ranges::copy_if(related_queues, std::back_inserter(all_queues),
+        [](uint32_t const queue_idx) {
+            return queue_idx != VK_QUEUE_FAMILY_IGNORED;
+        });
     if (all_queues.size() > 1) {
         image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
         image_info.queueFamilyIndexCount = (uint32_t) all_queues.size();

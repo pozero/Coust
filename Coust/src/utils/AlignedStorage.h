@@ -45,7 +45,7 @@ public:
             DEBUG_BREAK();
         }
 #endif
-        return *get_raw_ptr();
+        return t;
     }
 
     const T& get() const noexcept {
@@ -56,7 +56,7 @@ public:
             DEBUG_BREAK();
         }
 #endif
-        return *get_raw_ptr();
+        return t;
     }
 
     T* ptr() noexcept {
