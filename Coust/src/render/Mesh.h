@@ -122,7 +122,7 @@ struct MeshAggregate {
 public:
     static constexpr void serialize(
         MeshAggregate& self, auto& archive) noexcept {
-        archive(self.attrib_bytes_offset, self.index_buffer, self.vertex_buffer,
+        archive(self.attrib_bytes_offset, self.valid_attrib_mask, self.index_buffer, self.vertex_buffer,
             self.meshes, self.nodes);
         size_t transformation_cnt = self.transformations.size();
         archive(transformation_cnt);

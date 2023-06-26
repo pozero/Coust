@@ -1,5 +1,8 @@
 #include "pch.h"
 
+#include "utils/math/Hash.h"
+#include "utils/filesystem/FileCache.h"
+#include "utils/filesystem/NaiveSerialization.h"
 #include "utils/Compiler.h"
 #include "utils/allocators/StlContainer.h"
 #include "core/Memory.h"
@@ -61,7 +64,18 @@ void Renderer::prepare(std::filesystem::path transformation_comp_shader_path,
     if (idx_iter != m_path_to_idx.end()) {
         m_cur_idx = idx_iter.mapped();
     } else {
-        m_gltfes.push_back(process_gltf(gltf_path));
+        size_t gltf_hash_tag = calc_std_hash(gltf_path);
+        auto [byte_array, cache_status] =
+            file::Caches::get_instance().get_cache_data(
+                gltf_path.string(), gltf_hash_tag);
+        if (cache_status == file::Caches::Status::available) {
+            m_gltfes.push_back(
+                file::from_byte_array<MeshAggregate>(byte_array));
+        } else {
+            m_gltfes.push_back(process_gltf(gltf_path));
+            file::Caches::get_instance().add_cache_data(gltf_path.string(),
+                gltf_hash_tag, file::to_byte_array(m_gltfes.back()), true);
+        }
         m_vertex_index_bufes.push_back(
             m_vk_driver.get().create_vertex_index_buffer(m_gltfes.back()));
         m_transformation_bufes.push_back(
