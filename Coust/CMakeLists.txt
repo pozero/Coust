@@ -104,6 +104,9 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/Renderer.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/Renderer.cpp
 
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/camera/FPSCamera.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/camera/FPSCamera.cpp
+
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/volk_impl.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/vma_impl.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanDriver.h

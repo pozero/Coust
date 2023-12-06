@@ -2,6 +2,7 @@
 
 #include "utils/AlignedStorage.h"
 #include "render/vulkan/VulkanDriver.h"
+#include "render/camera/FPSCamera.h"
 
 namespace coust {
 namespace render {
@@ -28,6 +29,8 @@ public:
 
     void end_frame() noexcept;
 
+    FPSCamera& get_camera() noexcept;
+
 private:
     AlignedStorage<VulkanDriver> m_vk_driver{};
 
@@ -44,6 +47,8 @@ private:
     memory::robin_map_nested<memory::string<DefaultAlloc>, uint32_t,
         DefaultAlloc>
         m_path_to_idx{get_default_alloc()};
+
+    FPSCamera m_camera;
 
     uint32_t m_cur_idx;
 };

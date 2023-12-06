@@ -31,6 +31,8 @@ public:
     std::pair<int, int> get_drawable_size() const noexcept;
 
     void poll_events() noexcept;
+
+    const uint8_t* get_keyboard_state() const noexcept;
     /* common */
 
 public:

@@ -19,7 +19,9 @@ WARNING_POP
 namespace coust {
 namespace render {
 
-Renderer::Renderer() noexcept {
+Renderer::Renderer() noexcept
+    : m_camera(glm::vec3{0.0f, 0.0f, 2.0f}, glm::vec3{0.0f, 0.0f, 0.0f},
+          glm::vec3{0.0f, -1.0f, 0.0f}) {
     memory::vector<const char*, DefaultAlloc> inst_ext{get_default_alloc()};
     memory::vector<const char*, DefaultAlloc> inst_layer{get_default_alloc()};
     memory::vector<const char*, DefaultAlloc> dev_ext{get_default_alloc()};
@@ -104,10 +106,10 @@ void Renderer::begin_frame() noexcept {
 }
 
 void Renderer::render() noexcept {
-    static float frame_id = 0;
-    frame_id += 0.01f;
-    glm::mat4 rot = glm::eulerAngleZ(std::sin(frame_id));
-    m_transformation_bufes[m_cur_idx].update_transformation(0, rot);
+    // static float frame_id = 0;
+    // frame_id += 0.01f;
+    // glm::mat4 rot = glm::eulerAngleZ(std::sin(frame_id));
+    // m_transformation_bufes[m_cur_idx].update_transformation(0, rot);
     VulkanVertexIndexBuffer const& vertex_index_buf =
         m_vertex_index_bufes[m_cur_idx];
     VulkanTransformationBuffer const& trans_buf =
@@ -120,13 +122,20 @@ void Renderer::render() noexcept {
     VulkanGraphicsPipeline::RasterState raster_state{};
     raster_state.front_face = VK_FRONT_FACE_CLOCKWISE;
     raster_state.polygon_mode = VK_POLYGON_MODE_LINE;
-    m_vk_driver.get().draw(vertex_index_buf, trans_buf, raster_state, {});
+    glm::mat4 proj_view_mat =
+        m_camera.get_proj_matrix() * m_camera.get_view_matrix();
+    m_vk_driver.get().draw(
+        vertex_index_buf, trans_buf, proj_view_mat, raster_state, {});
     m_vk_driver.get().end_render_pass();
 }
 
 void Renderer::end_frame() noexcept {
     m_vk_driver.get().end_frame();
     m_vk_driver.get().graphics_commit_present();
+}
+
+FPSCamera& Renderer::get_camera() noexcept {
+    return m_camera;
 }
 
 }  // namespace render

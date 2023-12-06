@@ -28,9 +28,14 @@ Application::~Application() noexcept {
 }
 
 void Application::run() noexcept {
+    TimeStep::time_t last_time, cur_time;
+    last_time = TimeStep::clock_t::now();
     while (m_running) {
+        cur_time = TimeStep::clock_t::now();
+        TimeStep ts{last_time, cur_time};
         m_window.poll_events();
-        m_render_layer.on_update({});
+        m_render_layer.on_update(ts);
+        last_time = cur_time;
     }
 }
 

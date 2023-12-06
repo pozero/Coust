@@ -118,6 +118,7 @@ public:
 
     void draw(VulkanVertexIndexBuffer const& vertex_index_buf,
         VulkanTransformationBuffer const& transformation_buf,
+        glm::mat4 const& proj_view_mat,
         VulkanGraphicsPipeline::RasterState const& raster_state,
         VkRect2D scissor) noexcept;
 

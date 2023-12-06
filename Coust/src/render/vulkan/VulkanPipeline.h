@@ -147,8 +147,8 @@ public:
         // index value is either 0xFFFFFFFF when the indexType parameter of
         // vkCmdBindIndexBuffer is equal to VK_INDEX_TYPE_UINT32, or 0xFFFF when
         // indexType is equal to VK_INDEX_TYPE_UINT16. Primitive restart is not
-        // allowed for list topologies. const
-        // VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState;
+        // allowed for list topologies.
+        // const VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState;
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         // We don't support tesselletion now
         // Viewport & scissor are dynamic states, their setting is postponed

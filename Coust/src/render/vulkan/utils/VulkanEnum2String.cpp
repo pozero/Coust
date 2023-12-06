@@ -6,6 +6,8 @@
 namespace coust {
 namespace render {
 
+WARNING_PUSH
+CLANG_DISABLE_WARNING("-Wswitch")
 std::string_view to_string_view(VkResult result) noexcept {
     switch (result) {
         case VK_SUCCESS:
@@ -207,6 +209,7 @@ std::string_view to_string_view(VkObjectType obj_type) noexcept {
     }
     ASSUME(0);
 }
+WARNING_POP
 
 }  // namespace render
 }  // namespace coust

@@ -881,6 +881,7 @@ void VulkanDriver::calculate_transformation(
 
 void VulkanDriver::draw(VulkanVertexIndexBuffer const& vertex_index_buf,
     VulkanTransformationBuffer const& transformation_buf,
+    glm::mat4 const& proj_view_mat,
     VulkanGraphicsPipeline::RasterState const& raster_state,
     VkRect2D scissor) noexcept {
     VkCommandBuffer cmdbuf = m_graphics_cmdbuf_cache.get().get();
@@ -915,11 +916,16 @@ void VulkanDriver::draw(VulkanVertexIndexBuffer const& vertex_index_buf,
         vkCmdSetScissor(cmdbuf, 0, 1, &whole_screen);
     }
     m_graphics_pipeline_cache.get().bind_graphics_pipeline(cmdbuf);
+    struct PushConstant {
+        glm::mat4 proj_view_mat;
+        uint32_t node_idx;
+    };
     for (auto const [draw_cmd_byte_offset, draw_count, node_idx] :
         vertex_index_buf.get_node_infos()) {
+        PushConstant const push_constant{proj_view_mat, node_idx};
         m_graphics_pipeline_cache.get().push_constant(cmdbuf,
             VK_SHADER_STAGE_VERTEX_BIT,
-            {(const uint8_t*) &node_idx, sizeof(node_idx)});
+            {(const uint8_t*) &push_constant, sizeof(push_constant)});
         vkCmdDrawIndirect(cmdbuf,
             vertex_index_buf.get_draw_cmd_buf().get_handle(),
             draw_cmd_byte_offset, draw_count, sizeof(VkDrawIndirectCommand));

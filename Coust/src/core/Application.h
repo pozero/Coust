@@ -1,7 +1,15 @@
 #pragma once
 
+#include "utils/Compiler.h"
+
+WARNING_PUSH
+DISABLE_ALL_WARNING
+#include "SDL_scancode.h"
+WARNING_POP
+
 #include "event/Event.h"
 #include "event/ApplicationEvent.h"
+#include "event/KeyEvent.h"
 #include "utils/TypeName.h"
 #include "utils/Log.h"
 #include "utils/allocators/SmartPtr.h"
@@ -21,8 +29,14 @@ public:
     void run() noexcept;
 
     void on_event(detail::IsEvent auto&& event) {
-        event_bus::dispatch(event, [this](WindowCloseEvent&) {
+        event_bus::dispatch(event, [this](WindowCloseEvent&) -> bool {
             m_running = false;
+            return true;
+        });
+        event_bus::dispatch(event, [this](KeyPressEvent& e) -> bool {
+            if (e.get_scancode() == SDL_SCANCODE_ESCAPE) {
+                m_running = false;
+            }
             return true;
         });
         m_render_layer.on_event(event);

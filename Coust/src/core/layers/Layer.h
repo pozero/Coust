@@ -10,7 +10,7 @@ namespace detail {
 
 template <typename T>
 concept Layer = std::constructible_from<T, std::string_view> &&
-                requires(T& t, WindowCloseEvent& wce, TimeStep const& ts) {
+                requires(T& t, WindowCloseEvent& wce, TimeStep ts) {
                     { t.on_attach() } noexcept -> std::same_as<void>;
                     { t.on_detach() } noexcept -> std::same_as<void>;
                     { t.on_event(wce) } noexcept -> std::same_as<void>;

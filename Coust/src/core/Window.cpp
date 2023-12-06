@@ -7,6 +7,7 @@ DISABLE_ALL_WARNING
 #include "SDL.h"
 #include "SDL_events.h"
 #include "SDL_vulkan.h"
+#include "SDL_keyboard.h"
 WARNING_POP
 
 #include "event/Event.h"
@@ -120,6 +121,10 @@ void Window::poll_events() noexcept {
                 break;
         }
     }
+}
+
+const uint8_t* Window::get_keyboard_state() const noexcept {
+    return SDL_GetKeyboardState(nullptr);
 }
 
 }  // namespace coust

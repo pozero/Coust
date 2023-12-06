@@ -30,6 +30,7 @@ layout(std430, set = 0, binding = 3) readonly buffer RESULT_MATRICES {
 };
 
 layout(push_constant, std430) uniform PC {
+    mat4 proj_view_mat;
     uint mat_idx;
 };
 
@@ -40,6 +41,7 @@ void main() {
         positions_buf[POS_STRIDE * (offsets.position_offset + index) + 0],
         positions_buf[POS_STRIDE * (offsets.position_offset + index) + 1],
         positions_buf[POS_STRIDE * (offsets.position_offset + index) + 2], 1.0);
-    pos = matrices[mat_idx] * pos;
+    pos = proj_view_mat * matrices[mat_idx] * pos;
+    // pos = matrices[mat_idx] * pos;
     gl_Position = pos;
 }
