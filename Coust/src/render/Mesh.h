@@ -4,8 +4,6 @@
 #include "utils/math/BoundingBox.h"
 #include "utils/allocators/StlContainer.h"
 
-#include "glm/mat4x4.hpp"
-
 #include <array>
 
 namespace coust {
@@ -14,7 +12,7 @@ namespace render {
 // the setup is tightly related to glTF format
 
 // the location of vertex attributes are fixed, if its not provided,
-// then use an invalid value to mark vacancy
+// then use an invalid value to mark absence
 // - POSITION       VEC3    float
 // - NORMAL         VEC3    float
 // - TANGENT        VEC4    float
@@ -24,7 +22,7 @@ namespace render {
 // - TEXCOORD_2     VEC2    float/ubyte/ushort
 // - TEXCOORD_3     VEC2    float/ubyte/ushort
 enum VertexAttrib : uint32_t {
-    position,
+    position = 0,
     normal,
     tangent,
     color_0,
@@ -85,6 +83,8 @@ struct Node {
         get_default_alloc()};
 };
 
+uint32_t constexpr MAX_TEXTURE_PER_MESH_AGGREGATE = 256;
+
 struct MeshAggregate {
     // we store all attributes in a big contiguous buffer, so here we need
     // to seperate them by recording their offset in **count of bytes**.
@@ -122,8 +122,8 @@ struct MeshAggregate {
 public:
     static constexpr void serialize(
         MeshAggregate& self, auto& archive) noexcept {
-        archive(self.attrib_bytes_offset, self.valid_attrib_mask, self.index_buffer, self.vertex_buffer,
-            self.meshes, self.nodes);
+        archive(self.attrib_bytes_offset, self.valid_attrib_mask,
+            self.index_buffer, self.vertex_buffer, self.meshes, self.nodes);
         size_t transformation_cnt = self.transformations.size();
         archive(transformation_cnt);
         self.transformations.resize(transformation_cnt);

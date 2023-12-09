@@ -5,12 +5,10 @@
 WARNING_PUSH
 DISABLE_ALL_WARNING
 #include "SDL_mouse.h"
-#include "SDL_scancode.h"
 WARNING_POP
 
 #include "utils/AlignedStorage.h"
 #include "event/MouseEvent.h"
-#include "event/KeyEvent.h"
 #include "core/layers/Layer.h"
 #include "render/Renderer.h"
 

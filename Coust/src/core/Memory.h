@@ -5,7 +5,6 @@
 #include "utils/allocators/FreeListAllocator.h"
 #include "utils/allocators/HeapAllocator.h"
 #include "utils/allocators/PoolAllocator.h"
-#include "utils/allocators/StlAdaptor.h"
 
 namespace coust {
 namespace memory {

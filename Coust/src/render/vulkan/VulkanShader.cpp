@@ -195,12 +195,24 @@ VulkanShaderModule::~VulkanShaderModule() noexcept {
     }
 }
 
-void VulkanShaderModule::set_dynamic_buffer(std::string_view name) noexcept {
-    for (auto& res : m_reflection_data) {
-        if (std::string_view{res.name} == name &&
-            (res.type == ShaderResourceType::storage_buffer ||
-                res.type == ShaderResourceType::uniform_buffer)) {
-            res.update_mode = ShaderResourceUpdateMode::dyna;
+// TODO: Coust not yet support dynamic buffer
+// void VulkanShaderModule::set_dynamic_buffer(std::string_view name) noexcept {
+// for (auto& res : m_reflection_data) {
+// if (std::string_view{res.name} == name &&
+// (res.type == ShaderResourceType::storage_buffer ||
+// res.type == ShaderResourceType::uniform_buffer)) {
+// res.update_mode = ShaderResourceUpdateMode::dynamic_update;
+// break;
+// }
+// }
+// }
+
+void VulkanShaderModule::set_update_after_bind_image(
+    std::string_view name) noexcept {
+    for (auto& resource : m_reflection_data) {
+        if (resource.name == name &&
+            resource.type == ShaderResourceType::image_sampler) {
+            resource.update_mode = ShaderResourceUpdateMode::update_after_bind;
             break;
         }
     }

@@ -18,7 +18,7 @@ VkPipelineLayout VulkanPipelineLayout::get_handle() const noexcept {
 }
 
 VulkanPipelineLayout::VulkanPipelineLayout(
-    VkDevice dev, Param const& param) noexcept
+    VkDevice dev, VkPhysicalDevice phy_dev, Param const& param) noexcept
     : m_dev(dev) {
     memory::robin_set<uint32_t, DefaultAlloc> all_sets{get_default_alloc()};
     memory::vector<VkPushConstantRange, DefaultAlloc> push_constant_ranges{
@@ -36,7 +36,7 @@ VulkanPipelineLayout::VulkanPipelineLayout(
         }
     }
     for (auto const set : all_sets) {
-        m_descriptor_layouts.emplace_back(dev, set,
+        m_descriptor_layouts.emplace_back(dev, phy_dev, set,
             std::span<const VulkanShaderModule* const>{
                 param.shader_modules.data(), param.shader_modules.size()});
     }

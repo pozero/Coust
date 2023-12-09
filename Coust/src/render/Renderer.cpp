@@ -13,7 +13,7 @@
 WARNING_PUSH
 DISABLE_ALL_WARNING
 #include "volk.h"
-#include "glm/gtx/euler_angles.hpp"
+// #include "glm/gtx/euler_angles.hpp"
 WARNING_POP
 
 namespace coust {
@@ -27,6 +27,7 @@ Renderer::Renderer() noexcept
     memory::vector<const char*, DefaultAlloc> dev_ext{get_default_alloc()};
     VkPhysicalDeviceFeatures required_phydev_features{};
     required_phydev_features.fillModeNonSolid = VK_TRUE;
+    required_phydev_features.multiDrawIndirect = VK_TRUE;
     const void* inst_creation_pnext = nullptr;
     const void* dev_creation_pnext = nullptr;
     dev_ext.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -106,10 +107,6 @@ void Renderer::begin_frame() noexcept {
 }
 
 void Renderer::render() noexcept {
-    // static float frame_id = 0;
-    // frame_id += 0.01f;
-    // glm::mat4 rot = glm::eulerAngleZ(std::sin(frame_id));
-    // m_transformation_bufes[m_cur_idx].update_transformation(0, rot);
     VulkanVertexIndexBuffer const& vertex_index_buf =
         m_vertex_index_bufes[m_cur_idx];
     VulkanTransformationBuffer const& trans_buf =

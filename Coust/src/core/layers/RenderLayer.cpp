@@ -9,7 +9,6 @@ WARNING_POP
 
 #include "core/Application.h"
 #include "utils/filesystem/FileIO.h"
-#include "render/vulkan/VulkanDriver.h"
 #include "core/layers/RenderLayer.h"
 
 namespace coust {
@@ -26,7 +25,7 @@ void RenderLayer::on_detach() noexcept {
 
 void RenderLayer::on_update(TimeStep ts) noexcept {
     std::filesystem::path gltf_path = file::get_absolute_path_from(
-        "Coust", "asset", "test", "rubber_duck", "scene.gltf");
+        "Coust", "asset", "test", "Sponza", "glTF", "Sponza.gltf");
     std::filesystem::path vert_path =
         file::get_absolute_path_from("Coust", "shader", "test", "minimal.vert");
     std::filesystem::path frag_path =

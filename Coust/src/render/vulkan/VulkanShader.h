@@ -3,9 +3,6 @@
 #include "utils/Compiler.h"
 #include "core/Memory.h"
 #include "utils/allocators/StlContainer.h"
-#include "utils/allocators/SmartPtr.h"
-#include "utils/containers/RobinMap.h"
-#include "utils/filesystem/FileIO.h"
 #include "render/vulkan/utils/SpirVReflection.h"
 
 WARNING_PUSH
@@ -89,7 +86,9 @@ public:
 
     ~VulkanShaderModule() noexcept;
 
-    void set_dynamic_buffer(std::string_view name) noexcept;
+    // void set_dynamic_buffer(std::string_view name) noexcept;
+
+    void set_update_after_bind_image(std::string_view name) noexcept;
 
     VkShaderStageFlagBits get_stage() const noexcept;
 

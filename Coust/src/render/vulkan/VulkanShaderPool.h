@@ -2,6 +2,7 @@
 
 #include "core/Memory.h"
 #include "utils/allocators/StlContainer.h"
+#include "utils/allocators/SmartPtr.h"
 #include "render/vulkan/VulkanShader.h"
 
 namespace coust {

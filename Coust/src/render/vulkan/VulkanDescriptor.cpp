@@ -2,6 +2,7 @@
 
 #include "utils/math/Hash.h"
 #include "utils/Compiler.h"
+#include "render/Mesh.h"
 #include "render/vulkan/utils/VulkanTagger.h"
 #include "render/vulkan/utils/VulkanCheck.h"
 #include "render/vulkan/utils/VulkanAllocation.h"
@@ -31,11 +32,11 @@ constexpr VkDescriptorType get_descriptor_type(
         case ShaderResourceType::image_storage:
             return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         case ShaderResourceType::uniform_buffer:
-            return mode == ShaderResourceUpdateMode::dyna ?
+            return mode == ShaderResourceUpdateMode::dynamic_update ?
                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC :
                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         case ShaderResourceType::storage_buffer:
-            return mode == ShaderResourceUpdateMode::dyna ?
+            return mode == ShaderResourceUpdateMode::dynamic_update ?
                        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC :
                        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     }
@@ -51,11 +52,36 @@ VkDescriptorSetLayout VulkanDescriptorSetLayout::get_handle() const noexcept {
     return m_handle;
 }
 
-VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev,
+    VkPhysicalDevice phy_dev, uint32_t set,
     std::span<const VulkanShaderModule *const> shader_modules) noexcept
     : m_dev(dev), m_set(set) {
+    static VkPhysicalDeviceDescriptorIndexingProperties desc_indexing_props =
+        std::invoke([phy_dev] {
+            VkPhysicalDeviceDescriptorIndexingProperties ret{
+                .sType =
+                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES,
+            };
+            VkPhysicalDeviceProperties2 phydev_props{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+                .pNext = &ret,
+            };
+            vkGetPhysicalDeviceProperties2(phy_dev, &phydev_props);
+            return ret;
+        });
+    VkDescriptorBindingFlags constexpr update_after_bind_flags =
+        VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
+        VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
     memory::vector<VkDescriptorSetLayoutBinding, DefaultAlloc> vk_bindings{
         get_default_alloc()};
+    memory::vector<VkDescriptorBindingFlags, DefaultAlloc> binding_flags{
+        get_default_alloc()};
+    VkDescriptorSetLayoutCreateInfo desc_layout_info{
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .flags = 0,
+    };
     for (auto const &shader : shader_modules) {
         hash_combine(m_hash, shader->get_byte_code_hash());
         for (auto const &res : shader->get_shader_resource()) {
@@ -78,16 +104,32 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
                 .descriptorCount = res.array_size,
                 .stageFlags = res.vk_shader_stage,
             };
+            if (res.update_mode ==
+                ShaderResourceUpdateMode::update_after_bind) {
+                desc_layout_info.flags |=
+                    VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+                m_required_pool_flags =
+                    VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+                binding_flags.push_back(update_after_bind_flags);
+                binding.descriptorCount =
+                    desc_indexing_props
+                        .maxDescriptorSetUpdateAfterBindSampledImages;
+            } else {
+                binding_flags.push_back(0);
+            }
             m_idx_to_binding.emplace(res.binding, binding);
             vk_bindings.push_back(binding);
         }
     }
-    VkDescriptorSetLayoutCreateInfo desc_layout_info{
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .flags = 0,
-        .bindingCount = (uint32_t) vk_bindings.size(),
-        .pBindings = vk_bindings.data(),
+    VkDescriptorSetLayoutBindingFlagsCreateInfo desc_layout_binding_flags{
+        .sType =
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .bindingCount = (uint32_t) binding_flags.size(),
+        .pBindingFlags = binding_flags.data(),
     };
+    desc_layout_info.pNext = &desc_layout_binding_flags;
+    desc_layout_info.bindingCount = (uint32_t) vk_bindings.size();
+    desc_layout_info.pBindings = vk_bindings.data();
     COUST_VK_CHECK(vkCreateDescriptorSetLayout(m_dev, &desc_layout_info,
                        COUST_VULKAN_ALLOC_CALLBACK, &m_handle),
         "Can't create vulkan descriptor set layout");
@@ -127,6 +169,11 @@ uint32_t VulkanDescriptorSetLayout::get_set() const noexcept {
 
 size_t VulkanDescriptorSetLayout::get_hash() const noexcept {
     return m_hash;
+}
+
+VkDescriptorPoolCreateFlags VulkanDescriptorSetLayout::get_required_pool_flags()
+    const noexcept {
+    return m_required_pool_flags;
 }
 
 auto VulkanDescriptorSetLayout::get_bindings() const noexcept
@@ -338,9 +385,16 @@ VkDescriptorSet VulkanDescriptorSetAllocator::allocate() noexcept {
     }
     find_pool();
     ++m_pools[m_pool_idx].second;
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variable_desc_cnt_ai{
+        .sType =
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+        .descriptorSetCount = m_layout.get_required_pool_flags() == 0 ? 0 : 1,
+        .pDescriptorCounts = &MAX_TEXTURE_PER_MESH_AGGREGATE,
+    };
     VkDescriptorSetLayout layout = m_layout.get_handle();
     VkDescriptorSetAllocateInfo ai{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext = &variable_desc_cnt_ai,
         .descriptorPool = m_pools[m_pool_idx].first,
         .descriptorSetCount = 1,
         .pSetLayouts = &layout,
@@ -416,7 +470,7 @@ void VulkanDescriptorSetAllocator::find_pool() noexcept {
                 // is reset to "initial" status when the command buffer it
                 // attached to is reset, resetting descriptor pool will
                 // implicitly free all the descriptor sets attached to it.
-                // .flags = m_layout->get_required_pool_flags(),
+                .flags = m_layout.get_required_pool_flags(),
                 .maxSets = m_max_set_per_pool,
                 .poolSizeCount = (uint32_t) m_pool_sizes.size(),
                 .pPoolSizes = m_pool_sizes.data(),

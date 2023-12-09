@@ -42,9 +42,6 @@ void VulkanDescriptorBuilder::bind_buffer(std::string_view name,
                 (res.type == ShaderResourceType::storage_buffer ||
                     res.type == ShaderResourceType::uniform_buffer)) {
                 uint64_t offset_to_write = offset;
-                COUST_PANIC_IF(
-                    res.update_mode == ShaderResourceUpdateMode::dyna,
-                    "Dynamic offset of buffer not supported yet");
                 auto& requirement = m_descriptor_set_requirements[res.set];
                 auto& arr = requirement.buffer_infos[res.binding];
                 auto& buf_info = arr.buffers[array_idx];
@@ -175,7 +172,7 @@ const VulkanPipelineLayout* VulkanDescriptorCache::get_pipeline_layout(
     } else {
         m_hit_pipeline_layout_counter.miss();
         auto layout = memory::allocate_unique<VulkanPipelineLayout>(
-            get_default_alloc(), m_dev, param);
+            get_default_alloc(), m_dev, m_phy_dev, param);
         auto [layout_insert_iter, layout_insert_success] =
             m_pipeline_layouts.emplace(param,
                 std::make_pair(std::move(layout), m_gc_timer.current_count()));

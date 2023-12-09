@@ -48,12 +48,10 @@ inline size_t copy_vertex_data_from_gltf_buffer(tinygltf::Model const& model,
         gltf_accessor.normalized;
     COUST_PANIC_IF_NOT(is_float || is_ubyte || is_ushort,
         "Unknown component type: {}", gltf_accessor.componentType);
-
     size_t const element_component_count =
         (size_t) tinygltf::GetNumComponentsInType(
             (uint32_t) gltf_accessor.type);
     bool const is_rgb_color = is_color && element_component_count == 3;
-
     size_t const element_size = (size_t) tinygltf::GetComponentSizeInBytes(
                                     (uint32_t) gltf_accessor.componentType) *
                                 element_component_count;
@@ -62,8 +60,7 @@ inline size_t copy_vertex_data_from_gltf_buffer(tinygltf::Model const& model,
         (is_rgb_color ? gltf_accessor.count * 4 :
                         gltf_accessor.count * element_component_count);
     out_attrib_data.reserve(float_count_to_reserve);
-    size_t const ret = out_attrib_data.size();
-
+    size_t const inserted_vertex_begin = out_attrib_data.size();
     size_t const stride_size =
         gltf_bufview.byteStride == 0 ? element_size : gltf_bufview.byteStride;
     const void* begin = gltf_buf_data_begin;
@@ -85,14 +82,15 @@ inline size_t copy_vertex_data_from_gltf_buffer(tinygltf::Model const& model,
             out_attrib_data.push_back(1.0f);
         }
     }
-
-    COUST_ASSERT(
-        (out_attrib_data.size() - ret) % element_component_count == 0, "");
-    COUST_ASSERT((out_attrib_data.size() - ret) / element_component_count ==
+    COUST_ASSERT((out_attrib_data.size() - inserted_vertex_begin) %
+                         element_component_count ==
+                     0,
+        "");
+    COUST_ASSERT((out_attrib_data.size() - inserted_vertex_begin) /
+                         element_component_count ==
                      gltf_accessor.count,
         "");
-
-    return ret;
+    return inserted_vertex_begin;
 }
 WARNING_POP
 
@@ -117,23 +115,20 @@ inline std::pair<uint32_t, uint32_t> copy_index_data_from_gltf_buffer(
     COUST_PANIC_IF_NOT(
         is_sbyte || is_ubyte || is_sshort || is_ushort || is_sint || is_uint,
         "Unknown component type: {}", gltf_accessor.componentType);
-    size_t const ret = out_index_data.size();
+    size_t const inserted_index_begin = out_index_data.size();
     COUST_PANIC_IF_NOT(gltf_bufview.byteStride == 0,
         "Converter assumes the index data should be tightly stored");
-    size_t const element_component_count =
-        (size_t) tinygltf::GetNumComponentsInType(
-            (uint32_t) gltf_accessor.type);
+    COUST_PANIC_IF_NOT(gltf_accessor.type == TINYGLTF_TYPE_SCALAR,
+        "Index data should be scalar");
     size_t const element_size = (size_t) tinygltf::GetComponentSizeInBytes(
-                                    (uint32_t) gltf_accessor.componentType) *
-                                element_component_count;
+        (uint32_t) gltf_accessor.componentType);
     const void* const gltf_buf_data_begin = ptr_math::add(
         ptr_math::add(model.buffers[(size_t) gltf_bufview.buffer].data.data(),
             gltf_bufview.byteOffset),
         gltf_accessor.byteOffset);
     const void* const gltf_buf_data_end =
         ptr_math::add(gltf_buf_data_begin, element_size * gltf_accessor.count);
-    out_index_data.reserve(
-        out_index_data.size() + gltf_accessor.count * element_component_count);
+    out_index_data.reserve(out_index_data.size() + gltf_accessor.count);
     if (is_sbyte) {
         using source_type = int8_t;
         std::copy((const source_type*) gltf_buf_data_begin,
@@ -164,9 +159,13 @@ inline std::pair<uint32_t, uint32_t> copy_index_data_from_gltf_buffer(
             (const uint32_t*) gltf_buf_data_end,
             std::back_inserter(out_index_data));
     }
-    COUST_ASSERT((out_index_data.size() - ret) == gltf_accessor.count, "");
-    COUST_PANIC_IF(ret > std::numeric_limits<uint32_t>::max(), "");
-    return std::make_pair((uint32_t) ret, (uint32_t) gltf_accessor.count);
+    COUST_ASSERT(
+        (out_index_data.size() - inserted_index_begin) == gltf_accessor.count,
+        "");
+    COUST_PANIC_IF(
+        inserted_index_begin > std::numeric_limits<uint32_t>::max(), "");
+    return std::make_pair(
+        (uint32_t) inserted_index_begin, (uint32_t) gltf_accessor.count);
 }
 
 }  // namespace detail
@@ -206,7 +205,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                     mesh_aggregate.index_buffer);
             for (auto const& [gltf_attrib_name, gltf_accessor_idx] :
                 gltf_primitive.attributes) {
-                auto [is_needed, attrib_idx] =
+                auto const [is_needed, attrib_idx] =
                     to_vertex_attrib(gltf_attrib_name);
                 if (!is_needed)
                     continue;
@@ -216,8 +215,7 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                     detail::copy_vertex_data_from_gltf_buffer(model,
                         (size_t) gltf_accessor_idx, destination, is_color);
                 primitive.attrib_offset[attrib_idx] = (uint32_t) cur_attrib_idx;
-                if (!is_color && attrib_idx == VertexAttrib::position) {
-                    static_assert(sizeof(glm::vec3) == 3 * sizeof(float));
+                if (attrib_idx == VertexAttrib::position) {
                     const glm::vec3* const begin =
                         (glm::vec3*) &destination[cur_attrib_idx];
                     const glm::vec3* const end =

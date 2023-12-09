@@ -38,10 +38,9 @@ void main() {
     uint index = indices_buf[gl_VertexIndex];
     AttribOffsetArray offsets = attrib_offsets_buf[gl_InstanceIndex];
     vec4 pos = vec4(
-        positions_buf[POS_STRIDE * (offsets.position_offset + index) + 0],
-        positions_buf[POS_STRIDE * (offsets.position_offset + index) + 1],
-        positions_buf[POS_STRIDE * (offsets.position_offset + index) + 2], 1.0);
+        positions_buf[offsets.position_offset + POS_STRIDE * index + 0],
+        positions_buf[offsets.position_offset + POS_STRIDE * index + 1],
+        positions_buf[offsets.position_offset + POS_STRIDE * index + 2], 1.0);
     pos = proj_view_mat * matrices[mat_idx] * pos;
-    // pos = matrices[mat_idx] * pos;
     gl_Position = pos;
 }

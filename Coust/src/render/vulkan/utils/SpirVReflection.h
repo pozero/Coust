@@ -4,11 +4,6 @@
 #include "utils/allocators/StlContainer.h"
 #include "core/Memory.h"
 
-WARNING_PUSH
-DISABLE_ALL_WARNING
-#include "spirv_cross/spirv_glsl.hpp"
-WARNING_POP
-
 namespace coust {
 namespace render {
 
@@ -46,9 +41,9 @@ enum class ShaderResourceBaseType {
 // These shader resource update mode can't be configured in shader module class,
 // their modification is deferred until the cosntruction of pipeline layout
 enum class ShaderResourceUpdateMode {
-    stat,
-    dyna,
-    // TODO: Add support to VK_EXT_descriptor_indexing
+    static_update,
+    dynamic_update,
+    update_after_bind,
 };
 
 // TODO: didn't find an easy way to serialize shder resource member yet, disable

@@ -57,7 +57,8 @@ public:
     VkDescriptorSetLayout get_handle() const noexcept;
 
 public:
-    VulkanDescriptorSetLayout(VkDevice dev, uint32_t set,
+    VulkanDescriptorSetLayout(VkDevice dev, VkPhysicalDevice phy_dev,
+        uint32_t set,
         std::span<const VulkanShaderModule *const> shader_modules) noexcept;
 
     VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&other) noexcept;
@@ -69,6 +70,8 @@ public:
     uint32_t get_set() const noexcept;
 
     size_t get_hash() const noexcept;
+
+    VkDescriptorPoolCreateFlags get_required_pool_flags() const noexcept;
 
 private:
     VkDevice m_dev = VK_NULL_HANDLE;
@@ -82,7 +85,7 @@ private:
 
     size_t m_hash = 0;
 
-    // VkDescriptorPoolCreateFlags m_required_pool_flags = 0;
+    VkDescriptorPoolCreateFlags m_required_pool_flags = 0;
 
 public:
     auto get_bindings() const noexcept -> decltype(m_idx_to_binding) const &;

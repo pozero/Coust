@@ -5,6 +5,7 @@
 WARNING_PUSH
 DISABLE_ALL_WARNING
 #include "volk.h"
+#include "spirv_cross/spirv_glsl.hpp"
 WARNING_POP
 
 namespace coust {

@@ -33,7 +33,8 @@ public:
     };
 
 public:
-    VulkanPipelineLayout(VkDevice dev, Param const &param) noexcept;
+    VulkanPipelineLayout(
+        VkDevice dev, VkPhysicalDevice phy_dev, Param const &param) noexcept;
 
     VulkanPipelineLayout(VulkanPipelineLayout &&other) noexcept;
 
