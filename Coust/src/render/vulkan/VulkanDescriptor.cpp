@@ -56,8 +56,8 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev,
     VkPhysicalDevice phy_dev, uint32_t set,
     std::span<const VulkanShaderModule *const> shader_modules) noexcept
     : m_dev(dev), m_set(set) {
-    static VkPhysicalDeviceDescriptorIndexingProperties desc_indexing_props =
-        std::invoke([phy_dev] {
+    static VkPhysicalDeviceDescriptorIndexingProperties const
+        desc_indexing_props = std::invoke([phy_dev] {
             VkPhysicalDeviceDescriptorIndexingProperties ret{
                 .sType =
                     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES,
@@ -111,6 +111,9 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice dev,
                 m_required_pool_flags =
                     VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
                 binding_flags.push_back(update_after_bind_flags);
+                COUST_ASSERT(res.type == ShaderResourceType::image_sampler,
+                    "Didn't support descriptor indexing for type {}.",
+                    (int) res.type);
                 binding.descriptorCount =
                     desc_indexing_props
                         .maxDescriptorSetUpdateAfterBindSampledImages;

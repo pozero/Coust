@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "render/vulkan/VulkanTransformation.h"
+#include "utils/Span.h"
 
 namespace coust {
 namespace render {
@@ -40,9 +41,7 @@ VulkanTransformationBuffer::VulkanTransformationBuffer(VkDevice dev,
           mesh_aggregate.nodes.size(), glm::mat4{1.0f}, get_default_alloc()),
       m_node_count((uint32_t) mesh_aggregate.nodes.size()) {
     m_mat_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) mesh_aggregate.transformations.data(),
-            m_mat_buf.get_size()});
+        to_span<const uint8_t>(mesh_aggregate.transformations));
     memory::vector<uint32_t, DefaultAlloc> mat_idx{get_default_alloc()};
     memory::vector<uint32_t, DefaultAlloc> idx_idx{get_default_alloc()};
     mat_idx.reserve(m_node_count);
@@ -54,12 +53,8 @@ VulkanTransformationBuffer::VulkanTransformationBuffer(VkDevice dev,
             node.transformation_indices.end(), std::back_inserter(mat_idx));
     }
     idx_idx.push_back((uint32_t) mat_idx.size());
-    m_mat_idx_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) mat_idx.data(), m_mat_idx_buf.get_size()});
-    m_idx_idx_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) idx_idx.data(), m_idx_idx_buf.get_size()});
+    m_mat_idx_buf.update(stage_pool, cmdbuf, to_span<const uint8_t>(mat_idx));
+    m_idx_idx_buf.update(stage_pool, cmdbuf, to_span<const uint8_t>(idx_idx));
 }
 
 void VulkanTransformationBuffer::update_transformation(
@@ -89,9 +84,8 @@ VulkanBuffer const& VulkanTransformationBuffer::get_result_matrices_buffer()
 
 VulkanBuffer const& VulkanTransformationBuffer::get_dyna_mat_buf(
     VulkanStagePool& stage_pool, VkCommandBuffer cmdbuf) noexcept {
-    m_dyna_mat_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) m_dyna_tran.data(), m_dyna_mat_buf.get_size()});
+    m_dyna_mat_buf.update(
+        stage_pool, cmdbuf, to_span<const uint8_t>(m_dyna_tran));
     return m_dyna_mat_buf;
 }
 

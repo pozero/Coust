@@ -64,6 +64,7 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/AlignedStorage.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/TimeStep.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/TimeStep.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/utils/Span.h
 
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/GrowthPolicy.h
         ${PROJECT_SOURCE_DIR}/Coust/src/utils/containers/RobinHash.h
@@ -141,6 +142,8 @@ target_sources(Coust
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanSampler.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanVertex.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanVertex.cpp
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanMaterial.h
+        ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanMaterial.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanTransformation.h
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanTransformation.cpp
         ${PROJECT_SOURCE_DIR}/Coust/src/render/vulkan/VulkanShaderPool.h

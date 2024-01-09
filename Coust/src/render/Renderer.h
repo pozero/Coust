@@ -44,6 +44,9 @@ private:
     memory::vector<VulkanTransformationBuffer, DefaultAlloc>
         m_transformation_bufes{get_default_alloc()};
 
+    memory::vector<VulkanMaterialBuffer, DefaultAlloc> m_material_bufes{
+        get_default_alloc()};
+
     memory::robin_map_nested<memory::string<DefaultAlloc>, uint32_t,
         DefaultAlloc>
         m_path_to_idx{get_default_alloc()};

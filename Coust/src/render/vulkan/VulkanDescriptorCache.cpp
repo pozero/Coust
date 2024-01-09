@@ -14,7 +14,7 @@ void VulkanDescriptorBuilder::gc() noexcept {
 }
 
 void VulkanDescriptorBuilder::bind_shaders(
-    std::span<const VulkanShaderModule*> modules) noexcept {
+    std::span<VulkanShaderModule*> modules) noexcept {
     m_related_shader_modules = modules;
 }
 
@@ -161,7 +161,7 @@ void VulkanDescriptorCache::gc() noexcept {
 }
 
 const VulkanPipelineLayout* VulkanDescriptorCache::get_pipeline_layout(
-    std::span<const VulkanShaderModule*> modules) noexcept {
+    std::span<VulkanShaderModule*> modules) noexcept {
     VulkanPipelineLayout::Param param{modules};
     auto iter = m_pipeline_layouts.find(param);
     if (iter != m_pipeline_layouts.end()) {

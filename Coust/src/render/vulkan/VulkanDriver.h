@@ -13,6 +13,7 @@
 #include "render/vulkan/VulkanSwapchain.h"
 #include "render/vulkan/VulkanVertex.h"
 #include "render/vulkan/VulkanTransformation.h"
+#include "render/vulkan/VulkanMaterial.h"
 
 WARNING_PUSH
 DISABLE_ALL_WARNING
@@ -61,6 +62,9 @@ public:
     VulkanTransformationBuffer create_transformation_buffer(
         MeshAggregate const& mesh_aggregate) noexcept;
 
+    VulkanMaterialBuffer create_material_buffer(
+        MeshAggregate const& mesh_aggregate) noexcept;
+
     VulkanImage create_image_single_queue(uint32_t width, uint32_t height,
         uint32_t levels, VkSampleCountFlagBits samples, VkFormat format,
         VulkanImage::Usage usage) noexcept;
@@ -101,6 +105,9 @@ public:
         VkShaderStageFlagBits vk_shader_stage,
         std::filesystem::path source_path) noexcept;
 
+    void set_update_mode(VkPipelineBindPoint bind_point, std::string_view name,
+        ShaderResourceUpdateMode update_mode) noexcept;
+
     void bind_buffer_whole(VkPipelineBindPoint bind_point,
         std::string_view name, VulkanBuffer const& buffer,
         uint32_t array_idx = 0) noexcept;
@@ -118,6 +125,7 @@ public:
 
     void draw(VulkanVertexIndexBuffer const& vertex_index_buf,
         VulkanTransformationBuffer const& transformation_buf,
+        VulkanMaterialBuffer const& material_buf,
         glm::mat4 const& proj_view_mat,
         VulkanGraphicsPipeline::RasterState const& raster_state,
         VkRect2D scissor) noexcept;

@@ -29,7 +29,7 @@ public:
     VkPipelineLayout get_handle() const noexcept;
 
     struct Param {
-        std::span<const VulkanShaderModule *> shader_modules;
+        std::span<VulkanShaderModule *> shader_modules;
     };
 
 public:

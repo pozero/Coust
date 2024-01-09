@@ -15,6 +15,8 @@ public:
     VulkanVertexIndexBuffer& operator=(VulkanVertexIndexBuffer const&) = delete;
 
 public:
+    static std::string_view constexpr VERTEX_BUF_NAME{"VERTEX"};
+
     static std::string_view constexpr INDEX_BUF_NAME{"INDEX"};
 
     static std::string_view constexpr ATTRIB_OFFSET_BUF_NAME{"ATTRIB_OFFSET"};
@@ -50,9 +52,6 @@ private:
 
     memory::vector<NodeInfo, DefaultAlloc> m_node_infos{get_default_alloc()};
 
-    memory::robin_map<VertexAttrib, VkDescriptorBufferInfo, DefaultAlloc>
-        m_attrib_info{get_default_alloc()};
-
     VulkanBuffer m_vertex_buf;
 
     VulkanBuffer m_index_buf;
@@ -60,9 +59,6 @@ private:
     VulkanBuffer m_draw_cmd_buf;
 
     VulkanBuffer m_attrib_offset_buf;
-
-public:
-    auto get_attrib_infos() const noexcept -> decltype(m_attrib_info) const&;
 };
 
 }  // namespace render

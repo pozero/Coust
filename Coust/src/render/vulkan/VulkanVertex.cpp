@@ -1,5 +1,7 @@
 #include "pch.h"
+
 #include "render/vulkan/VulkanVertex.h"
+#include "utils/Span.h"
 
 namespace coust {
 namespace render {
@@ -33,32 +35,10 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
           sizeof(Mesh::Primitive::attrib_offset) * m_primitive_count,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VulkanBuffer::Usage::gpu_only,
           related_queues) {
-    for (uint32_t i = 0; i < mesh_aggregate.attrib_bytes_offset.size(); ++i) {
-        if (((1 << i) & mesh_aggregate.valid_attrib_mask) == 0) {
-            continue;
-        }
-        size_t const attrib_offset_in_byte =
-            mesh_aggregate.attrib_bytes_offset[i];
-        size_t const range_in_byte =
-            i == mesh_aggregate.attrib_bytes_offset.size() - 1 ?
-                m_vertex_buf.get_size() - attrib_offset_in_byte :
-                mesh_aggregate.attrib_bytes_offset[i + 1] -
-                    attrib_offset_in_byte;
-        VkDescriptorBufferInfo info{
-            .buffer = m_vertex_buf.get_handle(),
-            .offset = attrib_offset_in_byte,
-            .range = range_in_byte,
-        };
-        m_attrib_info.emplace((VertexAttrib) i, info);
-    }
     m_vertex_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) mesh_aggregate.vertex_buffer.data(),
-            m_vertex_buf.get_size()});
+        to_span<const uint8_t>(mesh_aggregate.vertex_buffer));
     m_index_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) mesh_aggregate.index_buffer.data(),
-            m_index_buf.get_size()});
+        to_span<const uint8_t>(mesh_aggregate.index_buffer));
     size_t const primitive_cnt =
         MeshAggregate::get_primitve_count(mesh_aggregate);
     memory::vector<VkDrawIndirectCommand, DefaultAlloc> draw_cmds{
@@ -83,12 +63,10 @@ VulkanVertexIndexBuffer::VulkanVertexIndexBuffer(VkDevice dev,
             attrib_offsets.push_back(primitive.attrib_offset);
         }
     }
-    m_draw_cmd_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{
-            (const uint8_t*) draw_cmds.data(), m_draw_cmd_buf.get_size()});
-    m_attrib_offset_buf.update(stage_pool, cmdbuf,
-        std::span<const uint8_t>{(const uint8_t*) attrib_offsets.data(),
-            m_attrib_offset_buf.get_size()});
+    m_draw_cmd_buf.update(
+        stage_pool, cmdbuf, to_span<const uint8_t>(draw_cmds));
+    m_attrib_offset_buf.update(
+        stage_pool, cmdbuf, to_span<const uint8_t>(attrib_offsets));
     for (uint32_t i = 0; i < mesh_aggregate.nodes.size(); ++i) {
         uint32_t mesh_idx = mesh_aggregate.nodes[i].mesh_idx;
         if (mesh_idx != (uint32_t) -1) {
@@ -122,11 +100,6 @@ VulkanBuffer const& VulkanVertexIndexBuffer::get_attrib_offset_buf()
 std::span<VulkanVertexIndexBuffer::NodeInfo const>
     VulkanVertexIndexBuffer::get_node_infos() const noexcept {
     return m_node_infos;
-}
-
-auto VulkanVertexIndexBuffer::get_attrib_infos() const noexcept
-    -> decltype(m_attrib_info) const& {
-    return m_attrib_info;
 }
 
 }  // namespace render

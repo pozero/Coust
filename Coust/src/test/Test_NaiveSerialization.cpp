@@ -210,6 +210,19 @@ TEST_CASE(
             file::from_byte_array<std::vector<Monster>>(byte_array);
         CHECK(std::ranges::equal(monsters, from_byte));
     }
+
+    SUBCASE("Nested vector") {
+        std::vector<std::vector<float>> nested{};
+        for (int i = 0; i < 30; ++i) {
+            nested.push_back({});
+            for (int j = 0; j < 30; ++j) {
+                nested.back().push_back((float) i * 30.0f + (float) j);
+            }
+        }
+        auto byte_array = file::to_byte_array(nested);
+        auto from_byte = file::from_byte_array<decltype(nested)>(byte_array);
+        CHECK(std::ranges::equal(nested, from_byte));
+    }
 }
 
 TEST_CASE("[Coust] [utils] [filesystem] Naive Serialization for Bounding Box" *

@@ -12,7 +12,7 @@ void VulkanShaderPool::reset() noexcept {
     m_shader_modules.clear();
 }
 
-const VulkanShaderModule *VulkanShaderPool::get_shader(
+VulkanShaderModule *VulkanShaderPool::get_shader(
     VulkanShaderModule::Param const &param) noexcept {
     auto iter = m_shader_modules.find(param);
     if (iter != m_shader_modules.end()) {

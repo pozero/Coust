@@ -56,6 +56,7 @@ Renderer::~Renderer() noexcept {
     m_vk_driver.get().wait();
     m_vertex_index_bufes.clear();
     m_transformation_bufes.clear();
+    m_material_bufes.clear();
     m_vk_driver.destroy();
 }
 
@@ -83,6 +84,8 @@ void Renderer::prepare(std::filesystem::path transformation_comp_shader_path,
             m_vk_driver.get().create_vertex_index_buffer(m_gltfes.back()));
         m_transformation_bufes.push_back(
             m_vk_driver.get().create_transformation_buffer(m_gltfes.back()));
+        m_material_bufes.push_back(
+            m_vk_driver.get().create_material_buffer(m_gltfes.back()));
         m_cur_idx = (uint32_t) m_gltfes.size() - 1;
         m_path_to_idx.emplace(
             memory::string<DefaultAlloc>{
@@ -111,6 +114,7 @@ void Renderer::render() noexcept {
         m_vertex_index_bufes[m_cur_idx];
     VulkanTransformationBuffer const& trans_buf =
         m_transformation_bufes[m_cur_idx];
+    VulkanMaterialBuffer const& material_buf = m_material_bufes[m_cur_idx];
     VkClearValue clear_val{
         .color = {.float32 = {0.7f, 0.7f, 0.7f, 1.0f}},
     };
@@ -118,11 +122,11 @@ void Renderer::render() noexcept {
         AttachmentFlagBits::COLOR0, 0, 0, 0, clear_val);
     VulkanGraphicsPipeline::RasterState raster_state{};
     raster_state.front_face = VK_FRONT_FACE_CLOCKWISE;
-    raster_state.polygon_mode = VK_POLYGON_MODE_LINE;
+    // raster_state.polygon_mode = VK_POLYGON_MODE_LINE;
     glm::mat4 proj_view_mat =
         m_camera.get_proj_matrix() * m_camera.get_view_matrix();
-    m_vk_driver.get().draw(
-        vertex_index_buf, trans_buf, proj_view_mat, raster_state, {});
+    m_vk_driver.get().draw(vertex_index_buf, trans_buf, material_buf,
+        proj_view_mat, raster_state, {});
     m_vk_driver.get().end_render_pass();
 }
 

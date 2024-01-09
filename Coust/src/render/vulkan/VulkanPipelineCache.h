@@ -67,6 +67,9 @@ public:
 
     void bind_graphics_pipeline(VkCommandBuffer cmdbuf) noexcept;
 
+    memory::vector<VulkanShaderModule *, DefaultAlloc> &
+        get_cur_shader_modules() noexcept;
+
 private:
     VulkanShaderPool &m_shader_pool;
 
@@ -78,8 +81,8 @@ private:
 
     VulkanDescriptorBuilder m_descriptor_builder;
 
-    memory::vector<const VulkanShaderModule *, DefaultAlloc>
-        m_cur_shader_modules{get_default_alloc()};
+    memory::vector<VulkanShaderModule *, DefaultAlloc> m_cur_shader_modules{
+        get_default_alloc()};
 
     const VulkanPipelineLayout *m_cur_pipeline_layout = nullptr;
 
@@ -141,7 +144,7 @@ private:
 
     VulkanDescriptorBuilder m_descriptor_builder;
 
-    const VulkanShaderModule *m_cur_shader_module = nullptr;
+    VulkanShaderModule *m_cur_shader_module = nullptr;
 
     const VulkanPipelineLayout *m_cur_pipeline_layout = nullptr;
 

@@ -21,7 +21,7 @@ public:
 
     void reset() noexcept;
 
-    const VulkanShaderModule *get_shader(
+    VulkanShaderModule *get_shader(
         VulkanShaderModule::Param const &param) noexcept;
 
 private:

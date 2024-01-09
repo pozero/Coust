@@ -22,7 +22,7 @@ public:
 
     void gc() noexcept;
 
-    void bind_shaders(std::span<const VulkanShaderModule*> modules) noexcept;
+    void bind_shaders(std::span<VulkanShaderModule*> modules) noexcept;
 
     void fill_requirements(
         std::span<VulkanDescriptorSetAllocator> allocators) noexcept;
@@ -43,7 +43,7 @@ private:
     memory::vector<VulkanDescriptorSet::Param, DefaultAlloc>
         m_descriptor_set_requirements{get_default_alloc()};
 
-    std::span<const VulkanShaderModule*> m_related_shader_modules{};
+    std::span<VulkanShaderModule*> m_related_shader_modules{};
 };
 
 class VulkanDescriptorCache {
@@ -62,7 +62,7 @@ public:
     void gc() noexcept;
 
     const VulkanPipelineLayout* get_pipeline_layout(
-        std::span<const VulkanShaderModule*> modules) noexcept;
+        std::span<VulkanShaderModule*> modules) noexcept;
 
     std::span<VulkanDescriptorSetAllocator> get_allocator(
         const VulkanPipelineLayout* layout) noexcept;

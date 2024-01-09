@@ -551,6 +551,13 @@ VulkanTransformationBuffer VulkanDriver::create_transformation_buffer(
         mesh_aggregate};
 }
 
+VulkanMaterialBuffer VulkanDriver::create_material_buffer(
+    MeshAggregate const& mesh_aggregate) noexcept {
+    return VulkanMaterialBuffer{m_dev, m_vma_alloc,
+        m_graphics_cmdbuf_cache.get().get(), m_stage_pool.get(),
+        mesh_aggregate};
+}
+
 VulkanImage VulkanDriver::create_image_single_queue(uint32_t width,
     uint32_t height, uint32_t levels, VkSampleCountFlagBits samples,
     VkFormat format, VulkanImage::Usage usage) noexcept {
@@ -800,6 +807,17 @@ void VulkanDriver::bind_shader(VkPipelineBindPoint bind_point,
     }
 }
 
+void VulkanDriver::set_update_mode(VkPipelineBindPoint bind_point,
+    std::string_view name, ShaderResourceUpdateMode update_mode) noexcept {
+    if (bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS &&
+        update_mode == ShaderResourceUpdateMode::update_after_bind) {
+        for (auto& module :
+            m_graphics_pipeline_cache.get().get_cur_shader_modules()) {
+            module->set_update_after_bind_image(name);
+        }
+    }
+}
+
 void VulkanDriver::bind_buffer_whole(VkPipelineBindPoint bind_point,
     std::string_view name, VulkanBuffer const& buffer,
     uint32_t array_idx) noexcept {
@@ -881,18 +899,16 @@ void VulkanDriver::calculate_transformation(
 
 void VulkanDriver::draw(VulkanVertexIndexBuffer const& vertex_index_buf,
     VulkanTransformationBuffer const& transformation_buf,
-    glm::mat4 const& proj_view_mat,
+    VulkanMaterialBuffer const& material_buf, glm::mat4 const& proj_view_mat,
     VulkanGraphicsPipeline::RasterState const& raster_state,
     VkRect2D scissor) noexcept {
     VkCommandBuffer cmdbuf = m_graphics_cmdbuf_cache.get().get();
     m_graphics_pipeline_cache.get().bind_pipeline_layout();
     m_graphics_pipeline_cache.get().bind_raster_state(raster_state);
-    for (auto const& [attrib, buf_info] : vertex_index_buf.get_attrib_infos()) {
-        std::string_view const name = to_string_view(attrib);
-        m_graphics_pipeline_cache.get().bind_buffer(name,
-            vertex_index_buf.get_vertex_buf(), buf_info.offset, buf_info.range,
-            0, true);
-    }
+    m_graphics_pipeline_cache.get().bind_buffer(
+        VulkanVertexIndexBuffer::VERTEX_BUF_NAME,
+        vertex_index_buf.get_vertex_buf(), 0,
+        vertex_index_buf.get_vertex_buf().get_size(), 0, false);
     m_graphics_pipeline_cache.get().bind_buffer(
         VulkanVertexIndexBuffer::INDEX_BUF_NAME,
         vertex_index_buf.get_index_buf(), 0,
@@ -905,6 +921,14 @@ void VulkanDriver::draw(VulkanVertexIndexBuffer const& vertex_index_buf,
     m_graphics_pipeline_cache.get().bind_buffer(
         VulkanTransformationBuffer::RES_MAT_NAME, tbuf, 0, tbuf.get_size(), 0,
         false);
+    m_graphics_pipeline_cache.get().bind_buffer(
+        VulkanMaterialBuffer::MATERIAL_INDEX_NAME,
+        material_buf.get_material_index_buf(), 0,
+        material_buf.get_material_index_buf().get_size(), 0, false);
+    m_graphics_pipeline_cache.get().bind_buffer(
+        VulkanMaterialBuffer::MATERIAL_NAME, material_buf.get_material_buf(), 0,
+        material_buf.get_material_buf().get_size(), 0, false);
+
     m_graphics_pipeline_cache.get().bind_descriptor_set(cmdbuf);
     if (scissor.extent.width != 0 && scissor.extent.height != 0) {
         vkCmdSetScissor(cmdbuf, 0, 1, &scissor);

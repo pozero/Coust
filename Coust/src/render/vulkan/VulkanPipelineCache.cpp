@@ -112,7 +112,7 @@ void VulkanGraphicsPipelineCache::push_constant(VkCommandBuffer cmdbuf,
 void VulkanGraphicsPipelineCache::bind_graphics_pipeline(
     VkCommandBuffer cmdBuf) noexcept {
     m_graphics_pipelines_requirement.shader_modules =
-        std::span<const VulkanShaderModule *>{
+        std::span<VulkanShaderModule *>{
             m_cur_shader_modules.data(), m_cur_shader_modules.size()};
     auto iter = m_graphics_pipelines.find(m_graphics_pipelines_requirement);
     if (iter != m_graphics_pipelines.end()) {
@@ -133,6 +133,11 @@ void VulkanGraphicsPipelineCache::bind_graphics_pipeline(
     }
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
         m_cur_graphics_pipeline->get_handle());
+}
+
+memory::vector<VulkanShaderModule *, DefaultAlloc> &
+    VulkanGraphicsPipelineCache::get_cur_shader_modules() noexcept {
+    return m_cur_shader_modules;
 }
 
 VulkanComputePipelineCache::VulkanComputePipelineCache(VkDevice dev,

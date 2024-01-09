@@ -17,6 +17,46 @@ namespace coust {
 namespace render {
 namespace detail {
 
+constexpr MagFilter convert_gltf_mag_filter(int gltf_mag) {
+    switch (gltf_mag) {
+        case TINYGLTF_TEXTURE_FILTER_NEAREST:
+            return MagFilter::nearest;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR:
+            return MagFilter::linear;
+    }
+    return MagFilter::linear;
+};
+
+constexpr MinFilter convert_gltf_min_filter(int gltf_min) {
+    switch (gltf_min) {
+        case TINYGLTF_TEXTURE_FILTER_NEAREST:
+            return MinFilter::nearest_nomipmap;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR:
+            return MinFilter::linear_nomipmap;
+        case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
+            return MinFilter::nearest_mipmap_nearest;
+        case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
+            return MinFilter::nearest_mipmap_linear;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
+            return MinFilter::linear_mipmap_nearest;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
+            return MinFilter::linear_mipmap_linear;
+    }
+    return MinFilter::linear_mipmap_linear;
+}
+
+constexpr VkSamplerAddressMode convert_gltf_wrap_mode(int gltf_wrap) {
+    switch (gltf_wrap) {
+        case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+            return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case TINYGLTF_TEXTURE_WRAP_REPEAT:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    }
+    return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+}
+
 WARNING_PUSH
 CLANG_DISABLE_WARNING("-Wunsafe-buffer-usage")
 CLANG_DISABLE_WARNING("-Wcast-align")
@@ -224,7 +264,9 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                     primitive.bounding_box = BoundingBox{points};
                 }
             }
-            // TODO: ignore material info for now
+            COUST_PANIC_IF(gltf_primitive.material < 0,
+                "Converter suppose the mesh should come with materials");
+            primitive.material_index = (uint32_t) gltf_primitive.material;
             return primitive;
         };
     WARNING_POP
@@ -238,6 +280,94 @@ MeshAggregate process_gltf(std::filesystem::path path) noexcept {
                 extract_vertex_attrib_data(gltf_primitive));
         }
         mesh_aggregate.meshes.push_back(std::move(mesh));
+    }
+
+    // material info
+    mesh_aggregate.material_aggregate.samplers.reserve(model.samplers.size());
+    for (auto const& gltf_sampler : model.samplers) {
+        Sampler sampler{
+            .mag = detail::convert_gltf_mag_filter(gltf_sampler.magFilter),
+            .min = detail::convert_gltf_min_filter(gltf_sampler.minFilter),
+            .mode_u = detail::convert_gltf_wrap_mode(gltf_sampler.wrapS),
+            .mode_v = detail::convert_gltf_wrap_mode(gltf_sampler.wrapT),
+        };
+        mesh_aggregate.material_aggregate.samplers.push_back(sampler);
+    }
+    mesh_aggregate.material_aggregate.images.reserve(model.images.size());
+    for (auto const& gltf_image : model.images) {
+        Image image{
+            .width = (uint32_t) gltf_image.width,
+            .height = (uint32_t) gltf_image.height,
+        };
+        bool const is_rgb = gltf_image.component == 3;
+        bool const is_ubyte =
+            gltf_image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+        bool const is_ushort =
+            gltf_image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+        bool const is_float =
+            gltf_image.pixel_type == TINYGLTF_COMPONENT_TYPE_FLOAT;
+        bool const is_double =
+            gltf_image.pixel_type == TINYGLTF_COMPONENT_TYPE_DOUBLE;
+        COUST_PANIC_IF_NOT(is_ubyte || is_ushort || is_float || is_double,
+            "Unsupported format {}", gltf_image.pixel_type);
+        size_t const stride_size =
+            (size_t) (gltf_image.bits / 8) * (size_t) gltf_image.component;
+        size_t const pixel_count =
+            (size_t) gltf_image.width * (size_t) gltf_image.height;
+        const void* begin = gltf_image.image.data();
+        const void* end = ptr_math::add(begin, stride_size);
+        for (size_t i = 0; i < pixel_count;
+             ++i, begin = end, end = ptr_math::add(end, stride_size)) {
+            if (is_ubyte) {
+                std::transform((const uint8_t*) begin, (const uint8_t*) end,
+                    std::back_inserter(image.data), ubyte_to_float);
+            } else if (is_ushort) {
+                std::transform((const uint16_t*) begin, (const uint16_t*) end,
+                    std::back_inserter(image.data), ushort_to_float);
+            } else if (is_float) {
+                std::copy((const float*) begin, (const float*) end,
+                    std::back_inserter(image.data));
+            } else /* is_double */ {
+                std::copy((const double*) begin, (const double*) end,
+                    std::back_inserter(image.data));
+            }
+            if (is_rgb) {
+                image.data.push_back(1.0f);
+            }
+        }
+        COUST_ASSERT(image.data.size() == pixel_count * 4, "");
+    }
+    mesh_aggregate.material_aggregate.textures.reserve(model.textures.size());
+    for (auto const& gltf_texture : model.textures) {
+        COUST_PANIC_IF(gltf_texture.source < 0,
+            "Empty source in glTF texture is undefined.");
+        COUST_PANIC_IF(gltf_texture.sampler < 0,
+            "Empty sampler in glTF texture is undefined.");
+        mesh_aggregate.material_aggregate.textures.push_back(Texture{
+            .sampler = (uint32_t) gltf_texture.sampler,
+            .image = (uint32_t) gltf_texture.source,
+        });
+    }
+    mesh_aggregate.material_aggregate.materials.reserve(model.materials.size());
+    for (auto const& gltf_material : model.materials) {
+        Material material{
+            .albedo_factor =
+                {
+                                (float)
+                                gltf_material.pbrMetallicRoughness.baseColorFactor[0],
+                                (float)
+                                gltf_material.pbrMetallicRoughness.baseColorFactor[1],
+                                (float)
+                                gltf_material.pbrMetallicRoughness.baseColorFactor[2],
+                                (float)
+                                gltf_material.pbrMetallicRoughness.baseColorFactor[3],
+                                },
+            .albedo_texture = (uint32_t) gltf_material.pbrMetallicRoughness
+                                  .baseColorTexture.index,
+            .albedo_texcoord = (uint32_t) gltf_material.pbrMetallicRoughness
+                                   .baseColorTexture.texCoord,
+        };
+        mesh_aggregate.material_aggregate.materials.push_back(material);
     }
 
     // pack different attributes data together
