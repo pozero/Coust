@@ -164,7 +164,7 @@ void VulkanBuffer::update(class VulkanStagePool& stagePool,
         staging_buf->flush();
         VkBufferCopy copyInfo{
             .srcOffset = 0,
-            .dstOffset = 0,
+            .dstOffset = (uint32_t) offset,
             .size = data.size(),
         };
         vkCmdCopyBuffer(
